@@ -5,9 +5,22 @@ This is a development test build, not an approved Plugin Hub release.
 
 Source repository: [Pa5cal1/runelite-loadout-studio](https://github.com/Pa5cal1/runelite-loadout-studio) (private test repository). GitHub publication is separate from Plugin Hub review.
 
+## Repository structure
+
+| Path | Contents |
+| --- | --- |
+| `src/main/java/com/loadoutstudio/` | RuneLite plugin source code |
+| `src/test/` | Automated tests, test launcher and test resources |
+| `docs/` | [Validation results and limitations](docs/VALIDATION.md) |
+| `scripts/` | Windows helper to launch the built test client |
+| `.github/workflows/` | GitHub Actions checks |
+| `gradle/wrapper/` | Gradle wrapper runtime and configuration |
+
+Build configuration, Gradle entry points, plugin metadata, license and agent guidance remain in the repository root. Run build commands from that root; the Windows launcher locates it relative to its own location.
+
 ## Start the local test
 
-1. Run `Launch-Test.bat` after building. It uses RuneLite's installed Java runtime when available.
+1. Run `scripts/Launch-Test.bat` after building. It uses RuneLite's installed Java runtime when available.
 2. Enable **Loadout Studio (Test)** in plugin configuration. Open its grid icon in the sidebar.
 3. The development launcher uses `test-home/.runelite`, separate from your normal RuneLite data. It does not migrate saved setups or login sessions.
 4. For Jagex Accounts, follow the official [development-client instructions](https://github.com/runelite/runelite/wiki/Using-Jagex-Accounts). Use the official authentication flow.
@@ -18,7 +31,7 @@ Use JDK 11 or newer and the included Gradle wrapper:
 
 ```powershell
 .\gradlew.bat test shadowJar jar --no-daemon
-.\Launch-Test.bat
+.\scripts\Launch-Test.bat
 ```
 
 Alternatively, with Docker Engine running, from the project directory:
