@@ -90,7 +90,7 @@ The exact Plugin Hub installation warning is prepared in [the submission manifes
 
 Full fuzzy gear comparison, ranked recommendation selection and authenticated cross-device storage are future work. This test uses RuneLite configuration and has no separate web account system. ConfigManager may synchronize according to RuneLite settings.
 
-Publish to an empty source repository after reviewing the diff. Do not commit `test-home`, build outputs, sessions or credentials. After manual acceptance, review current [Plugin Hub requirements](https://github.com/runelite/plugin-hub) and submit a source commit for review. A GitHub repository is separate from Plugin Hub submission.
+After manual acceptance, review current [Plugin Hub requirements](https://github.com/runelite/plugin-hub) and submit a source commit for review. A GitHub repository is separate from Plugin Hub submission.
 
 ## Bank implementation notes
 
