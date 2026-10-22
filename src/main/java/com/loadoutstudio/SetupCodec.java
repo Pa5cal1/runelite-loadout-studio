@@ -53,6 +53,7 @@ public final class SetupCodec
 	public static JsonObject setup(JsonObject p) { return p.getAsJsonObject("setup"); }
 	public static String name(JsonObject p) { return setup(p).get("name").getAsString(); }
 	public static int id(JsonElement e) { return e == null || e.isJsonNull() ? -1 : e.getAsJsonObject().get("id").getAsInt(); }
+	public static boolean unlimited(JsonElement e) { return e != null && e.isJsonObject() && e.getAsJsonObject().has("q") && !e.getAsJsonObject().get("q").isJsonNull() && e.getAsJsonObject().get("q").getAsInt() == 0; }
 	public static int quantity(JsonElement e)
 	{
 		if (e == null || e.isJsonNull()) return 0;
@@ -166,7 +167,7 @@ public final class SetupCodec
 		if (item.has("q"))
 		{
 			if (item.get("q").isJsonNull()) { if (complete) throw new IllegalArgumentException("Enter missing item quantities."); }
-			else { int q = integer(item.get("q")); if (q < 1 || (rune && q > 16000)) throw new IllegalArgumentException(rune ? "Rune pouch stacks must contain 1–16000 runes." : "Invalid item quantity."); }
+			else { int q = integer(item.get("q")); if (q < 0 || (rune && q > 16000)) throw new IllegalArgumentException(rune ? "Rune pouch stacks must contain 0–16000 runes (0 ignores quantity)." : "Invalid item quantity."); }
 		}
 		if (item.has("sc") && !Arrays.asList("None", "Standard", "Less_Than", "Greater_Than").contains(item.get("sc").getAsString())) throw new IllegalArgumentException("Invalid Stack comparison.");
 	}
@@ -177,7 +178,7 @@ public final class SetupCodec
 		JsonObject copy = portable.deepCopy(), s = setup(copy);
 		for (String key : Arrays.asList("inv", "eq", "rp", "qv", "bp")) if (s.has(key) && s.get(key).isJsonArray())
 		{
-			for (JsonElement item : s.getAsJsonArray(key)) cleanItem(item);
+			for (JsonElement item : s.getAsJsonArray(key)) { if (unlimited(item)) item.getAsJsonObject().addProperty("sc", "None"); cleanItem(item); }
 		}
 		if (s.has("afi")) for (Map.Entry<String, JsonElement> entry : s.getAsJsonObject("afi").entrySet()) cleanItem(entry.getValue());
 		for (String key : Arrays.asList("rp", "qv", "bp")) if (s.has(key) && s.get(key).isJsonArray())

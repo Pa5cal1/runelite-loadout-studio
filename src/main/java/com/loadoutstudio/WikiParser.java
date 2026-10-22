@@ -2,6 +2,7 @@
 package com.loadoutstudio;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import java.util.ArrayList;
@@ -59,9 +60,9 @@ public final class WikiParser
 		return text.replaceAll("(?s)<!--.*?-->", "").replaceAll("\\[\\[([^]|]+)\\|([^]]+)]]", "$2").replaceAll("\\[\\[([^]]+)]]", "$1").replaceAll("<[^>]+>", "").replace("'''", "").replace("''", "").replace("&amp;", "&").replace("&nbsp;", " ").trim();
 	}
 	private static boolean concrete(Node n) { return n.kind.equals("equipment") || n.kind.equals("inventory") || n.kind.equals("rune pouch"); }
-	private static JsonObject item(String value, String explicit, boolean quantityRequired)
+	private static JsonElement item(String value, String explicit, boolean quantityRequired)
 	{
-		if (value == null || value.trim().isEmpty() || value.trim().matches("(?i)none|empty|n/a|-")) return null;
+		if (value == null || value.trim().isEmpty() || value.trim().matches("(?i)none|empty|n/a|-")) return JsonNull.INSTANCE;
 		Matcher quantity = Pattern.compile("\\\\([0-9,]+)").matcher(value); String q = explicit;
 		if (quantity.find()) q = quantity.group(1); String names = value.split("\\\\", 2)[0]; String[] parts = names.split(";");
 		String name = plain(parts[0]); for (int i = 1; i < parts.length; i++) if (!parts[i].matches("[ng]") && !parts[i].trim().isEmpty()) { name = plain(parts[i]); break; }
@@ -78,12 +79,32 @@ public final class WikiParser
 			if (node.kind.equals("inventory")) for (int i = 0; i < 28; i++) s.getAsJsonArray("inv").set(i, item(node.fields.get(String.valueOf(i + 1)), null, false));
 			else if (node.kind.equals("equipment"))
 			{
-				for (int i = 0; i < 14; i++) if (!keys[i].isEmpty()) s.getAsJsonArray("eq").set(i, item(node.fields.get(keys[i]), node.fields.get(keys[i] + "quantity"), i == 13));
+				for (int i = 0; i < 14; i++) if (!keys[i].isEmpty()) s.getAsJsonArray("eq").set(i, item(equipmentField(node, keys[i]), node.fields.get(keys[i] + "quantity"), i == 13));
 				s.getAsJsonArray("qv").set(0, item(node.fields.get("ammo2"), node.fields.get("ammo2quantity"), true));
 			}
 			else if (node.kind.equals("rune pouch")) for (int i = 0; i < 4; i++) s.getAsJsonArray("rp").set(i, item(node.fields.get(String.valueOf(i + 1)), null, true));
 		}
 		SetupCodec.rebuildLayout(p); return p;
+	}
+	private static String equipmentField(Node node, String key)
+	{
+		if (node.fields.containsKey(key)) return node.fields.get(key);
+		String alias = key.equals("body") ? "torso" : key.equals("hands") ? "gloves" : key.equals("feet") ? "boots" : key;
+		return node.fields.get(alias);
+	}
+	private static String tabberVariant(String text, int offset, String fallback)
+	{
+		int start = text.lastIndexOf("<tabber", offset), closed = text.lastIndexOf("</tabber>", offset);
+		if (start < 0 || closed > start) return fallback;
+		Matcher labels = Pattern.compile("(?m)^([^\\r\\n|{}<>=]{1,100})=\\s*$").matcher(text.substring(start, offset));
+		String label = fallback; while (labels.find()) label = plain(labels.group(1));
+		return label;
+	}
+	public static String variant(JsonObject preset)
+	{
+		String notes = SetupCodec.setup(preset).get("notes").getAsString();
+		for (String line : notes.split("\\R")) if (line.startsWith("Preset: ")) return line.substring(8);
+		return SetupCodec.name(preset);
 	}
 	public List<JsonObject> parse(String text, String pageTitle, String source)
 	{
@@ -123,8 +144,18 @@ public final class WikiParser
 			search = end;
 		}
 		List<Node> free = new ArrayList<>(); for (Node node : nodes(text)) if (concrete(node) && used.stream().noneMatch(range -> range[0] <= node.start && node.start < range[1])) free.add(node);
-		List<Node> invs = new ArrayList<>(), eqs = new ArrayList<>(), rps = new ArrayList<>(); for (Node n : free) { if (n.kind.equals("inventory")) invs.add(n); else if (n.kind.equals("equipment")) eqs.add(n); else rps.add(n); }
-		for (int i = 0; i < Math.max(invs.size(), eqs.size()); i++) { List<Node> group = new ArrayList<>(); if (i < invs.size()) group.add(invs.get(i)); if (i < eqs.size()) group.add(eqs.get(i)); if (i < rps.size()) group.add(rps.get(i)); result.add(fill(title, "Wiki preset " + (result.size() + 1), source, group)); }
+		List<Node> group = new ArrayList<>(); String variant = "";
+		for (Node node : free)
+		{
+			String nextVariant = tabberVariant(text, node.start, "");
+			if (!group.isEmpty() && (!variant.equals(nextVariant) || group.stream().anyMatch(n -> n.kind.equals(node.kind))))
+			{
+				if (group.stream().anyMatch(n -> n.kind.equals("inventory") || n.kind.equals("equipment"))) result.add(fill(title, variant.isEmpty() ? "Wiki preset " + (result.size() + 1) : variant, source, group));
+				group = new ArrayList<>();
+			}
+			variant = nextVariant; group.add(node);
+		}
+		if (group.stream().anyMatch(n -> n.kind.equals("inventory") || n.kind.equals("equipment"))) result.add(fill(title, variant.isEmpty() ? "Wiki preset " + (result.size() + 1) : variant, source, group));
 		if (result.size() > 100) throw new IllegalArgumentException("Too many presets on this page.");
 		if (result.isEmpty()) throw new IllegalArgumentException("No concrete Equipment/Inventory templates found. Ranked Recommended equipment tables are not expanded in this test version; use the Builder or import a setup.");
 		return result;

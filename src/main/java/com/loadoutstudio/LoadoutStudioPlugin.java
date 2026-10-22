@@ -5,14 +5,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.inject.Provides;
-import java.awt.Color;
-import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.swing.ImageIcon;
@@ -57,10 +52,12 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	@Inject private ClientThread clientThread;
 	@Inject private ClientToolbar toolbar;
 	@Inject private ItemManager itemManager;
+    @Inject private javax.inject.Provider<net.runelite.client.game.chatbox.ChatboxItemSearch> chatboxSearch;
+    @Inject private net.runelite.client.game.chatbox.ChatboxPanelManager chatbox;
+    private net.runelite.client.game.chatbox.ChatboxInput ownedChatbox;
 	@Inject private ConfigManager configManager;
 	@Inject private Gson gson;
 	@Inject private OkHttpClient http;
-	@Inject private LoadoutStudioConfig config;
 	@Inject private BankTagsService bankTags;
 	@Inject private TagManager tagManager;
 	@Inject private LayoutManager layoutManager;
@@ -72,7 +69,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	private volatile boolean active;
 	private boolean indexing;
 	private int nextItem;
-	private final Map<Integer, StudioPanel.ItemInfo> catalogue = new ConcurrentHashMap<>();
+	private final ItemCatalogue catalogue = new ItemCatalogue();
 	@Provides LoadoutStudioConfig provideConfig(ConfigManager manager) { return manager.getConfig(LoadoutStudioConfig.class); }
 
 	@Override protected void startUp()
@@ -91,6 +88,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 				if (!(bankTags instanceof BankTagsPlugin)) throw new IllegalStateException("The installed Bank Tags service does not support layout previews.");
 				((BankTagsPlugin) bankTags).openTag(tag, new Layout(tag, layout), BankTagsService.OPTION_HIDE_TAG_NAME | BankTagsService.OPTION_ITEMS_NOT_IN_LAYOUT_AT_BOTTOM);
 			}
+			public void title(String title) { net.runelite.api.widgets.Widget widget=client.getWidget(InterfaceID.Bankmain.TITLE); if(widget!=null) widget.setText(title); }
 			public void close() { bankTags.closeBankTag(); }
 			public void unregister(String tag) { tagManager.unregisterTag(tag); }
 			public void discardLayout(String tag) { layoutManager.removeLayout(tag); }
@@ -104,15 +102,13 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	}
 	@Override protected void shutDown()
 	{
-		active = false; if (wiki != null) wiki.close();
+		active = false; cancelItemInput(); if (wiki != null) wiki.close();
 		bankRevision.incrementAndGet(); StudioBankFilter previousFilter = bankFilter; bankFilter = null; clientThread.invoke(() -> { if (previousFilter != null) previousFilter.clear(); });
 		SwingUtilities.invokeLater(() -> { if (navigation != null) toolbar.removeNavigation(navigation); if (panel != null) panel.dispose(); panel = null; navigation = null; });
 		catalogue.clear(); indexing = false; nextItem = 0;
 	}
-	private static BufferedImage icon()
-	{
-		BufferedImage image = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB); Graphics2D g = image.createGraphics(); g.setColor(new Color(195, 163, 82)); g.fillRoundRect(1, 1, 30, 30, 5, 5); g.setColor(new Color(39, 38, 32)); for (int y = 7; y < 28; y += 7) for (int x = 6; x < 28; x += 7) g.fillRect(x, y, 5, 5); g.dispose(); return image;
-	}
+	private static BufferedImage icon() { return StudioBrandIcon.create(); }
+
 	@Subscribe public void onGameStateChanged(GameStateChanged event) { if (event.getGameState() == GameState.LOGGED_IN) indexItems(); else if (event.getGameState() == GameState.LOGIN_SCREEN) clearBankFilter(); }
 	@Subscribe(priority = -1) public void onScriptPreFired(ScriptPreFired event)
 	{
@@ -123,9 +119,9 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	}
 	@Subscribe(priority = -1) public void onScriptPostFired(ScriptPostFired event)
 	{
-		if (event.getScriptId() == ScriptID.BANKMAIN_FINISHBUILDING && bankFilter != null && bankFilter.waiting())
+		if (event.getScriptId() == ScriptID.BANKMAIN_FINISHBUILDING && bankFilter != null)
 		{
-			long revision = bankRevision.get(); clientThread.invokeLater(() -> { if (active && bankFilter != null && bankFilter.waiting() && revision == bankRevision.get()) try { reportBankStatus(bankFilter.apply()); } catch (RuntimeException ex) { bankFilter.clear(); reportBankStatus(ex.getMessage()); } });
+			long revision = bankRevision.get(); clientThread.invokeLater(() -> { if (active && bankFilter != null && revision == bankRevision.get()) try { if(bankFilter.waiting()) reportBankStatus(bankFilter.apply()); bankFilter.refreshTitle(); } catch (RuntimeException ex) { bankFilter.clear(); reportBankStatus(ex.getMessage()); } });
 		}
 	}
 	private void reportBankStatus(String message) { long revision = bankRevision.get(); SwingUtilities.invokeLater(() -> { if (active && panel != null && revision == bankRevision.get()) panel.bankMessage(message); }); }
@@ -146,6 +142,20 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 			String message = result; SwingUtilities.invokeLater(() -> { if (active && revision == bankRevision.get()) callback.accept(message); });
 		});
 	}
+    @Override public void chooseItem(Consumer<Integer> chosen,Consumer<String> error)
+    {
+        clientThread.invoke(()->{ if(!active) return; if(client.getGameState()!=GameState.LOGGED_IN) { SwingUtilities.invokeLater(()->error.accept("Log in to use the RuneLite chatbox Item Search.")); return; }
+            net.runelite.client.game.chatbox.ChatboxItemSearch input=chatboxSearch.get(); ownedChatbox=input; input.tooltipText("Set slot to").onItemSelected(id->SwingUtilities.invokeLater(()->{if(active)chosen.accept(id);})).build();
+        });
+    }
+    @Override public void enterQuantity(String initial,Consumer<String> chosen,Consumer<String> error)
+    {
+        clientThread.invoke(()->{ if(!active) return; if(client.getGameState()!=GameState.LOGGED_IN) { SwingUtilities.invokeLater(()->error.accept("Log in to enter a quantity in the RuneLite chatbox.")); return; }
+            net.runelite.client.game.chatbox.ChatboxTextInput input=chatbox.openTextInput("Enter amount (16k = 16000; 0 = unlimited)").value(initial).onDone((Consumer<String>)(value->SwingUtilities.invokeLater(()->{if(active)chosen.accept(value);}))); ownedChatbox=input; input.build();
+        });
+    }
+    @Override public void cancelItemInput() { clientThread.invoke(()->{if(ownedChatbox!=null && chatbox.getCurrentInput()==ownedChatbox) chatbox.close(); ownedChatbox=null;}); }
+	@Override public void openSupportPage() { net.runelite.client.util.LinkBrowser.browse(StudioPanel.COFFEE_URL); }
 	@Override public String scope() { return configManager.getRSProfileKey(); }
 	@Override public String read(String scope) { return configManager.getConfiguration(LoadoutStudioConfig.GROUP, scope, "library-v1"); }
 	@Override public void save(String scope, String text)
@@ -153,42 +163,48 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 		if (!java.util.Objects.equals(scope, scope())) throw new IllegalStateException("Profile changed. Reopen the setup before saving.");
 		configManager.setConfiguration(LoadoutStudioConfig.GROUP, scope, "library-v1", text);
 	}
-	@Override public boolean wikiEnabled() { return config.wikiRequests(); }
-	@Override public void enableWiki(boolean enabled) { configManager.setConfiguration(LoadoutStudioConfig.GROUP, "wikiRequests", enabled); }
 	@Override public void fetchWiki(String url, java.util.function.BiConsumer<String, String> callback)
 	{
-		if (!wikiEnabled()) { callback.accept(null, "Enable OSRS Wiki requests first."); return; }
 		wiki.fetch(url, (text, error) -> SwingUtilities.invokeLater(() -> { if (active) callback.accept(text, error); }));
 	}
-	@Override public List<StudioPanel.ItemInfo> search(String query)
+	@Override public void fetchWikiPage(String url, boolean preferStrategies, java.util.function.BiConsumer<WikiClient.Page, String> callback)
 	{
-		String[] words = query.toLowerCase(Locale.ROOT).trim().split("\\s+");
-		List<StudioPanel.ItemInfo> result = new ArrayList<>();
-		for (StudioPanel.ItemInfo item : catalogue.values())
+		wiki.fetchPage(url, preferStrategies, (page, error) -> SwingUtilities.invokeLater(() -> { if (active) callback.accept(page, error); }));
+	}
+	@Override public List<StudioPanel.ItemInfo> search(String query) { return catalogue.search(query); }
+	@Override public StudioPanel.ItemInfo exactItem(String name) { return catalogue.exact(name); }
+	@Override public void whenItemsReady(Consumer<String> callback)
+	{
+		clientThread.invokeLater(() ->
 		{
-			boolean match = true; for (String word : words) if (!item.name.toLowerCase(Locale.ROOT).contains(word) && !String.valueOf(item.id).equals(word)) match = false;
-			if (match) result.add(item);
-		}
-		result.sort(java.util.Comparator.comparing((StudioPanel.ItemInfo i) -> i.name).thenComparingInt(i -> i.id));
-		return result.subList(0, Math.min(100, result.size()));
+			if (!active) return true;
+			if (client.getItemCount() < 1)
+			{
+				SwingUtilities.invokeLater(() -> { if (active) callback.accept("Game items are not available yet. Wait for the login screen, then choose the setup again."); });
+				return true;
+			}
+			indexItems();
+			if (indexing) return false;
+			SwingUtilities.invokeLater(() -> { if (active) callback.accept(null); });
+			return true;
+		});
 	}
 	@Override public void searchWiki(String query, java.util.function.BiConsumer<List<String>, String> callback)
 	{
-		if (!wikiEnabled()) { callback.accept(null, "Enable OSRS Wiki requests first."); return; }
 		wiki.search(query, (titles, error) -> SwingUtilities.invokeLater(() -> { if (active) callback.accept(titles, error); }));
 	}
 	@Override public String catalogueStatus() { return catalogue.size() + " cached items" + (indexing ? " · indexing…" : catalogue.isEmpty() ? " · log in to load game items" : ""); }
 	private void indexItems()
 	{
-		if (!active || indexing || client.getItemCount() < 1) return; indexing = true;
+		if (!active || indexing || client.getItemCount() < 1 || nextItem >= client.getItemCount()) return; indexing = true;
 		clientThread.invokeLater(() ->
 		{
 			if (!active) { indexing = false; return true; }
 			int limit = Math.min(client.getItemCount(), nextItem + 150);
 			for (; nextItem < limit; nextItem++)
 			{
-				ItemComposition composition = itemManager.getItemComposition(nextItem); String name = composition.getName();
-				if (name != null && !name.isEmpty() && !name.equalsIgnoreCase("null") && composition.getPlaceholderTemplateId() == -1) catalogue.put(nextItem, new StudioPanel.ItemInfo(nextItem, name, composition.isStackable(), -1, null));
+				ItemComposition composition = itemManager.getItemComposition(nextItem);
+				catalogue.add(nextItem, composition.getMembersName(), composition.isStackable(), composition.getNote(), composition.getPlaceholderTemplateId());
 			}
 			if (nextItem < client.getItemCount()) return false; indexing = false; return true;
 		});
@@ -202,7 +218,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 			{
 				if (id < 1 || id >= client.getItemCount()) throw new IllegalArgumentException();
 				ItemComposition composition = itemManager.getItemComposition(id); ItemStats stats = itemManager.getItemStats(id); int slot = stats != null && stats.getEquipment() != null ? stats.getEquipment().getSlot() : -1;
-				result = new StudioPanel.ItemInfo(id, composition.getName(), composition.isStackable(), slot, new ImageIcon(itemManager.getImage(id)));
+				result = new StudioPanel.ItemInfo(id, composition.getMembersName(), composition.isStackable(), slot, new ImageIcon(itemManager.getImage(id)));
 			}
 			catch (RuntimeException ex) { result = new StudioPanel.ItemInfo(id, "Item " + id, true, -1, null); }
 			StudioPanel.ItemInfo item = result; SwingUtilities.invokeLater(() -> { if (active) callback.accept(item); });

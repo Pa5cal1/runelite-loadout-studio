@@ -20,6 +20,7 @@ public final class StudioBankFilter
 		int variation(int id);
 		void register(String tag, IntPredicate matches);
 		void open(String tag, int[] layout);
+        default void title(String title) { }
 		void close();
 		void unregister(String tag);
 		void discardLayout(String tag);
@@ -57,9 +58,13 @@ public final class StudioBankFilter
 		int[] layout = new int[last + 1]; java.util.Arrays.fill(layout, -1);
 		for (int i = 0; i <= last; i++) if (source.get(i).getAsInt() > 0 && matches.test(source.get(i).getAsInt())) layout[i] = gateway.canonicalize(source.get(i).getAsInt());
 		gateway.register(tag, matches); registered = true; gateway.open(tag, layout);
-		waiting = false;
+		waiting = false; refreshTitle();
 		return "Bank filtered: " + SetupCodec.name(selected) + ".";
 	}
+    public void refreshTitle()
+    {
+        if(selected!=null && gateway.bankOpen() && tag.equals(gateway.activeTag())) gateway.title("Loadout: " + SetupCodec.name(selected).replaceAll("<[^>]*>", ""));
+    }
 	public void clear()
 	{
 		selected = null;

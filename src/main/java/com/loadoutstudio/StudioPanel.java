@@ -9,7 +9,9 @@ import com.google.gson.JsonObject;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
@@ -36,7 +38,6 @@ import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
-import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
@@ -48,24 +49,41 @@ import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
+import javax.swing.Timer;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.ui.FontManager;
+import javax.swing.plaf.basic.BasicTabbedPaneUI;
 
 public final class StudioPanel extends PluginPanel
 {
+    static final String COFFEE_URL = "https://buymeacoffee.com/pascalvdbe9";
 	public interface Host
 	{
 		String scope();
+        default void openSupportPage() { }
+        default void chooseItem(Consumer<Integer> chosen, Consumer<String> error) { error.accept("Use the running RuneLite client for chatbox Item Search."); }
+        default void enterQuantity(String initial, Consumer<String> chosen, Consumer<String> error) { error.accept("Use the running RuneLite client for chatbox quantity input."); }
+        default void cancelItemInput() { }
 		String read(String scope);
 		void save(String scope, String text);
 		void capture(Consumer<JsonObject> success, Consumer<String> error);
 		void describe(int id, Consumer<ItemInfo> callback);
 		List<ItemInfo> search(String query);
+        default ItemInfo exactItem(String name)
+        {
+            ItemInfo match = null;
+            for (ItemInfo item : search(name)) if (item.name.equalsIgnoreCase(name.trim())) { if (match != null) return null; match = item; }
+            return match;
+        }
+        default void whenItemsReady(Consumer<String> callback) { callback.accept(null); }
 		String catalogueStatus();
-		boolean wikiEnabled();
-		void enableWiki(boolean enabled);
 		void fetchWiki(String url, BiConsumer<String, String> callback);
+		default void fetchWikiPage(String url, boolean preferStrategies, BiConsumer<WikiClient.Page, String> callback)
+		{
+			fetchWiki(url, (text, error) -> callback.accept(error == null ? new WikiClient.Page(WikiClient.title(url), text) : null, error));
+		}
 		void searchWiki(String query, BiConsumer<List<String>, String> callback);
 		void updateBankFilter(JsonObject portable, String scope, Consumer<String> callback);
 		void clearBankFilter();
@@ -80,14 +98,18 @@ public final class StudioPanel extends PluginPanel
 		public ItemInfo(int id, String name, boolean stackable, int slot, Icon icon) { this.id = id; this.name = name == null ? "Item " + id : name; this.stackable = stackable; this.slot = slot; this.icon = icon; }
 		@Override public String toString() { return name + "  [" + id + "]"; }
 	}
-	private static final Color GOLD = new Color(235, 190, 85), BG = new Color(37, 36, 32), SLOT = new Color(56, 52, 43), RED = new Color(195, 92, 72);
+	private static final Color GOLD = new Color(225, 166, 58), BG = new Color(37, 37, 37), CONTROL = new Color(29, 29, 29), OUTLINE = new Color(64, 64, 64), TEXT = new Color(224, 224, 224), MUTED = new Color(172, 172, 172), SLOT = new Color(29, 29, 29), RED = new Color(195, 92, 72);
+	private static final Font BODY_FONT = FontManager.getRunescapeFont(), ACTION_FONT = FontManager.getRunescapeBoldFont();
+	private JTextField wikiQuery;
+	private final List<JButton> navigation = new ArrayList<>();
 	private final Host host;
 	private final Gson gson;
 	private final SetupCodec codec;
 	private final JTabbedPane tabs = new JTabbedPane();
-	private final JPanel libraryRows = vertical(), builder = vertical();
+	private final JPanel libraryRows = vertical(), builder = vertical(), builderTools = vertical();
+	private final Set<String> expandedPanels = new HashSet<>();
 	private final JTextField search = new JTextField(), setupName = new JTextField();
-	private final JCheckBox favorites = new JCheckBox("Favorites only"), archived = new JCheckBox("Show archived"), favorite = new JCheckBox("Favorite"), ignoreAmmo = new JCheckBox("Ignore Ammo quantities");
+	private final JCheckBox favorites = new JCheckBox("Favorites"), archived = new JCheckBox("Archived"), favorite = new JCheckBox("Favorite"), ignoreAmmo = new JCheckBox("Ignore Ammo quantities");
 	private final JComboBox<String> spellbook = new JComboBox<>(new String[]{"Standard", "Ancient", "Lunar", "Arceuus", "None"});
 	private final JCheckBox filterBank = new JCheckBox("Filter Bank"), bottomToTop = new JCheckBox("Zigzag: bottom row first");
 	private final JComboBox<BankLayouts.Mode> bankLayout = new JComboBox<>(BankLayouts.Mode.values());
@@ -95,9 +117,17 @@ public final class StudioPanel extends PluginPanel
 	private BankLayouts.Mode editorLayout = BankLayouts.Mode.PRESET;
 	private boolean editorBottom;
 	private final JComboBox<String> section = new JComboBox<>(), format = new JComboBox<>(new String[]{"Inventory Setup JSON", "Bank Tag (RuneLite)", "Bank Tag Layouts"});
-	private final JTextArea notes = new JTextArea(4, 18), code = new JTextArea(9, 18), status = new JTextArea(3, 18);
+	private final JTextArea notes = new GrowingNotesArea(), code = new JTextArea(9, 18), status = new JTextArea(3, 18);
+	private JButton exportCopy, exportPreview;
 	private final JLabel scopeLabel = text(""), draftLabel = text("No setup open");
 	private final Map<Integer, ItemInfo> itemCache = new HashMap<>();
+    private final JTextField catalogueQuery = new JTextField();
+    private final DefaultListModel<ItemInfo> catalogueModel = new DefaultListModel<>();
+    private final JList<ItemInfo> catalogueList = new JList<>(catalogueModel);
+    private final Timer catalogueTimer = new Timer(180, e -> refreshCatalogue());
+    private final JLabel catalogueCount = text("Search English item names or IDs");
+    private String renderedSession;
+
 	private final Set<String> collapsed = new HashSet<>(), differences = new HashSet<>();
 	private final List<String> sectionIds = new ArrayList<>();
 	private SetupLibrary library = new SetupLibrary();
@@ -106,23 +136,55 @@ public final class StudioPanel extends PluginPanel
 	private String editorSection;
 	private boolean editorFavorite;
 	private boolean dirty, rendering, disposed, storageError;
+	private Timer wikiSuggestTimer, wikiPageTimer;
+	private long wikiSearchRevision, wikiPageRevision, wikiChoiceRevision;
+	private final JPanel wikiPresetRows = vertical();
+	private final JTextArea wikiPageStatus = new JTextArea("Choose a Wiki page to see its setups.", 2, 18);
 
 	public StudioPanel(Host host, Gson gson)
 	{
 		super(false); this.host = host; this.gson = gson; codec = new SetupCodec(gson);
 		setLayout(new BorderLayout(0, 6)); setBackground(BG); setBorder(BorderFactory.createEmptyBorder(8, 6, 8, 6)); setPreferredSize(new Dimension(240, 900));
-		tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
-		tabs.setFont(tabs.getFont().deriveFont(10f));
-		JPanel heading = vertical(); JLabel title = text("LOADOUT STUDIO · TEST"); title.setForeground(GOLD); heading.add(title); heading.add(scopeLabel); add(heading, BorderLayout.NORTH);
-		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", scroll(builder)); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		status.setEditable(false); status.setLineWrap(true); status.setWrapStyleWord(true); status.setBackground(BG); status.setForeground(GOLD); status.setBorder(BorderFactory.createEmptyBorder(5, 2, 2, 2)); add(status, BorderLayout.SOUTH);
-		watch(setupName, () -> { if (!rendering) { fieldsToDraft(); markDirty(); } }); reloadScope();
+		tabs.setFocusable(false); tabs.setUI(new BasicTabbedPaneUI()
+		{
+			@Override protected int calculateTabAreaHeight(int placement, int runs, int height) { return 0; }
+			@Override protected void paintTabArea(java.awt.Graphics g, int placement, int selected) { }
+			@Override protected void paintContentBorder(java.awt.Graphics g, int placement, int selected) { }
+			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
+		});
+		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
+		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.5.0-test - character-specific setup library");
+        JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
+        JPanel titleBar = new JPanel(new BorderLayout(3, 0)); titleBar.add(title, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
+		JPanel menu = new JPanel(new GridLayout(2, 2, 4, 4));
+		for (int i = 0; i < tabs.getTabCount(); i++)
+		{
+			final int index = i; JButton route = button(tabs.getTitleAt(i), () -> tabs.setSelectedIndex(index)); route.setName("nav:" + tabs.getTitleAt(i)); route.setPreferredSize(new Dimension(100, 34)); navigation.add(route); menu.add(route);
+		}
+		heading.add(menu); add(heading, BorderLayout.NORTH); tabs.addChangeListener(e -> { updateNavigation(); if (tabs.getSelectedIndex() == 0) search.requestFocusInWindow(); if (tabs.getSelectedIndex() == 2 && wikiQuery != null) wikiQuery.requestFocusInWindow(); if (tabs.getSelectedIndex() == 3 && draft != null) refreshCode(); });
+		status.setName("studioStatus"); status.setRows(2); status.setEditable(false); status.setLineWrap(true); status.setWrapStyleWord(true); status.setBorder(BorderFactory.createEmptyBorder(6, 2, 2, 2)); add(status, BorderLayout.SOUTH);
+		applyTheme(this); updateNavigation();
+        catalogueTimer.setRepeats(false); catalogueQuery.setName("catalogueSearch"); catalogueQuery.setToolTipText("Search English item names or Item IDs"); watch(catalogueQuery, () -> catalogueTimer.restart());
+        catalogueQuery.addActionListener(e -> refreshCatalogue()); catalogueList.setName("catalogueItems"); catalogueList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); catalogueList.setVisibleRowCount(4);
+        catalogueList.addListSelectionListener(e -> { ItemInfo item = catalogueList.getSelectedValue(); if (!e.getValueIsAdjusting() && item != null) host.describe(item.id, info -> { if (!disposed) itemCache.put(info.id, info); }); });
+        catalogueList.setTransferHandler(new TransferHandler()
+        {
+            @Override public int getSourceActions(javax.swing.JComponent c) { return COPY; }
+            @Override protected Transferable createTransferable(javax.swing.JComponent c) { String value = catalogueDragPayload(); return value == null ? null : new StringSelection(value); }
+        });
+        if (!java.awt.GraphicsEnvironment.isHeadless()) catalogueList.setDragEnabled(true);
+        catalogueList.addMouseListener(new java.awt.event.MouseAdapter() { @Override public void mouseClicked(MouseEvent e) { if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) addSelectedItem(); } });
+        getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(javax.swing.KeyStroke.getKeyStroke("control S"), "saveSetup");
+        getActionMap().put("saveSetup", new javax.swing.AbstractAction() { public void actionPerformed(java.awt.event.ActionEvent e) { saveDraft(false); } });
+        getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(javax.swing.KeyStroke.getKeyStroke("control F"), "findItems");
+        getActionMap().put("findItems", new javax.swing.AbstractAction() { public void actionPerformed(java.awt.event.ActionEvent e) { if (tabs.getSelectedIndex() == 0) search.requestFocusInWindow(); else if (tabs.getSelectedIndex() == 2) wikiQuery.requestFocusInWindow(); else if (draft != null) { tabs.setSelectedIndex(1); expandedPanels.add("Find items"); renderBuilder(); catalogueQuery.requestFocusInWindow(); } } });
+		watch(setupName, () -> { if (!rendering) { fieldsToDraft(); markDirty(); } }); reloadScope(); tabs.setSelectedIndex(0);
 		filterBank.addActionListener(e -> { if (!rendering) { fieldsToDraft(); markDirty(); syncBankFilter(); } });
 		bankLayout.addActionListener(e -> { if (!rendering && draft != null) { editorLayout = (BankLayouts.Mode) bankLayout.getSelectedItem(); rebuildDraftLayout(); markDirty(); renderBuilder(); } });
 		bottomToTop.addActionListener(e -> { if (!rendering && draft != null) { editorBottom = bottomToTop.isSelected(); if (editorLayout == BankLayouts.Mode.ZIGZAG) rebuildDraftLayout(); markDirty(); } });
 		bankStatus.setEditable(false); bankStatus.setLineWrap(true); bankStatus.setWrapStyleWord(true);
 	}
-	public void dispose() { disposed = true; }
+	public void dispose() { disposed = true; host.cancelItemInput(); catalogueTimer.stop(); if (wikiSuggestTimer != null) wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); wikiSearchRevision++; wikiPageRevision++; }
 	public void bankMessage(String value) { if (!disposed) bankStatus.setText(value == null ? "Bank filtering failed." : value); }
 	private void syncBankFilter()
 	{
@@ -135,11 +197,14 @@ public final class StudioPanel extends PluginPanel
 	}
 	private static final class Column extends JPanel implements javax.swing.Scrollable
 	{
-		Column() { setLayout(new BoxLayout(this, BoxLayout.Y_AXIS)); setAlignmentX(Component.LEFT_ALIGNMENT); }
+		Column() { setLayout(new BoxLayout(this, BoxLayout.Y_AXIS)); setAlignmentX(Component.LEFT_ALIGNMENT); setBackground(BG); }
 		@Override protected void addImpl(Component child, Object constraints, int index)
 		{
 			if (child instanceof javax.swing.JComponent) ((javax.swing.JComponent) child).setAlignmentX(Component.LEFT_ALIGNMENT);
-			if (child instanceof JTextField || child instanceof JComboBox) child.setMaximumSize(new Dimension(500, 28));
+			if (child instanceof JTextField || child instanceof JComboBox) { child.setPreferredSize(new Dimension(210, 30)); child.setMaximumSize(new Dimension(500, 30)); }
+			if (child instanceof javax.swing.AbstractButton || child instanceof JLabel) child.setMaximumSize(new Dimension(500, Math.max(26, child.getPreferredSize().height)));
+			if (child instanceof JPanel && !(child instanceof Column)) child.setMaximumSize(new Dimension(500, child.getPreferredSize().height));
+			if (getComponentCount() > 0) super.addImpl(javax.swing.Box.createVerticalStrut(5), null, -1);
 			super.addImpl(child, constraints, index);
 		}
 		@Override public Dimension getPreferredScrollableViewportSize() { return new Dimension(220, 600); }
@@ -149,20 +214,60 @@ public final class StudioPanel extends PluginPanel
 		@Override public int getScrollableBlockIncrement(java.awt.Rectangle r, int orientation, int direction) { return Math.max(18, r.height - 18); }
 	}
 	private static JPanel vertical() { return new Column(); }
-	private static JLabel text(String text) { JLabel label = new JLabel(text); label.putClientProperty("html.disable", true); label.setAlignmentX(Component.LEFT_ALIGNMENT); return label; }
-	private static JButton button(String label, Runnable action) { JButton button = new JButton(label); button.putClientProperty("html.disable", true); button.setMargin(new Insets(5, 6, 5, 6)); button.addActionListener(e -> action.run()); return button; }
+	private static JLabel text(String text) { JLabel label = new JLabel(text); label.putClientProperty("html.disable", true); label.setAlignmentX(Component.LEFT_ALIGNMENT); label.setFont(BODY_FONT); label.setForeground(TEXT); return label; }
+	private static void themeForm(Component component)
+	{
+		if (component instanceof JButton && "itemSlot".equals(component.getName())) return;
+		if (component instanceof JLabel) { component.setFont(BODY_FONT); }
+		else if (!(component instanceof Container) || component instanceof javax.swing.text.JTextComponent || component instanceof javax.swing.AbstractButton || component instanceof JComboBox || component instanceof JList) applyTheme(component);
+		else { component.setBackground(BG); for (Component child : ((Container) component).getComponents()) themeForm(child); }
+	}
+	private static JTextArea info(String value, int rows) { JTextArea area = new JTextArea(value, rows, 18); area.setEditable(false); area.setLineWrap(true); area.setWrapStyleWord(true); area.setMaximumSize(new Dimension(500, rows * 18 + 8)); return area; }
+	private static JPanel card(String title, Component... children) { JPanel p = vertical(); p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE), BorderFactory.createEmptyBorder(7, 7, 7, 7))); JLabel label = text(title); label.setName("sectionTitle"); label.setForeground(GOLD); p.add(label); for (Component child : children) p.add(child); return p; }
+	private JPanel disclosure(String title, Component content)
+	{
+		JPanel p = vertical(); content.setVisible(expandedPanels.contains(title)); JButton toggle = button((content.isVisible() ? "- " : "+ ") + title, () -> { });
+		toggle.addActionListener(e -> { boolean open = !content.isVisible(); content.setVisible(open); if (open) expandedPanels.add(title); else expandedPanels.remove(title); toggle.setText((open ? "- " : "+ ") + title); for (Container ancestor = p; ancestor != null; ancestor = ancestor.getParent()) { ancestor.invalidate(); if (ancestor == this) break; } p.revalidate(); }); p.add(toggle); p.add(content); return p;
+	}
+	private void updateNavigation() { for (int i = 0; i < navigation.size(); i++) { JButton b = navigation.get(i); boolean active = i == tabs.getSelectedIndex(); b.setForeground(active ? GOLD : TEXT); b.setBackground(active ? new Color(53, 48, 37) : CONTROL); b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 3, 0, 0, active ? GOLD : OUTLINE), BorderFactory.createEmptyBorder(5, 6, 5, 6))); } }
+	private static void applyTheme(Component component)
+	{
+		component.setFont(BODY_FONT); component.setForeground(TEXT); component.setBackground(BG);
+		if ("exportCode".equals(component.getName())) { component.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11)); component.setBackground(CONTROL); }
+		if (component instanceof javax.swing.AbstractButton) { javax.swing.AbstractButton b = (javax.swing.AbstractButton) component; b.setBackground(CONTROL); if (!(b instanceof JCheckBox)) { b.setFont(ACTION_FONT); b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE), BorderFactory.createEmptyBorder(5, 6, 5, 6))); b.setFocusPainted(true); } }
+        if (component instanceof JButton && component.getName() != null && component.getName().startsWith("library"))
+        {
+            ((JButton)component).setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE), BorderFactory.createEmptyBorder(2, 3, 2, 3)));
+            if (component.getName().startsWith("libraryOpen:")) component.setFont(BODY_FONT);
+        }
+        if (component instanceof JButton && "supportCoffee".equals(component.getName()))
+        {
+            component.setFont(FontManager.getRunescapeSmallFont());
+            ((JButton)component).setBorder(BorderFactory.createEmptyBorder(2, 3, 2, 3));
+        }
+		if (component instanceof JTextField || component instanceof JComboBox || component instanceof JList) component.setBackground(CONTROL);
+		if (component instanceof JTextField) ((JTextField) component).setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE), BorderFactory.createEmptyBorder(4, 5, 4, 5)));
+		if (component instanceof JScrollPane) ((JScrollPane) component).setBorder(BorderFactory.createLineBorder(OUTLINE));
+		if (component instanceof JList) { ((JList<?>) component).setSelectionBackground(new Color(62, 53, 35)); ((JList<?>) component).setSelectionForeground(GOLD); }
+		if (component instanceof JTextArea) { JTextArea a = (JTextArea) component; a.setForeground(a.isEditable() ? TEXT : MUTED); a.setBackground(a.isEditable() ? CONTROL : BG); }
+		if ("exportCode".equals(component.getName())) component.setBackground(CONTROL);
+		if (component instanceof JLabel && "sectionTitle".equals(component.getName())) { component.setForeground(GOLD); component.setFont(ACTION_FONT); }
+		if (component instanceof Container) for (Component child : ((Container) component).getComponents()) applyTheme(child);
+	}
+	private static JButton button(String label, Runnable action) { JButton button = new JButton(label); button.putClientProperty("html.disable", true); button.setFont(ACTION_FONT); button.setForeground(TEXT); button.setBackground(CONTROL); button.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE), BorderFactory.createEmptyBorder(5, 6, 5, 6))); button.setFocusPainted(true); button.setMargin(new Insets(5, 6, 5, 6)); button.addActionListener(e -> action.run()); return button; }
 	private static JPanel row(Component... children) { JPanel p = new JPanel(new GridLayout(0, Math.max(1, Math.min(2, children.length)), 3, 3)); p.setAlignmentX(Component.LEFT_ALIGNMENT); for (Component c : children) p.add(c); p.setMaximumSize(new Dimension(500, p.getPreferredSize().height)); return p; }
 	private static JScrollPane scroll(Component c) { JScrollPane pane = new JScrollPane(c); pane.setBorder(null); pane.getVerticalScrollBar().setUnitIncrement(18); pane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER); return pane; }
 	private static void watch(JTextField field, Runnable action) { field.getDocument().addDocumentListener(new DocumentListener() { public void insertUpdate(DocumentEvent e) { action.run(); } public void removeUpdate(DocumentEvent e) { action.run(); } public void changedUpdate(DocumentEvent e) { action.run(); } }); }
-	private void message(String value) { if (!disposed) status.setText(value == null ? "Operation failed." : value); }
-	private void attempt(Runnable action) { try { action.run(); } catch (RuntimeException e) { message(e.getMessage()); } }
+	private void message(String value) { if (!disposed) { status.setText(value == null ? "Could not complete this action." : value); status.setToolTipText(status.getText()); } }
+	private static String failureMessage(RuntimeException error) { String detail = error.getMessage(); return detail == null || detail.trim().isEmpty() ? "Could not complete this action (" + error.getClass().getSimpleName() + ")." : detail; }
+	private void attempt(Runnable action) { try { action.run(); } catch (RuntimeException e) { message(failureMessage(e)); } }
 	public void reloadScope()
 	{
-		host.clearBankFilter(); bankMessage("Bank filter off.");
-		if (disposed) return; scope = host.scope(); draft = null; editingId = null; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); code.setText(""); storageError = false;
+		host.cancelItemInput(); host.clearBankFilter(); bankMessage("Bank filter off.");
+		if (disposed) return; if (wikiSuggestTimer != null) wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); wikiSearchRevision++; wikiPageRevision++; wikiPresetRows.removeAll(); wikiPageStatus.setText("Choose a Wiki page to see its setups."); scope = host.scope(); draft = null; editingId = null; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); code.setText(""); storageError = false;
 		try { library = SetupLibrary.read(host.read(scope), gson); } catch (RuntimeException e) { library = new SetupLibrary(); storageError = true; message("Library could not be read. Existing data was not overwritten. Restore a backup before saving."); }
 		scopeLabel.setText(scope == null ? "Local guest library" : "Character-specific library"); renderLibrary(); renderBuilder();
-		if (!storageError) message("Test build: saves use this plugin's own RuneLite profile data. No automatic equipping or withdrawals.");
+		if (!storageError) message("Ready. Choose a saved setup, capture gear or search Wiki.");
 	}
 	private void commit(Consumer<SetupLibrary> change)
 	{
@@ -171,9 +276,26 @@ public final class StudioPanel extends PluginPanel
 	}
 	private JPanel libraryTab()
 	{
-		JPanel p = vertical(); p.add(row(button("New", () -> newDraft(SetupCodec.blank("New loadout"))), button("Capture gear", this::capture), button("Import", this::importDialog)));
-		p.add(row(button("Sections", this::manageSections), button("Backup", this::backup)));
-		search.setToolTipText("Search saved setup names"); p.add(search); p.add(row(favorites, archived)); watch(search, this::renderLibrary); favorites.addActionListener(e -> renderLibrary()); archived.addActionListener(e -> renderLibrary()); p.add(scroll(libraryRows)); return p;
+		JPanel p = new JPanel(new BorderLayout(0, 8)), controls = vertical();
+        JPanel toolbar = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 3, 0)); toolbar.setName("libraryToolbar");
+        toolbar.add(libraryTool("New setup", SidebarIcon.Kind.NEW, () -> newDraft(SetupCodec.blank("New loadout"))));
+        toolbar.add(libraryTool("Capture gear", SidebarIcon.Kind.CAPTURE, this::capture));
+        toolbar.add(libraryTool("Import setup", SidebarIcon.Kind.IMPORT, this::importDialog));
+        toolbar.add(libraryTool("Sections", SidebarIcon.Kind.SECTIONS, this::manageSections)); controls.add(toolbar);
+        JPanel searchBar = new JPanel(new BorderLayout(3, 0)); searchBar.setName("librarySearchBar");
+        JLabel searchIcon = text(""); searchIcon.setIcon(new SidebarIcon(SidebarIcon.Kind.SEARCH)); searchBar.add(searchIcon, BorderLayout.WEST);
+        search.setName("librarySearch"); search.setToolTipText("Search saved setups"); search.getAccessibleContext().setAccessibleName("Search saved setups"); searchBar.add(search, BorderLayout.CENTER);
+        searchBar.add(libraryTool("Clear search", SidebarIcon.Kind.CLEAR, () -> search.setText("")), BorderLayout.EAST); controls.add(searchBar); controls.add(row(favorites, archived));
+		favorites.setToolTipText("Show favorite setups only"); archived.setToolTipText("Show archived setups"); watch(search, this::renderLibrary); favorites.addActionListener(e -> renderLibrary()); archived.addActionListener(e -> renderLibrary());
+		p.add(controls, BorderLayout.NORTH); p.add(scroll(libraryRows), BorderLayout.CENTER); p.add(disclosure("Library tools", button("Copy library backup", this::backup)), BorderLayout.SOUTH); return p;
+	}
+    private static JButton libraryTool(String label, SidebarIcon.Kind icon, Runnable action)
+    {
+        JButton tool = button("", action); tool.setIcon(new SidebarIcon(icon)); tool.setName("libraryTool:" + label); tool.setPreferredSize(new Dimension(28, 28)); tool.setToolTipText(label); tool.getAccessibleContext().setAccessibleName(label); return tool;
+    }
+	private JPanel builderTab()
+	{
+		JPanel p = new JPanel(new BorderLayout(0, 8)); p.add(builderTools, BorderLayout.NORTH); p.add(scroll(builder), BorderLayout.CENTER); return p;
 	}
 	private void renderLibrary()
 	{
@@ -186,16 +308,17 @@ public final class StudioPanel extends PluginPanel
 			records.sort(Comparator.comparing(e -> SetupCodec.name(e.portable)));
 			if (records.isEmpty() && (group.id == null || !query.isEmpty() || favorites.isSelected())) continue;
 			String groupId = group.id == null ? "" : group.id;
-			JButton heading = button((collapsed.contains(groupId) ? "▸ " : "▾ ") + group.name + " (" + records.size() + ")", () -> { if (!collapsed.add(groupId)) collapsed.remove(groupId); renderLibrary(); }); heading.setForeground(GOLD); heading.setAlignmentX(LEFT_ALIGNMENT); libraryRows.add(heading);
+			JButton heading = button((collapsed.contains(groupId) ? "+ " : "- ") + group.name + " (" + records.size() + ")", () -> { if (!collapsed.add(groupId)) collapsed.remove(groupId); renderLibrary(); }); heading.setForeground(GOLD); heading.setAlignmentX(LEFT_ALIGNMENT); libraryRows.add(heading);
 			if (collapsed.contains(groupId)) continue;
 			for (SetupLibrary.Entry entry : records)
 			{
-				JPanel card = vertical(); card.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEmptyBorder(3, 4, 5, 0), BorderFactory.createLineBorder(new Color(77, 74, 63))));
-				JButton open = button(SetupCodec.name(entry.portable), () -> open(entry)); open.setHorizontalAlignment(JButton.LEFT); card.add(open);
-				card.add(row(button(entry.favorite ? "★" : "☆", () -> attempt(() -> commit(l -> l.find(entry.id).favorite = !entry.favorite))), button("Open", () -> open(entry)), button(entry.archived ? "Restore" : "Archive", () -> attempt(() -> commit(l -> l.find(entry.id).archived = !entry.archived))))); libraryRows.add(card);
+                libraryRows.add(new LibrarySetupRow(entry.id, SetupCodec.name(entry.portable), entry.favorite, entry.archived,
+                    () -> open(entry),
+                    () -> attempt(() -> commit(l -> l.find(entry.id).favorite = !entry.favorite)),
+                    () -> attempt(() -> commit(l -> l.find(entry.id).archived = !entry.archived))));
 			}
 		}
-		if (libraryRows.getComponentCount() == 0) libraryRows.add(text("No saved setups. Create or import one.")); libraryRows.revalidate(); libraryRows.repaint();
+		if (libraryRows.getComponentCount() == 0) libraryRows.add(info("No saved setups yet. Capture gear, create a setup or import one.", 3)); themeForm(libraryRows); libraryRows.revalidate(); libraryRows.repaint();
 	}
 	private boolean discard()
 	{
@@ -203,11 +326,11 @@ public final class StudioPanel extends PluginPanel
 	}
 	void open(SetupLibrary.Entry entry)
 	{
-		if (!discard()) return; draft = entry.portable.deepCopy(); editorLayout = entry.bankLayout == null ? BankLayouts.infer(draft) : entry.bankLayout; editorBottom = entry.bankLayout == null ? BankLayouts.inferBottom(draft) : entry.zigzagBottomToTop; editingId = entry.id; editorSection = entry.section; editorFavorite = entry.favorite; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); message("Opened saved setup. Changes are saved only when you choose Save.");
+		if (!discard()) return; host.cancelItemInput(); draft = entry.portable.deepCopy(); editorLayout = entry.bankLayout == null ? BankLayouts.infer(draft) : entry.bankLayout; editorBottom = entry.bankLayout == null ? BankLayouts.inferBottom(draft) : entry.zigzagBottomToTop; editingId = entry.id; editorSection = entry.section; editorFavorite = entry.favorite; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); message("Opened saved setup. Changes are saved only when you choose Save.");
 	}
 	void newDraft(JsonObject p)
 	{
-		if (!discard()) return; draft = p.deepCopy(); editorLayout = BankLayouts.infer(draft); editorBottom = BankLayouts.inferBottom(draft); editingId = null; editorSection = null; editorFavorite = false; dirty = true; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); message("New draft. Review it, then Save to your library.");
+		if (!discard()) return; host.cancelItemInput(); draft = p.deepCopy(); editorLayout = BankLayouts.infer(draft); editorBottom = BankLayouts.inferBottom(draft); editingId = null; editorSection = null; editorFavorite = false; dirty = true; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); message("New draft. Review it, then Save to your library.");
 	}
 	private void capture()
 	{
@@ -229,7 +352,7 @@ public final class StudioPanel extends PluginPanel
 	}
 	private void markDirty()
 	{
-		if (rendering || draft == null) return; dirty = true; draftLabel.setText("Unsaved changes"); code.setText("");
+		if (rendering || draft == null) return; dirty = true; draftLabel.setText("Unsaved changes"); setupName.setToolTipText(setupName.getText() + " - Unsaved changes (Ctrl+S to save)"); code.setText("");
 	}
 	private void fieldsToDraft()
 	{
@@ -237,31 +360,57 @@ public final class StudioPanel extends PluginPanel
 	}
 	private void renderBuilder()
 	{
-		if (disposed) return; rendering = true;
+		if (disposed) return;
+        javax.swing.JViewport viewport = builder.getParent() instanceof javax.swing.JViewport ? (javax.swing.JViewport)builder.getParent() : null;
+        java.awt.Point viewportPosition = viewport != null && session.equals(renderedSession) ? viewport.getViewPosition() : new java.awt.Point();
+        String renderToken = session; renderedSession = session; rendering = true;
 		try
 		{
-			builder.removeAll(); if (draft == null) { builder.add(text("Create, capture or open a setup.")); builder.revalidate(); builder.repaint(); return; }
+			builder.removeAll(); builderTools.removeAll(); exportCopy.setEnabled(draft != null); exportPreview.setEnabled(draft != null); if (draft == null) { builder.add(card("Build a loadout", info("Capture your gear, create a blank setup or choose a Wiki preset.", 3), button("Capture gear", this::capture), button("New setup", () -> newDraft(SetupCodec.blank("New loadout"))), button("Find Wiki content", () -> tabs.setSelectedIndex(2)))); builder.revalidate(); builder.repaint(); return; }
 			JsonObject s = SetupCodec.setup(draft); 
 			setupName.setText(SetupCodec.name(draft)); setupName.setMaximumSize(new Dimension(500, 28)); spellbook.setSelectedIndex(s.has("sb") ? s.get("sb").getAsInt() : 4); notes.setText(s.has("notes") && !s.get("notes").isJsonNull() ? s.get("notes").getAsString() : ""); notes.setLineWrap(true); notes.setWrapStyleWord(true);
 			section.removeAllItems(); sectionIds.clear(); section.addItem("Unfiled"); sectionIds.add(null); int selectedSection = 0;
 			for (SetupLibrary.Section group : library.sections) { section.addItem(group.name); sectionIds.add(group.id); if (Objects.equals(group.id, editorSection)) selectedSection = sectionIds.size() - 1; } section.setSelectedIndex(selectedSection); favorite.setSelected(editorFavorite);
-			builder.add(text("Setup name")); builder.add(setupName); builder.add(row(button("Save", () -> saveDraft(false)), button("Save copy", () -> saveDraft(true)), button("Compare", this::compareGear))); draftLabel.setText(dirty ? "Unsaved changes" : "Saved setup"); builder.add(draftLabel);
-			builder.add(text("Section")); builder.add(section); builder.add(favorite); builder.add(text("Spellbook")); builder.add(spellbook);
-			filterBank.setSelected(s.has("fb") && s.get("fb").getAsBoolean()); bankLayout.setSelectedItem(editorLayout); bottomToTop.setSelected(editorBottom); bottomToTop.setEnabled(editorLayout == BankLayouts.Mode.ZIGZAG);
-			builder.add(text("Bank filtering & layout")); builder.add(filterBank); builder.add(bankLayout); builder.add(bottomToTop);
-			builder.add(row(button("Apply filter", () -> { filterBank.setSelected(true); fieldsToDraft(); markDirty(); syncBankFilter(); }), button("Clear filter", () -> { filterBank.setSelected(false); fieldsToDraft(); markDirty(); syncBankFilter(); })));
-			builder.add(bankStatus);
-			builder.add(text("Equipment")); JPanel equipment = new JPanel(new GridBagLayout());
-			int[][] positions = {{0,1,0},{1,0,1},{2,1,1},{13,2,1},{3,0,2},{4,1,2},{5,2,2},{7,1,3},{9,0,4},{10,1,4},{12,2,4}};
-			for (int[] position : positions) { GridBagConstraints c = new GridBagConstraints(); c.gridx = position[1]; c.gridy = position[2]; c.insets = new Insets(2, 2, 2, 2); equipment.add(slot("eq", position[0]), c); } builder.add(equipment);
-			builder.add(text("Inventory · 28 slots")); JPanel inventory = new JPanel(new GridLayout(7, 4, 3, 3)); for (int i = 0; i < 28; i++) inventory.add(slot("inv", i)); builder.add(inventory);
-			builder.add(text("Rune pouch · max 16k")); JPanel runes = new JPanel(new GridLayout(1, 4, 3, 3)); for (int i = 0; i < 4; i++) runes.add(slot("rp", i)); builder.add(runes); builder.add(button("Max runes (16k)", () -> { for (JsonElement e : s.getAsJsonArray("rp")) if (!e.isJsonNull()) e.getAsJsonObject().addProperty("q", 16000); markDirty(); renderBuilder(); }));
-			builder.add(text("Quiver · extra Ammo")); builder.add(row(slot("qv", 0))); builder.add(ignoreAmmo); builder.add(text("Additional filtered items")); JPanel extras = new JPanel(new GridLayout(0, 4, 3, 3)); int index = 0; for (Map.Entry<String, JsonElement> entry : s.getAsJsonObject("afi").entrySet()) extras.add(slot("afi", index++)); builder.add(extras); builder.add(button("Add filtered item", () -> editSlot("afi", SetupCodec.setup(draft).getAsJsonObject("afi").size())));
-			builder.add(text("Notes")); builder.add(new JScrollPane(notes)); builder.add(row(button("Search items", () -> editSlot("inv", firstEmpty())), button("Export", () -> { fieldsToDraft(); tabs.setSelectedIndex(3); refreshCode(); })));
+            setupName.getAccessibleContext().setAccessibleName("Setup name"); setupName.setToolTipText("Setup name");
+            JPanel titleBar = new JPanel(new BorderLayout(4, 0)); titleBar.add(setupName, BorderLayout.CENTER); titleBar.add(button("Save", () -> saveDraft(false)), BorderLayout.EAST); builderTools.add(titleBar);
+            JPanel itemSearch = vertical(); itemSearch.add(catalogueQuery); JScrollPane results = scroll(catalogueList); results.setPreferredSize(new Dimension(176, 96)); results.setMaximumSize(new Dimension(500, 100)); itemSearch.add(results); itemSearch.add(catalogueCount); itemSearch.add(button("Add to Inventory", this::addSelectedItem)); builderTools.add(disclosure("Find items", itemSearch));
+
+            draftLabel.setText(dirty ? "Unsaved changes" : "Saved setup"); setupName.setToolTipText(SetupCodec.name(draft) + " - " + draftLabel.getText());
+            filterBank.setSelected(s.has("fb") && s.get("fb").getAsBoolean()); bankLayout.setSelectedItem(editorLayout); bottomToTop.setSelected(editorBottom); bottomToTop.setEnabled(editorLayout == BankLayouts.Mode.ZIGZAG);
+
+            JPanel inventory = itemGrid(7, 4); inventory.setName("inventoryGrid");
+            for (int i = 0; i < 28; i++) inventory.add(slot("inv", i)); builder.add(loadoutSection("Inventory", inventory));
+            JPanel runes = itemGrid(1, 4); for (int i = 0; i < 4; i++) runes.add(slot("rp", i)); builder.add(loadoutSection("Rune Pouch", runes));
+
+            JPanel equipment = new JPanel(new GridBagLayout()); equipment.setName("equipmentGrid");
+            int[][] positions = {{0,1,0},{1,0,1},{2,1,1},{13,2,1},{3,0,2},{4,1,2},{5,2,2},{7,1,3},{9,0,4},{10,1,4},{12,2,4}};
+            for (int[] position : positions) { GridBagConstraints c = new GridBagConstraints(); c.gridx = position[1]; c.gridy = position[2]; c.insets = new Insets(0, 0, 0, 0); equipment.add(slot("eq", position[0]), c); }
+            equipment.setPreferredSize(new Dimension(132, 220)); builder.add(loadoutSection("Equipment", equipment));
+            spellbook.setPreferredSize(new Dimension(132, 28)); builder.add(loadoutSection("Spellbook", spellbook));
+            JPanel quiver = itemGrid(1, 1); quiver.add(slot("qv", 0)); builder.add(loadoutSection("Quiver", quiver));
+
+            int extraCount = Math.max(4, ((s.getAsJsonObject("afi").size() + 3) / 4) * 4);
+            JPanel extras = itemGrid(extraCount / 4, 4); for (int i = 0; i < extraCount; i++) extras.add(slot("afi", i)); builder.add(loadoutSection("Additional filtered items", extras));
+            notes.setName("loadoutNotes"); notes.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); builder.add(loadoutSection("Notes", notes));
+
+            JPanel loadoutOptions = vertical(); loadoutOptions.add(button("Max pouch runes (16k)", () -> { for (JsonElement e : s.getAsJsonArray("rp")) if (!e.isJsonNull()) e.getAsJsonObject().addProperty("q", 16000); markDirty(); renderBuilder(); })); loadoutOptions.add(ignoreAmmo); loadoutOptions.add(button("Add filtered item", () -> editSlot("afi", SetupCodec.setup(draft).getAsJsonObject("afi").size()))); builder.add(disclosure("Loadout options", loadoutOptions));
+            JPanel bankOptions = vertical(); bankOptions.add(filterBank); bankOptions.add(bankLayout); bankOptions.add(bottomToTop); bankOptions.add(row(button("Apply filter", () -> { filterBank.setSelected(true); fieldsToDraft(); markDirty(); syncBankFilter(); }), button("Clear filter", () -> { filterBank.setSelected(false); fieldsToDraft(); markDirty(); syncBankFilter(); }))); bankStatus.setRows(2); bankStatus.setMaximumSize(new Dimension(500, 54)); bankOptions.add(bankStatus); builder.add(disclosure("Bank filtering and layout", bankOptions));
+            JPanel details = vertical(); details.add(text("Section")); details.add(section); details.add(favorite); builder.add(disclosure("Setup details", details));
+            JPanel actions = vertical(); actions.add(row(button("Save copy", () -> saveDraft(true)), button("Compare gear", this::compareGear))); actions.add(button("Export setup", () -> { fieldsToDraft(); tabs.setSelectedIndex(3); refreshCode(); })); builder.add(disclosure("Setup actions", actions));
 		}
-		finally { rendering = false; builder.revalidate(); builder.repaint(); }
+		finally { rendering = false; themeForm(builderTools); themeForm(builder); builderTools.revalidate(); builderTools.repaint(); builder.revalidate(); builder.repaint(); if (viewport != null) SwingUtilities.invokeLater(() -> { if (!disposed && renderToken.equals(session)) viewport.setViewPosition(new java.awt.Point(0, Math.min(viewportPosition.y, Math.max(0, builder.getPreferredSize().height - viewport.getExtentSize().height)))); }); }
 	}
-	private int firstEmpty() { JsonArray inv = SetupCodec.setup(draft).getAsJsonArray("inv"); for (int i = 0; i < 28; i++) if (inv.get(i).isJsonNull()) return i; message("Inventory is full. Choose a slot to replace."); return 0; }
+    private static JPanel itemGrid(int rows, int columns)
+    {
+        JPanel grid = new JPanel(new GridLayout(rows, columns, 0, 0)); grid.setPreferredSize(new Dimension(columns * 44, rows * 44)); return grid;
+    }
+    private static JPanel loadoutSection(String title, Component content)
+    {
+        JPanel section = new JPanel(new BorderLayout(0, 6)) { @Override public Dimension getMaximumSize() { return new Dimension(500,getPreferredSize().height); } }; section.setName("loadoutSection:" + title); section.setBorder(BorderFactory.createEmptyBorder(12, 0, 8, 0));
+        JLabel label = text(title); label.setHorizontalAlignment(JLabel.CENTER); label.setForeground(MUTED); section.add(label, BorderLayout.NORTH);
+        JPanel centered = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 0, 0)); centered.add(content); section.add(centered, BorderLayout.CENTER); return section;
+    }
+	private int firstEmpty() { JsonArray inv = SetupCodec.setup(draft).getAsJsonArray("inv"); for (int i = 0; i < 28; i++) if (inv.get(i).isJsonNull()) return i; return -1; }
 	private JsonElement get(String key, int index)
 	{
 		JsonObject s = SetupCodec.setup(draft); if (key.equals("afi")) { List<JsonElement> entries = new ArrayList<>(); for (Map.Entry<String, JsonElement> e : s.getAsJsonObject(key).entrySet()) entries.add(e.getValue()); return index < entries.size() ? entries.get(index) : JsonNull.INSTANCE; }
@@ -276,74 +425,173 @@ public final class StudioPanel extends PluginPanel
 	private static final String[] EQUIPMENT = {"Head", "Cape", "Neck", "Weapon", "Body", "Shield", "", "Legs", "", "Hands", "Feet", "", "Ring", "Ammo"};
 	private JButton slot(String key, int index)
 	{
-		JsonElement entry = get(key, index); int id = SetupCodec.id(entry); String empty = key.equals("eq") ? EQUIPMENT[index] : "+";
-		JButton button = button(id > 0 ? String.valueOf(id) : id == 0 ? "?" : empty, () -> editSlot(key, index)); button.setPreferredSize(new Dimension(47, 46)); button.setMinimumSize(new Dimension(42, 42)); button.setBackground(SLOT); button.setFont(button.getFont().deriveFont(10f)); button.setMargin(new Insets(1, 1, 1, 1)); button.setForeground(GOLD);
-		button.setBorder(BorderFactory.createLineBorder(differences.contains(key + ":" + index) ? RED : new Color(109, 101, 77), differences.contains(key + ":" + index) ? 2 : 1));
+		JsonElement entry = get(key, index); int id = SetupCodec.id(entry); String empty = ""; String container = key.equals("eq") ? EQUIPMENT[index] : key.equals("inv") ? "Inventory" : key.equals("rp") ? "Rune Pouch" : key.equals("qv") ? "Quiver" : "Additional filtered items";
+		LoadoutSlotButton button = new LoadoutSlotButton(id > 0 ? String.valueOf(id) : id == 0 ? "?" : empty); button.addActionListener(e -> editSlot(key, index)); button.setName("itemSlot"); button.putClientProperty("slotContainer", key); button.putClientProperty("slotIndex", index); button.setPreferredSize(new Dimension(44, 44)); button.setMinimumSize(new Dimension(44, 44)); button.setBackground(SLOT); button.setFont(FontManager.getRunescapeSmallFont()); button.setMargin(new Insets(1, 1, 1, 1)); button.setForeground(GOLD);
+		button.setBorder(BorderFactory.createLineBorder(differences.contains(key + ":" + index) ? RED : BG, differences.contains(key + ":" + index) ? 2 : 1));
+        button.setRolloverEnabled(true); button.setContentAreaFilled(true);
+        button.getModel().addChangeListener(e -> button.setBorder(BorderFactory.createLineBorder(differences.contains(key + ":" + index) ? RED : button.getModel().isRollover() ? OUTLINE : BG)));
+        button.getAccessibleContext().setAccessibleName((container + " slot " + (index + 1)) + (id < 0 ? " - empty" : " - edit item"));
+        if (id < 0) button.setToolTipText("Empty " + container + " slot - click to add an item");
 		if (id == 0) button.setToolTipText(entry.getAsJsonObject().get("label").getAsString() + " · choose an exact Item ID");
-		if (id > 0) host.describe(id, info -> { if (disposed) return; itemCache.put(id, info); button.setIcon(info.icon); button.setText(SetupCodec.quantity(entry) > 1 ? compact(SetupCodec.quantity(entry)) : ""); button.setHorizontalTextPosition(JButton.CENTER); button.setVerticalTextPosition(JButton.TOP); button.setToolTipText(info.name + " · " + id + " · quantity " + (SetupCodec.quantity(entry) == 0 ? "unknown" : SetupCodec.quantity(entry))); });
-		button.setTransferHandler(new TransferHandler()
-		{
-			@Override public int getSourceActions(javax.swing.JComponent c) { return MOVE; }
-			@Override protected Transferable createTransferable(javax.swing.JComponent c) { return get(key, index).isJsonNull() ? null : new StringSelection("loadout-slot:" + session + ":" + key + ":" + index); }
-			@Override public boolean canImport(TransferSupport support) { return support.isDataFlavorSupported(DataFlavor.stringFlavor); }
-			@Override public boolean importData(TransferSupport support)
-			{
-				try { String value = (String) support.getTransferable().getTransferData(DataFlavor.stringFlavor); String[] parts = value.split(":"); if (parts.length != 4 || !parts[0].equals("loadout-slot") || !parts[1].equals(session)) return false; String from = parts[2]; int old = Integer.parseInt(parts[3]); if (key.equals("afi") || !java.util.Arrays.asList("eq", "inv", "rp", "qv").contains(from) || old < 0 || old > 255) return false; fieldsToDraft(); JsonElement a = get(from, old).deepCopy(), b = get(key, index).deepCopy(); validateSlot(key, index, a); validateSlot(from, old, b); put(from, old, b); put(key, index, a); rebuildDraftLayout(); markDirty(); renderBuilder(); return true; } catch (Exception e) { message(e.getMessage()); return false; }
-			}
-		});
-		button.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() { @Override public void mouseDragged(MouseEvent e) { button.getTransferHandler().exportAsDrag(button, e, TransferHandler.MOVE); } }); return button;
-	}
+		if (id > 0) host.describe(id, info -> { if (disposed) return; itemCache.put(id, info); button.setIcon(info.icon); button.setText(""); button.amount(SetupCodec.unlimited(entry) ? "∞" : key.equals("rp") && SetupCodec.quantity(entry)==0 ? "?" : SetupCodec.quantity(entry) > 1 || key.equals("rp") ? compact(SetupCodec.quantity(entry)) : ""); button.setToolTipText(info.name + " · " + id + " · quantity " + (SetupCodec.unlimited(entry) ? "unlimited (quantity ignored)" : SetupCodec.quantity(entry) == 0 ? "unknown" : SetupCodec.quantity(entry))); });
+        button.setTransferHandler(new TransferHandler()
+        {
+            @Override public int getSourceActions(javax.swing.JComponent c) { return MOVE; }
+            @Override protected Transferable createTransferable(javax.swing.JComponent c) { String value = dragPayload(key, index); return value == null ? null : new StringSelection(value); }
+            @Override public boolean canImport(TransferSupport support)
+            {
+                try { if (!support.isDataFlavorSupported(DataFlavor.stringFlavor)) return false; return canDrop((String)support.getTransferable().getTransferData(DataFlavor.stringFlavor), key, index); } catch (Exception ex) { return false; }
+            }
+            @Override public boolean importData(TransferSupport support)
+            {
+                try { return support.isDataFlavorSupported(DataFlavor.stringFlavor) && importItemDrop((String)support.getTransferable().getTransferData(DataFlavor.stringFlavor), key, index); } catch (Exception ex) { message("Could not read the dragged item."); return false; }
+            }
+        });
+        java.awt.event.MouseAdapter drag = new java.awt.event.MouseAdapter()
+        {
+            private java.awt.Point start; private boolean started;
+            @Override public void mousePressed(MouseEvent e) { start = e.getPoint(); started = false; }
+            @Override public void mouseDragged(MouseEvent e) { if (!started && start != null && (e.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) != 0 && start.distance(e.getPoint()) >= 5) { started = true; button.getModel().setArmed(false); button.getTransferHandler().exportAsDrag(button, e, TransferHandler.MOVE); } }
+        };
+        button.addMouseListener(drag); button.addMouseMotionListener(drag); button.setComponentPopupMenu(slotMenu(key,index)); return button;
+    }
+
+    private void refreshCatalogue()
+    {
+        if (disposed) return; catalogueModel.clear(); String query = catalogueQuery.getText().trim();
+        if (!query.isEmpty()) for (ItemInfo info : host.search(query)) catalogueModel.addElement(info);
+        catalogueCount.setText(query.isEmpty() ? "Search English item names or IDs" : catalogueModel.size() + " matches"); catalogueCount.setToolTipText(host.catalogueStatus());
+        if (!catalogueModel.isEmpty()) catalogueList.setSelectedIndex(0);
+    }
+    private void addSelectedItem()
+    {
+        if (draft == null) return; ItemInfo item = catalogueList.getSelectedValue(); if (item == null) { message("Choose an item in Find items first."); return; }
+        int index = firstEmpty(); if (index < 0) { message("Inventory is full. Drag an item onto a slot to replace it."); return; } addCatalogueItem(item.id, "inv", index);
+    }
+    private void addCatalogueItem(int id, String key, int index)
+    {
+        if (id < 1) { message("Choose a valid Item ID first."); return; }
+        String token = session; JsonElement before = get(key, index).deepCopy();
+        host.describe(id, info ->
+        {
+            if (disposed || !token.equals(session)) return;
+            if (!before.equals(get(key, index))) { message("This slot changed. Choose the destination again."); return; }
+            attempt(() -> { itemCache.put(id, info); JsonObject item = SetupCodec.item(id, 1); validateSlot(key, index, item); checkExtraDuplicate(key, index, item); fieldsToDraft(); put(key, index, item); rebuildDraftLayout(); markDirty(); renderBuilder(); message("Added " + info.name + ". Review its quantity if needed."); });
+        });
+    }
+    private boolean validSlot(String key, int index)
+    {
+        if (draft == null || index < 0) return false;
+        if (key.equals("afi")) return index < Math.max(4, ((SetupCodec.setup(draft).getAsJsonObject("afi").size() + 3) / 4) * 4);
+        int length = key.equals("eq") ? 14 : key.equals("inv") ? 28 : key.equals("rp") ? 4 : key.equals("qv") ? 1 : 0;
+        return index < length && !(key.equals("eq") && (index == 6 || index == 8 || index == 11));
+    }
+    String catalogueDragPayload() { ItemInfo item = catalogueList.getSelectedValue(); return item == null ? null : "loadout-item:" + session + ":" + item.id; }
+    String dragPayload(String key, int index) { return validSlot(key, index) && !get(key, index).isJsonNull() ? "loadout-slot:" + session + ":" + key + ":" + index : null; }
+    private boolean canDrop(String value, String key, int index)
+    {
+        if (disposed || !validSlot(key, index) || value == null) return false;
+        String[] parts = value.split(":"); if (parts.length < 3 || !parts[1].equals(session)) return false;
+        if (parts[0].equals("loadout-item") && parts.length == 3) { int id = Integer.parseInt(parts[2]); for (int i = 0; i < catalogueModel.size(); i++) if (catalogueModel.get(i).id == id) return true; return false; }
+        if (!parts[0].equals("loadout-slot") || parts.length != 4 || !validSlot(parts[2], Integer.parseInt(parts[3]))) return false;
+        JsonElement item = get(parts[2], Integer.parseInt(parts[3])); if (item.isJsonNull()) return false;
+        validateSlot(key, index, item); validateSlot(parts[2], Integer.parseInt(parts[3]), get(key, index)); return true;
+    }
+    private void checkExtraDuplicate(String key, int index, JsonElement item)
+    {
+        if (key.equals("afi") && !item.isJsonNull() && SetupCodec.id(item) != SetupCodec.id(get(key, index)) && SetupCodec.setup(draft).getAsJsonObject("afi").has(String.valueOf(SetupCodec.id(item)))) throw new IllegalArgumentException("This item is already in Additional filtered items.");
+    }
+    boolean importItemDrop(String value, String key, int index)
+    {
+        try
+        {
+            if (!canDrop(value, key, index)) return false; String[] parts = value.split(":");
+            if (parts[0].equals("loadout-item")) { addCatalogueItem(Integer.parseInt(parts[2]), key, index); return true; }
+            String from = parts[2]; int old = Integer.parseInt(parts[3]); if (from.equals(key) && old == index) return false;
+            JsonElement a = get(from, old).deepCopy(), b = get(key, index).deepCopy();
+            if (from.equals("afi") && key.equals("afi"))
+            {
+                List<JsonElement> items = new ArrayList<>(); for (Map.Entry<String, JsonElement> entry : SetupCodec.setup(draft).getAsJsonObject("afi").entrySet()) items.add(entry.getValue()); while (items.size() <= Math.max(old, index)) items.add(JsonNull.INSTANCE); items.set(old, b); items.set(index, a);
+                JsonObject extras = new JsonObject(); for (JsonElement item : items) if (!item.isJsonNull()) extras.add(String.valueOf(SetupCodec.id(item)), item); SetupCodec.setup(draft).add("afi", extras);
+            }
+            else { checkExtraDuplicate(key, index, a); checkExtraDuplicate(from, old, b); fieldsToDraft(); put(from, old, b); put(key, index, a); }
+            rebuildDraftLayout(); markDirty(); renderBuilder(); message("Moved item. Choose Save to keep your changes."); return true;
+        }
+        catch (RuntimeException ex) { message(failureMessage(ex)); return false; }
+    }
+
 	private static String compact(int q) { return q >= 1000 && q % 1000 == 0 ? q / 1000 + "k" : String.valueOf(q); }
 	private void validateSlot(String key, int index, JsonElement e)
 	{
 		if (e == null || e.isJsonNull()) return; ItemInfo info = itemCache.get(SetupCodec.id(e));
+        if (!key.equals("inv") && info == null) throw new IllegalArgumentException("Item details are still loading. Choose an exact Item ID or try again.");
 		if (key.equals("rp")) { if (info != null && !info.name.toLowerCase(java.util.Locale.ROOT).endsWith(" rune")) throw new IllegalArgumentException("Rune pouch accepts runes only."); if (SetupCodec.quantity(e) > 16000) throw new IllegalArgumentException("Rune pouch maximum is 16k."); }
 		if (key.equals("qv") && info != null && !info.name.toLowerCase(java.util.Locale.ROOT).matches(".*(arrow|bolt)s?(?: \\(.*\\))?$")) throw new IllegalArgumentException("Quiver accepts arrows or bolts.");
-		if (key.equals("eq") && info != null && info.slot >= 0 && info.slot != index) throw new IllegalArgumentException("This item belongs in a different Equipment slot.");
+		if (key.equals("eq") && info != null && info.slot != index) throw new IllegalArgumentException("This item belongs in a different Equipment slot.");
 	}
-	private void editSlot(String key, int index)
-	{
-		if (draft == null) return; fieldsToDraft(); JsonElement previous = get(key, index); String capturedSession = session;
-		JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Choose item · " + key + " " + (index + 1), java.awt.Dialog.ModalityType.APPLICATION_MODAL);
-		JPanel p = vertical(); p.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12)); JTextField query = new JTextField(), idField = new JTextField(SetupCodec.id(previous) > 0 ? String.valueOf(SetupCodec.id(previous)) : ""), amount = new JTextField(previous.isJsonNull() ? "1" : SetupCodec.quantity(previous) == 0 ? "" : String.valueOf(SetupCodec.quantity(previous))); JCheckBox fuzzy = new JCheckBox("Fuzzy matching", !previous.isJsonNull() && previous.getAsJsonObject().has("f") && previous.getAsJsonObject().get("f").getAsBoolean()); JComboBox<String> compare = new JComboBox<>(new String[]{"None", "Standard", "Less_Than", "Greater_Than"}); if (!previous.isJsonNull() && previous.getAsJsonObject().has("sc")) compare.setSelectedItem(previous.getAsJsonObject().get("sc").getAsString());
-		DefaultListModel<ItemInfo> model = new DefaultListModel<>(); JList<ItemInfo> results = new JList<>(model); results.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); results.setVisibleRowCount(9); JLabel count = text(host.catalogueStatus()); JTextArea error = new JTextArea(2, 32); error.setEditable(false); error.setLineWrap(true); error.setForeground(RED);
-		Runnable find = () -> { model.clear(); for (ItemInfo info : host.search(query.getText())) model.addElement(info); count.setText(host.catalogueStatus() + " · " + model.size() + " shown"); }; watch(query, find);
-		results.addListSelectionListener(e -> { if (results.getSelectedValue() != null) idField.setText(String.valueOf(results.getSelectedValue().id)); });
-		p.add(text("Search English item names or Item ID")); p.add(query); p.add(count); p.add(new JScrollPane(results)); p.add(text("Exact Item ID · charged/ornamented variants stay distinct")); p.add(idField); p.add(text("Quantity · 16k = 16000")); p.add(amount); p.add(fuzzy); p.add(text("Stack comparison")); p.add(compare); p.add(error);
-		JButton apply = button("Use item", () -> attempt(() -> { }));
-		for (java.awt.event.ActionListener listener : apply.getActionListeners()) apply.removeActionListener(listener);
-		apply.addActionListener(event ->
-		{
-			try
-			{
-				int id = Integer.parseInt(idField.getText().trim()), quantity = SetupCodec.parseQuantity(amount.getText()); if (id <= 0) throw new IllegalArgumentException("Choose a positive Item ID."); apply.setEnabled(false);
-				host.describe(id, info ->
-				{
-					apply.setEnabled(true); if (!capturedSession.equals(session) || disposed) { dialog.dispose(); return; }
-					try { itemCache.put(id, info); if (!info.stackable && quantity > 1) throw new IllegalArgumentException("Non-stackable items need separate Inventory slots."); JsonObject item = SetupCodec.item(id, quantity); if (fuzzy.isSelected()) item.addProperty("f", true); if (!compare.getSelectedItem().equals("None")) item.addProperty("sc", (String) compare.getSelectedItem()); validateSlot(key, index, item); put(key, index, item); rebuildDraftLayout(); markDirty(); renderBuilder(); dialog.dispose(); } catch (RuntimeException e) { error.setText(e.getMessage()); }
-				});
-			}
-			catch (RuntimeException e) { error.setText(e.getMessage()); }
-		});
-		p.add(row(apply, button("Clear slot", () -> { if (capturedSession.equals(session)) { put(key, index, JsonNull.INSTANCE); rebuildDraftLayout(); markDirty(); renderBuilder(); } dialog.dispose(); }), button("Cancel", dialog::dispose)));
-		dialog.setContentPane(p); dialog.pack(); dialog.setMinimumSize(new Dimension(380, 480)); dialog.setLocationRelativeTo(this); find.run(); dialog.setVisible(true);
-	}
+    private javax.swing.JPopupMenu slotMenu(String key,int index)
+    {
+        javax.swing.JPopupMenu menu=new javax.swing.JPopupMenu(); JsonElement current=get(key,index);
+        javax.swing.JMenuItem search=new javax.swing.JMenuItem("Update Slot from Search"); search.addActionListener(e->editSlot(key,index)); menu.add(search);
+        if(!key.equals("afi")) { javax.swing.JMenuItem capture=new javax.swing.JMenuItem("Update Slot from " + (key.equals("eq") ? "Equipment" : key.equals("inv") ? "Inventory" : key.equals("rp") ? "Rune Pouch" : "Quiver")); capture.addActionListener(e->updateSlotFromContainer(key,index)); menu.add(capture); }
+        javax.swing.JMenuItem quantity=new javax.swing.JMenuItem("Set quantity"); quantity.setEnabled(!current.isJsonNull() && SetupCodec.id(current)>0); quantity.addActionListener(e->editQuantity(key,index)); menu.add(quantity);
+        javax.swing.JMenuItem fuzzy=new javax.swing.JMenuItem("Toggle Fuzzy"); fuzzy.setEnabled(!current.isJsonNull()); fuzzy.addActionListener(e->attempt(()->{ JsonObject item=get(key,index).getAsJsonObject(); item.addProperty("f",!item.has("f") || !item.get("f").getAsBoolean()); changedSlot(); })); menu.add(fuzzy);
+        javax.swing.JMenu stack=new javax.swing.JMenu("Stack comparison"); stack.setEnabled(!current.isJsonNull() && !SetupCodec.unlimited(current));
+        for(String value:new String[]{"None","Standard","Less_Than","Greater_Than"}) { javax.swing.JMenuItem option=new javax.swing.JMenuItem(value.replace('_',' ')); option.addActionListener(e->attempt(()->{ get(key,index).getAsJsonObject().addProperty("sc",value); changedSlot(); })); stack.add(option); } menu.add(stack);
+        javax.swing.JMenuItem remove=new javax.swing.JMenuItem("Remove Item from Slot"); remove.setEnabled(!current.isJsonNull()); remove.addActionListener(e->{ put(key,index,JsonNull.INSTANCE); changedSlot(); }); menu.add(remove); return menu;
+    }
+    private void changedSlot() { fieldsToDraft(); rebuildDraftLayout(); markDirty(); renderBuilder(); }
+    private void editSlot(String key,int index)
+    {
+        if(draft==null) return; fieldsToDraft(); String token=session; JsonElement before=get(key,index).deepCopy(); message("Choose an item in the RuneLite chatbox.");
+        host.chooseItem(id->{ if(disposed || !token.equals(session) || id<1 || !before.equals(get(key,index))) return;
+            host.describe(id,info->{ if(disposed || !token.equals(session) || !before.equals(get(key,index))) return; itemCache.put(id,info);
+                if(info.stackable || key.equals("rp") || key.equals("qv")) host.enterQuantity(before.isJsonNull() ? "1" : String.valueOf(SetupCodec.quantity(before)),value->{ if(token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,id,value); },this::message);
+                else applySlotItem(key,index,id,"1");
+            });
+        },this::message);
+    }
+    private void editQuantity(String key,int index)
+    {
+        JsonElement before=get(key,index).deepCopy(); String token=session; if(before.isJsonNull()) return;
+        host.enterQuantity(String.valueOf(SetupCodec.quantity(before)),value->{ if(!disposed && token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,SetupCodec.id(before),value); },this::message);
+    }
+    private void applySlotItem(String key,int index,int id,String amount)
+    {
+        attempt(()->{ int quantity=amount.trim().equals("0") ? 0 : SetupCodec.parseQuantity(amount);
+            ItemInfo info=itemCache.get(id); if(info==null) throw new IllegalArgumentException("Item details are still loading."); if(!info.stackable && quantity>1) throw new IllegalArgumentException("Non-stackable items need separate slots.");
+            JsonElement previous=get(key,index); JsonObject item=SetupCodec.item(id,quantity);
+            if(!previous.isJsonNull()) for(String field:new String[]{"f","sc"}) if(previous.getAsJsonObject().has(field)) item.add(field,previous.getAsJsonObject().get(field).deepCopy());
+            if(quantity==0) item.addProperty("sc","None"); validateSlot(key,index,item); checkExtraDuplicate(key,index,item); put(key,index,item); changedSlot(); message(quantity==0 ? "Unlimited: quantity matching is disabled for this slot." : "Slot updated.");
+        });
+    }
+    private void updateSlotFromContainer(String key,int index)
+    {
+        String token=session; JsonElement before=get(key,index).deepCopy();
+        host.capture(actual->{ if(disposed || !token.equals(session) || !before.equals(get(key,index))) return; JsonElement item=SetupCodec.setup(actual).getAsJsonArray(key).get(index).deepCopy();
+            if(item.isJsonNull()) { put(key,index,JsonNull.INSTANCE); changedSlot(); return; }
+            host.describe(SetupCodec.id(item),info->{ if(disposed || !token.equals(session) || !before.equals(get(key,index))) return; itemCache.put(info.id,info); attempt(()->{validateSlot(key,index,item);put(key,index,item);changedSlot();}); });
+        },this::message);
+    }
+
 	private void saveDraft(boolean copy)
 	{
 		if (draft == null) return;
 		attempt(() -> { fieldsToDraft(); SetupCodec.validate(draft, false); String chosenSection = sectionIds.get(Math.max(0, section.getSelectedIndex())); boolean chosenFavorite = favorite.isSelected(); String id = copy || editingId == null ? UUID.randomUUID().toString() : editingId;
-			commit(l -> { SetupLibrary.Entry record = l.find(id); if (record == null) { record = new SetupLibrary.Entry(draft); record.id = id; l.setups.add(record); } record.portable = draft.deepCopy(); record.section = chosenSection; record.favorite = chosenFavorite; record.bankLayout = editorLayout; record.zigzagBottomToTop = editorBottom; }); editingId = id; dirty = false; draftLabel.setText("Saved setup"); message("Saved to this character/profile library."); });
+			commit(l -> { SetupLibrary.Entry record = l.find(id); if (record == null) { record = new SetupLibrary.Entry(draft); record.id = id; l.setups.add(record); } record.portable = draft.deepCopy(); record.section = chosenSection; record.favorite = chosenFavorite; record.bankLayout = editorLayout; record.zigzagBottomToTop = editorBottom; }); editingId = id; dirty = false; draftLabel.setText("Saved setup"); setupName.setToolTipText(setupName.getText() + " - Saved setup"); message("Saved to this character/profile library."); });
 	}
 	private void compareGear()
 	{
 		if (draft == null) return; fieldsToDraft(); String token = session;
-		host.capture(actual -> { if (!token.equals(session)) return; differences.clear(); JsonObject current = SetupCodec.setup(actual); for (String key : new String[]{"eq", "inv", "rp", "qv"}) { int length = key.equals("eq") ? 14 : key.equals("inv") ? 28 : key.equals("rp") ? 4 : 1; for (int i = 0; i < length; i++) { JsonElement expected = get(key, i), present = current.getAsJsonArray(key).size() > i ? current.getAsJsonArray(key).get(i) : JsonNull.INSTANCE; boolean quantity = !(ignoreAmmo.isSelected() && (key.equals("qv") || key.equals("eq") && i == 13)); if (SetupCodec.id(expected) != SetupCodec.id(present) || quantity && SetupCodec.quantity(expected) != SetupCodec.quantity(present)) differences.add(key + ":" + i); } } renderBuilder(); message(differences.size() + " slot differences. Red borders mark differences; fuzzy/Stack comparison rules are preserved in exports but this test comparison uses exact IDs and quantities."); }, this::message);
+		host.capture(actual -> { if (!token.equals(session)) return; differences.clear(); JsonObject current = SetupCodec.setup(actual); for (String key : new String[]{"eq", "inv", "rp", "qv"}) { int length = key.equals("eq") ? 14 : key.equals("inv") ? 28 : key.equals("rp") ? 4 : 1; for (int i = 0; i < length; i++) { JsonElement expected = get(key, i), present = current.getAsJsonArray(key).size() > i ? current.getAsJsonArray(key).get(i) : JsonNull.INSTANCE; boolean quantity = !SetupCodec.unlimited(expected) && !(ignoreAmmo.isSelected() && (key.equals("qv") || key.equals("eq") && i == 13)); if (SetupCodec.id(expected) != SetupCodec.id(present) || quantity && SetupCodec.quantity(expected) != SetupCodec.quantity(present)) differences.add(key + ":" + i); } } renderBuilder(); message(differences.size() + " slot differences. Red borders mark differences; fuzzy/Stack comparison rules are preserved in exports but this test comparison uses exact IDs and quantities."); }, this::message);
 	}
 	private JPanel exportTab()
 	{
-		JPanel p = vertical(); p.add(text("Export the open Builder setup")); p.add(format); p.add(row(button("Show code", this::refreshCode), button("Copy code", () -> attempt(() -> { refreshCodeOrThrow(); getToolkit().getSystemClipboard().setContents(new StringSelection(code.getText()), null); message("Copied " + format.getSelectedItem() + ". No setup data was sent to a server."); }))));
-		code.setEditable(false); code.setLineWrap(false); p.add(new JScrollPane(code)); JTextArea help = new JTextArea("Inventory Setup JSON: green import icon → Import setup.. → Enter setup data.\n\nBank Tag: right-click the Bank + tab → Import tag tab.\n\nBank Tags omit Equipment slots, quantities, Spellbook and Notes. Conversion keeps the full original open in the Builder.\n\nUse Library → Backup for all saved sections and setups."); help.setEditable(false); help.setLineWrap(true); help.setWrapStyleWord(true); p.add(help); format.addActionListener(e -> { code.setText(""); if (draft != null) refreshCode(); });
-		spellbook.addActionListener(e -> { if (!rendering) { fieldsToDraft(); markDirty(); } }); ignoreAmmo.addActionListener(e -> markDirty()); favorite.addActionListener(e -> { if (!rendering) { editorFavorite = favorite.isSelected(); markDirty(); } }); section.addActionListener(e -> { if (!rendering && section.getSelectedIndex() >= 0 && section.getSelectedIndex() < sectionIds.size()) { editorSection = sectionIds.get(section.getSelectedIndex()); markDirty(); } }); notes.getDocument().addDocumentListener(new DocumentListener() { public void insertUpdate(DocumentEvent e) { if (!rendering) { fieldsToDraft(); markDirty(); } } public void removeUpdate(DocumentEvent e) { if (!rendering) { fieldsToDraft(); markDirty(); } } public void changedUpdate(DocumentEvent e) { } }); return p;
+		JPanel p = new JPanel(new BorderLayout(0, 8)), controls = vertical(); controls.add(text("Export the open setup")); controls.add(format); exportPreview = button("Show code", this::refreshCode); exportCopy = button("Copy code", () -> attempt(() -> { refreshCodeOrThrow(); getToolkit().getSystemClipboard().setContents(new StringSelection(code.getText()), null); message("Copied " + format.getSelectedItem() + "."); })); controls.add(row(exportPreview, exportCopy));
+		code.setName("exportCode"); code.setEditable(false); code.setLineWrap(false); p.add(controls, BorderLayout.NORTH); p.add(new JScrollPane(code), BorderLayout.CENTER);
+		p.add(disclosure("Import instructions", info("Inventory Setups: import icon > Import setup > Enter setup data. Bank Tags: right-click the Bank + tab > Import tag tab. Bank Tags do not store Equipment slots, quantities, Spellbook or Notes.", 7)), BorderLayout.SOUTH);
+		format.addActionListener(e -> { code.setText(""); if (draft != null) refreshCode(); });
+		spellbook.addActionListener(e -> { if (!rendering) { fieldsToDraft(); markDirty(); } }); ignoreAmmo.addActionListener(e -> markDirty()); favorite.addActionListener(e -> { if (!rendering) { editorFavorite = favorite.isSelected(); markDirty(); } }); section.addActionListener(e -> { if (!rendering && section.getSelectedIndex() >= 0 && section.getSelectedIndex() < sectionIds.size()) { editorSection = sectionIds.get(section.getSelectedIndex()); markDirty(); } }); notes.getDocument().addDocumentListener(new DocumentListener() { private void update() { if(!rendering) { fieldsToDraft();markDirty();for(Container ancestor=notes.getParent();ancestor!=null;ancestor=ancestor.getParent()){ancestor.invalidate();if(ancestor==StudioPanel.this)break;}builder.revalidate(); } } public void insertUpdate(DocumentEvent e) {update();} public void removeUpdate(DocumentEvent e) {update();} public void changedUpdate(DocumentEvent e) { } }); return p;
 	}
 	private void refreshCode() { attempt(this::refreshCodeOrThrow); }
 	private void refreshCodeOrThrow()
@@ -373,34 +621,105 @@ public final class StudioPanel extends PluginPanel
 	}
 	private JPanel wikiTab()
 	{
-		JPanel p = vertical(); JTextField url = new JTextField(), title = new JTextField(); url.setMaximumSize(new Dimension(500, 28)); title.setMaximumSize(new Dimension(500, 28)); JTextArea raw = new JTextArea(10, 18); raw.setLineWrap(true); JCheckBox enabled = new JCheckBox("Enable OSRS Wiki requests", host.wikiEnabled()); enabled.addActionListener(e -> host.enableWiki(enabled.isSelected())); p.add(enabled);
-		JTextArea notice = new JTextArea("Optional: sends your IP address, search query and requested page title to oldschool.runescape.wiki. No gear or account details are uploaded. Pasted wikitext works offline."); notice.setRows(6); notice.setEditable(false); notice.setLineWrap(true); notice.setWrapStyleWord(true); p.add(notice);
-		JTextField query = new JTextField(); DefaultListModel<String> matches = new DefaultListModel<>(); JList<String> pages = new JList<>(matches); pages.putClientProperty("html.disable", true); pages.setVisibleRowCount(5); pages.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); JCheckBox strategies = new JCheckBox("Use Strategies subpage", true);
-		p.add(text("Search Wiki / PvM content")); p.add(query);
-		JButton find = button("Search Wiki", () -> attempt(() -> { String requested = query.getText().trim(), capturedScope = scope; message("Searching OSRS Wiki..."); host.searchWiki(requested, (titles, error) -> { if (!Objects.equals(scope, capturedScope) || !query.getText().trim().equals(requested)) return; matches.clear(); if (error != null) message(error); else { for (String name : titles) matches.addElement(name); message(titles.isEmpty() ? "No pages found. Try another name." : "Select a page, then fetch its setups."); } }); }));
-		query.addActionListener(e -> find.doClick()); p.add(find); p.add(new JScrollPane(pages)); p.add(strategies);
-		Runnable selectPage = () -> { String selected = pages.getSelectedValue(); if (selected != null) { title.setText(selected.split("(?i)/Strategies", 2)[0]); url.setText(WikiClient.articleUrl(strategies.isSelected() && !selected.toLowerCase(java.util.Locale.ROOT).endsWith("/strategies") ? selected + "/Strategies" : selected)); } };
-		pages.addListSelectionListener(e -> selectPage.run()); strategies.addActionListener(e -> selectPage.run());
-		p.add(text("Wiki article URL")); p.add(url); p.add(text("Page name (pasted text)")); p.add(title); p.add(text("Wikitext (optional)")); p.add(new JScrollPane(raw));
-		Runnable generate = () -> attempt(() -> generateWiki(raw.getText(), title.getText().trim(), url.getText().trim().isEmpty() ? "Pasted wikitext" : url.getText().trim()));
-		p.add(button("Generate from pasted text", generate)); p.add(button("Fetch Wiki page", () -> attempt(() -> { String requested = url.getText().trim(), page = WikiClient.title(requested), capturedScope = scope; message("Fetching public Wiki wikitext…"); host.fetchWiki(requested, (text, error) -> { if (!Objects.equals(scope, capturedScope)) return; if (error != null) message(error); else attempt(() -> generateWiki(text, page, requested)); }); })));
-		JTextArea limits = new JTextArea("Test version: concrete Equipment, Inventory and Rune pouch templates. Ranked Recommended equipment tables need manual choices and are not expanded. Exact-name matches are resolved from the game item catalogue; ambiguous variants stay unresolved."); limits.setRows(9); limits.setEditable(false); limits.setLineWrap(true); limits.setWrapStyleWord(true); p.add(limits); return p;
+		JPanel p = vertical(); JTextField url = new JTextField(), title = new JTextField(); url.setName("wikiPageUrl"); url.setMaximumSize(new Dimension(500, 28)); title.setMaximumSize(new Dimension(500, 28)); JTextArea raw = new JTextArea(10, 18); raw.setLineWrap(true);
+
+		JTextField query = new JTextField(); wikiQuery = query; query.setName("wikiSearch"); query.getAccessibleContext().setAccessibleName("Search Wiki content");
+		DefaultListModel<String> matches = new DefaultListModel<>(); JList<String> pages = new JList<>(matches); pages.setName("wikiSuggestions"); pages.putClientProperty("html.disable", true); pages.setVisibleRowCount(4); pages.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); JCheckBox strategies = new JCheckBox("Use Strategies subpage", true);
+		p.add(text("Find content")); p.add(query);
+		JTextArea searchHint = info("Press Enter or Search Wiki to request suggestions. No background polling.", 2); p.add(searchHint);
+		Runnable searchPages = () -> attempt(() ->
+		{
+			wikiSuggestTimer.stop();
+			String requested = query.getText().trim(), capturedScope = scope;
+			long revision = ++wikiSearchRevision;
+			if (disposed) return;
+			if (requested.length() < 2 || requested.length() > 120) { searchHint.setText("Enter 2–120 characters to search."); return; }
+			searchHint.setText("Searching OSRS Wiki...");
+			host.searchWiki(requested, (titles, error) ->
+			{
+				if (disposed || revision != wikiSearchRevision || !Objects.equals(scope, capturedScope) || !query.getText().trim().equals(requested)) return;
+				matches.clear();
+				if (error != null) { searchHint.setText("Search failed. Try again."); message(error); }
+				else { for (String name : titles) matches.addElement(name); searchHint.setText(titles.isEmpty() ? "No pages found. Try another name." : "Select a page to load its setups."); }
+			});
+		});
+		wikiSuggestTimer = new Timer(350, e -> searchPages.run()); wikiSuggestTimer.setRepeats(false);
+		JButton find = button("Search Wiki", searchPages); find.setToolTipText("Search OSRS Wiki once; repeated requests reuse cached results");
+		watch(query, () ->
+		{
+			wikiSearchRevision++; wikiPageRevision++; wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); matches.clear(); wikiPresetRows.removeAll(); wikiPageStatus.setText("Choose a Wiki page to see its setups.");
+			int length = query.getText().trim().length();
+			if (length < 2 || length > 120) searchHint.setText("Enter 2–120 characters to search.");
+			else searchHint.setText("Press Enter or Search Wiki to load suggestions.");
+		});
+		tabs.addChangeListener(e -> { if (tabs.getSelectedIndex() != 2) { wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); wikiSearchRevision++; wikiPageRevision++; } });
+		query.addActionListener(e -> find.doClick()); p.add(find); JScrollPane pageList = new JScrollPane(pages); pageList.setPreferredSize(new Dimension(210, 96)); pageList.setMaximumSize(new Dimension(500, 110)); p.add(pageList); p.add(strategies);
+		wikiPageStatus.setRows(2); wikiPageStatus.setMaximumSize(new Dimension(500, 44)); wikiPageStatus.setName("wikiPageStatus"); wikiPageStatus.setEditable(false); wikiPageStatus.setLineWrap(true); wikiPageStatus.setWrapStyleWord(true);
+		wikiPresetRows.setName("wikiPresetChoices"); p.add(text("Available setups")); p.add(wikiPageStatus); p.add(wikiPresetRows);
+		Runnable fetchPage = () ->
+		{
+			wikiPageTimer.stop(); long revision = ++wikiPageRevision; wikiPresetRows.removeAll(); wikiPresetRows.revalidate(); wikiPresetRows.repaint();
+			String requested = url.getText().trim(), capturedScope = scope;
+			if (disposed) return;
+			final String page;
+			try { page = WikiClient.title(requested); } catch (RuntimeException error) { wikiPageStatus.setText(failureMessage(error)); return; }
+			wikiPageStatus.setText("Loading setups from " + page + "...");
+			try
+			{
+				host.fetchWikiPage(requested, strategies.isSelected(), (loaded, error) ->
+				{
+					if (disposed || revision != wikiPageRevision || !Objects.equals(scope, capturedScope) || !url.getText().trim().equals(requested)) return;
+					if (error != null) { wikiPageStatus.setText(error); message(error); return; }
+					try { title.setText(loaded.title.split("(?i)/Strategies", 2)[0]); url.setToolTipText(loaded.url()); generateWiki(loaded.text, loaded.title, loaded.url()); }
+					catch (RuntimeException failure) { wikiPageStatus.setText(failureMessage(failure)); message(failureMessage(failure)); }
+				});
+			}
+			catch (RuntimeException failure) { wikiPageStatus.setText(failureMessage(failure)); message(failureMessage(failure)); }
+		};
+		wikiPageTimer = new Timer(300, e -> fetchPage.run()); wikiPageTimer.setRepeats(false);
+		watch(url, () ->
+		{
+			wikiPageRevision++; wikiPageTimer.stop(); wikiPresetRows.removeAll(); wikiPresetRows.revalidate(); wikiPresetRows.repaint();
+			try { WikiClient.title(url.getText().trim()); wikiPageStatus.setText("Loading page choices..."); wikiPageTimer.restart(); }
+			catch (RuntimeException ignored) { wikiPageStatus.setText("Choose a page or enter a valid Wiki URL."); }
+		});
+		Runnable selectPage = () -> { String selected = pages.getSelectedValue(); if (selected != null) { title.setText(selected.split("(?i)/Strategies", 2)[0]); url.setText(WikiClient.articleUrl(selected)); } };
+		pages.addListSelectionListener(e -> { if (!e.getValueIsAdjusting()) selectPage.run(); }); strategies.addActionListener(e -> selectPage.run());
+		url.addActionListener(e -> fetchPage.run()); p.add(button("Reload setups", fetchPage));
+		JPanel advanced = vertical(); advanced.setVisible(false);
+		p.add(button("URL / pasted wikitext", () -> { advanced.setVisible(!advanced.isVisible()); p.revalidate(); })); p.add(advanced);
+		advanced.add(text("Wiki article URL")); advanced.add(url); advanced.add(text("Page name (pasted text)")); advanced.add(title); advanced.add(text("Wikitext (optional)")); advanced.add(new JScrollPane(raw));
+		advanced.add(button("Generate from pasted text", () -> attempt(() -> { wikiPageRevision++; wikiPageTimer.stop(); generateWiki(raw.getText(), title.getText().trim(), "Pasted wikitext"); })));
+		p.add(disclosure("Wiki information", info("Search text, page titles and your IP address go to OSRS Wiki. No gear, saved setups or account credentials are uploaded. Ranked recommendation tables still require manual choices.", 6))); return p;
 	}
 	private void generateWiki(String text, String title, String source)
 	{
 		List<JsonObject> presets = new WikiParser().parse(text, title, source);
-		for (JsonObject p : presets)
+		wikiPresetRows.removeAll();
+		for (JsonObject preset : presets)
 		{
-			JsonObject s = SetupCodec.setup(p);
-			for (String key : new String[]{"eq", "inv", "rp", "qv"}) for (JsonElement e : s.getAsJsonArray(key)) if (!e.isJsonNull())
-			{
-				JsonObject item = e.getAsJsonObject(); String label = item.get("label").getAsString(); List<ItemInfo> exact = new ArrayList<>(); for (ItemInfo info : host.search(label)) if (info.name.equalsIgnoreCase(label)) exact.add(info);
-				if (exact.size() == 1) { item.addProperty("id", exact.get(0).id); itemCache.put(exact.get(0).id, exact.get(0)); }
-			}
-			SetupCodec.rebuildLayout(p);
+			String variant = WikiParser.variant(preset);
+			JButton choose = button(variant, () -> attempt(() -> openWikiPreset(preset)));
+			choose.setName("wikiPreset:" + variant); choose.setMaximumSize(new Dimension(500, 44)); choose.setToolTipText("Open " + variant + " in Builder"); wikiPresetRows.add(choose);
 		}
-		String[] labels = new String[presets.size()]; for (int i = 0; i < labels.length; i++) labels[i] = (i + 1) + ". " + SetupCodec.name(presets.get(i)) + " · " + SetupCodec.setup(presets.get(i)).get("notes").getAsString().split("\\n")[1];
-		String selected = (String) JOptionPane.showInputDialog(this, "Choose a concrete preset", "Wiki setups", JOptionPane.PLAIN_MESSAGE, null, labels, labels[0]); if (selected == null) return;
-		newDraft(presets.get(java.util.Arrays.asList(labels).indexOf(selected))); message("Wiki draft loaded. '?' means unresolved Item ID. Review all quantities and Spellbook; Save can keep unresolved drafts, export requires resolved items.");
+		wikiPageStatus.setText(presets.size() + " setup(s) found. Choose one below."); wikiPresetRows.invalidate(); if (wikiPresetRows.getParent() != null) wikiPresetRows.getParent().invalidate(); wikiPresetRows.revalidate(); wikiPresetRows.repaint();
+	}
+	private void openWikiPreset(JsonObject original)
+	{
+        long choice = ++wikiChoiceRevision, page = wikiPageRevision; String token = session;
+        message("Loading game items for this Wiki setup...");
+        host.whenItemsReady(error ->
+        {
+            if (disposed || choice != wikiChoiceRevision || page != wikiPageRevision || !token.equals(session)) return;
+            if (error != null) { message(error); return; }
+            JsonObject preset = original.deepCopy(), setup = SetupCodec.setup(preset); int unresolved = 0;
+            for (String key : new String[]{"eq", "inv", "rp", "qv"}) for (JsonElement entry : setup.getAsJsonArray(key)) if (entry != null && !entry.isJsonNull())
+            {
+                JsonObject item = entry.getAsJsonObject(); String label = item.get("label").getAsString(); ItemInfo exact = host.exactItem(label);
+                if (exact != null) { item.addProperty("id", exact.id); itemCache.put(exact.id, exact); } else unresolved++;
+            }
+            SetupCodec.rebuildLayout(preset); String previousSession = session; newDraft(preset);
+            if (!previousSession.equals(session)) message("Wiki draft loaded. " + unresolved + " unresolved slot(s): click '?' to choose an item. Review quantities and Spellbook before export.");
+        });
 	}
 }
