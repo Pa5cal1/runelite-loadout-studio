@@ -69,3 +69,19 @@ The supplied System Design reference file remains unchanged. Its twelve design t
 ## Native editing revision — 0.5.0-test
 
 Slot menus expose replacement, quantity, Fuzzy, stack comparison and removal using RuneLite chatbox inputs. Callbacks are scoped to the active draft and original slot value. Notes use a ten-row text area that grows inside the outer sidebar scroll; counts are overlaid within 44 px cells. Only Rune Pouch stacks have a 16,000-per-rune cap. Inventory stacks such as 200,000 are valid. Explicit zero means unlimited matching and serializes with Stack comparison None; it does not represent infinite in-game items. Bank titles show the setup name only while our own tag is active. The requested Combat Tutor asset is bundled, with no runtime image download. No game input was automated; live acceptance remains with the user.
+
+## Persistence and interoperability revision — 0.6.0-test
+
+The Wiki boundary now has a lazy, persistent Filepath cache. No startup IO or HTTP is introduced. Cached page sources are used even after their freshness interval until an explicit refresh. Local suggestions use saved titles; a manual remote search remains available. The UI exposes source dates, stale status and conversion loss. Cache parsing, validation, throttling and disk writes stay off the client and Swing threads.
+
+Concepthandling uses a versioned, bounded recovery record in this plugin's own scoped ConfigManager group. Dirty changes are stored independently from saved Library entries. Recovery is offered on reopening, never automatically applied. Existing RuneLite synchronization preferences still govern configuration.
+
+A separate read-only reader supports modern Inventory Setups and native/legacy Bank Tags using only their known configuration keys. It has no write interface. Results are copied after explicit selection and validated before committing the destination library. Owner/revision checks reject stale results across profile changes. JSON fallback remains supported for old/unsupported formats.
+
+Comparison is pure logic with a maximum matching step for unordered Inventory and explicit Fuzzy/Stack comparison rules. The extra Inventory Setups variation table is attributed and bundled with its BSD license. The native Bank filter uses that mapping too. A guided unresolved-slot editor keeps uncertain source choices visible and never silently chooses a recommended rank or quantity.
+
+Manual acceptance is tracked in local-acceptance.md; automated fixtures do not establish live game behavior. No paid service, account, background data collector or new remote image dependency is added.
+
+### Sprite completion boundary
+
+An item tooltip can exist before its local sprite has finished rendering. Slots subscribe through AsyncBufferedImage.addTo; painting counts stays independent of image readiness. Source-only ID-zero Wiki choices keep `?` and an explicit exact-ID tooltip. No HTTP image fallback, runtime image download or automatic variant guessing is introduced. Offline regression verifies delayed completion repaints; only user acceptance can verify actual game-cache sprites.
