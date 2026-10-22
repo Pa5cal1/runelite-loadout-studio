@@ -49,8 +49,9 @@ public class BankFilterTest
 	private static final class JsonArraySlice { final JsonArray value = new JsonArray(); JsonArraySlice(JsonArray source, int size) { for (int i = 0; i < size; i++) value.add(source.get(i)); } }
 	static final class FakeBank implements StudioBankFilter.Gateway
 	{
-		boolean open; String active; IntPredicate matches; int opened, closed, capacity = 1000; int[] layout;
+		boolean open; String active; String displayedTitle; IntPredicate matches; int opened, closed, capacity = 1000; int[] layout;
 		public boolean bankOpen() { return open; }
+        public void title(String title) { displayedTitle=title; }
 		public int capacity() { return capacity; }
 		public String activeTag() { return active; }
 		public int canonicalize(int id) { return id == 1000 ? 100 : id; }
@@ -95,4 +96,10 @@ public class BankFilterTest
 		SetupLibrary restored = SetupLibrary.read(library.serialize(RuneLiteAPI.GSON), RuneLiteAPI.GSON); assertEquals(BankLayouts.Mode.ZIGZAG, restored.setups.get(0).bankLayout); assertTrue(restored.setups.get(0).zigzagBottomToTop);
 		SetupCodec codec = new SetupCodec(RuneLiteAPI.GSON); assertEquals(p.get("layout"), codec.importText(codec.inventory(p)).get(0).get("layout")); assertTrue(codec.bank(p, false).contains(",24,100,")); assertTrue(codec.bank(p, true).contains(",100:24,"));
 	}
+    @Test public void readableTitleReplacesOwnedInternalIdAndLeavesNormalTagsAlone()
+    {
+        FakeBank bank=new FakeBank();bank.open=true;StudioBankFilter filter=new StudioBankFilter(bank,"loadoutstudio_private");filter.select(setup());assertEquals("Loadout: Bank fixture",bank.displayedTitle);
+        bank.active="normal-user-tag";bank.displayedTitle="Normal Bank";filter.refreshTitle();assertEquals("Normal Bank",bank.displayedTitle);
+    }
+
 }

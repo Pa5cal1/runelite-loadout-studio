@@ -18,7 +18,7 @@ import static org.junit.Assert.*;
 
 public class PanelTest
 {
-	static final class FakeHost implements StudioPanel.Host
+	static class FakeHost implements StudioPanel.Host
 	{
 		String scope = "character-one";
 		String saved;
@@ -31,8 +31,6 @@ public class PanelTest
 		public void describe(int id, Consumer<StudioPanel.ItemInfo> callback) { callback.accept(new StudioPanel.ItemInfo(id, "Fixture item", true, -1, null)); }
 		public List<StudioPanel.ItemInfo> search(String query) { return Collections.emptyList(); }
 		public String catalogueStatus() { return "Fixture catalogue"; }
-		public boolean wikiEnabled() { return false; }
-		public void enableWiki(boolean enabled) { }
 		public void fetchWiki(String url, BiConsumer<String, String> callback) { callback.accept(null, "Offline fixture"); }
 		public void searchWiki(String query, BiConsumer<List<String>, String> callback) { callback.accept(Collections.singletonList("Vorkath"), null); }
 		public void updateBankFilter(JsonObject portable, String scope, Consumer<String> callback) { selectedBankSetup = portable.deepCopy(); callback.accept("Bank filter ready. Open your Bank to apply it."); }
