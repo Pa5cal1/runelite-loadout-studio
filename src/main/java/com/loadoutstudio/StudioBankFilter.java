@@ -1,0 +1,74 @@
+/* SPDX-License-Identifier: BSD-2-Clause */
+package com.loadoutstudio;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.IntPredicate;
+
+/** Client-thread controller. Only closes its own active tag; the gateway owns the RuneLite API calls. */
+public final class StudioBankFilter
+{
+	interface Gateway
+	{
+		boolean bankOpen();
+		int capacity();
+		String activeTag();
+		int canonicalize(int id);
+		int variation(int id);
+		void register(String tag, IntPredicate matches);
+		void open(String tag, int[] layout);
+		void close();
+		void unregister(String tag);
+		void discardLayout(String tag);
+	}
+	private final Gateway gateway;
+	private final String tag;
+	private JsonObject selected;
+	private boolean registered;
+	private boolean waiting;
+	public boolean waiting() { return waiting; }
+	StudioBankFilter(Gateway gateway, String tag) { this.gateway = gateway; this.tag = tag; }
+	public String select(JsonObject portable)
+	{
+		clear();
+		if (portable == null || !SetupCodec.setup(portable).has("fb") || !SetupCodec.setup(portable).get("fb").getAsBoolean()) return "Bank filter off.";
+		SetupCodec.validate(portable, false);
+		if (BankLayouts.items(portable).isEmpty()) return "Add items before filtering the Bank.";
+		for (JsonElement item : BankLayouts.items(portable)) if (SetupCodec.id(item) <= 0) throw new IllegalArgumentException("Resolve Item IDs before filtering the Bank.");
+		selected = portable.deepCopy(); return apply();
+	}
+	public String apply()
+	{
+		if (selected == null) return "Bank filter off.";
+		if (!gateway.bankOpen()) { waiting = true; return "Bank filter ready. Open your Bank to apply it."; }
+		Set<Integer> exact = new HashSet<>(), fuzzy = new HashSet<>();
+		for (JsonElement e : BankLayouts.items(selected))
+		{
+			int id = gateway.canonicalize(SetupCodec.id(e)); exact.add(id);
+			if (e.getAsJsonObject().has("f") && e.getAsJsonObject().get("f").getAsBoolean()) fuzzy.add(gateway.variation(id));
+		}
+		IntPredicate matches = id -> { if (id <= 0) return false; int canonical = gateway.canonicalize(id); return exact.contains(canonical) || fuzzy.contains(gateway.variation(canonical)); };
+		JsonArray source = selected.getAsJsonArray("layout"); int last = -1;
+		for (int i = 0; i < source.size(); i++) if (source.get(i).getAsInt() > 0 && matches.test(source.get(i).getAsInt())) last = i;
+		if (last >= gateway.capacity()) throw new IllegalArgumentException("This Bank layout exceeds the current Bank display capacity. Select Preset or Zigzag to rebuild it.");
+		int[] layout = new int[last + 1]; java.util.Arrays.fill(layout, -1);
+		for (int i = 0; i <= last; i++) if (source.get(i).getAsInt() > 0 && matches.test(source.get(i).getAsInt())) layout[i] = gateway.canonicalize(source.get(i).getAsInt());
+		gateway.register(tag, matches); registered = true; gateway.open(tag, layout);
+		waiting = false;
+		return "Bank filtered: " + SetupCodec.name(selected) + ".";
+	}
+	public void clear()
+	{
+		selected = null;
+		waiting = false;
+		try { if (tag.equals(gateway.activeTag())) gateway.close(); }
+		finally
+		{
+			try { if (registered) { gateway.unregister(tag); registered = false; } }
+			finally { gateway.discardLayout(tag); }
+		}
+	}
+}
