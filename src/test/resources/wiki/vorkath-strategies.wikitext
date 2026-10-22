@@ -1,0 +1,151 @@
+<!-- Source: https://oldschool.runescape.wiki/w/Vorkath/Strategies?action=raw ; retrieved 2026-10-22. Factual loadout template excerpts only. -->
+<tabber>
+Ranged (crossbow)=
+{{Equipment|align = right
+|buttons = No
+|head = Void ranger helm
+|cape = Dizana's quiver
+|neck = Salve amulet(ei)
+|ammo = Ruby dragon bolts (e)
+|weapon = Dragon hunter crossbow
+|torso = Elite void top
+|legs = Elite void robe
+|shield = Dragonfire ward
+|gloves = Void knight gloves
+|boots = Avernic treads (max)
+|ring = Lightbearer
+}}
+{{Inventory
+|align = right
+|1 = Diamond dragon bolts (e)
+|2 = Divine ranging potion(3)
+|3 = Extended super antifire(2)
+|4 = Extended anti-venom+
+|5 = Zaryte crossbow
+|6 = {{Cheap prayer}}
+|7 = {{Cheap prayer}}
+|8 = {{Cheap prayer}}
+|9 = Cooked karambwan
+|10 = {{Cheap food}}
+|11 = {{Cheap food}}
+|12 = {{Cheap food}}
+|13 = {{Cheap food}}
+|14 = {{Cheap food}}
+|15 = Cooked karambwan
+|16 = Cooked karambwan
+|17 = Cooked karambwan
+|18 = Cooked karambwan
+|19 = Cooked karambwan
+|20 = Cooked karambwan
+|21 = Cooked karambwan
+|22 = Cooked karambwan
+|23 = Cooked karambwan
+|24 = Cooked karambwan
+|25 = Divine rune pouch
+|26 = Guthix rest
+|27 = Guthix rest
+|28 = Guthix rest
+}}
+{{Rune pouch|align=right
+|1=Law rune
+|2=Dust rune
+|3=Chaos rune
+}}
+Ranged (blowpipe)=
+{{Equipment|align = right
+|buttons = No
+|head = Ancient coif
+|cape = Ava's assembler
+|neck = Salve amulet(ei)
+|ammo = Rada's blessing 4
+|weapon = Toxic blowpipe
+|torso = Ancient d'hide body
+|legs = Ancient chaps
+|shield = 
+|gloves = Barrows gloves
+|boots = Ancient d'hide boots
+|ring = Lightbearer
+}}
+{{Inventory
+| align = right
+| 1 = Bandos godsword
+| 2 = Dragon boots
+| 3 = Extended super antifire(4)
+| 4 = Extended anti-venom+(4)
+| 5 = Fire cape
+| 6 = Berserker ring (i)
+| 7 = Divine ranging potion(4)
+| 8 = {{Cheap prayer}}
+| 9 = {{Cheap food}}
+| 10 = {{Cheap food}}
+| 11 = {{Cheap prayer}}
+| 12 = {{Cheap prayer}}
+| 13 = Cooked karambwan
+| 14 = Cooked karambwan
+| 15 = Cooked karambwan
+| 16 = Cooked karambwan
+| 17 = {{Cheap food}}
+| 18 = {{Cheap food}}
+| 19 = {{Cheap food}}
+| 20 = {{Cheap food}}
+| 21 = {{Cheap food}}
+| 22 = {{Cheap food}}
+| 23 = {{Cheap food}}
+| 24 = {{Cheap food}}
+| 25 = Super combat potion(4)
+| 26 = {{Cheap food}}
+| 27 = {{Cheap food}}
+| 28 = Rune pouch
+}}
+{{Rune pouch
+| align = right
+| 1 = Law rune
+| 2 = Dust rune
+| 3 = Chaos rune
+}}
+Melee=
+{{Equipment|align = right
+|buttons = No
+|head = Torva full helm
+|cape = Infernal cape
+|neck = Salve amulet(ei)
+|ammo = Rada's blessing 4
+|weapon = Dragon hunter lance
+|torso = Torva platebody
+|legs = Torva platelegs
+|shield = Avernic defender
+|gloves = Ferocious gloves
+|boots = Avernic treads (max)
+|ring = Ultor ring
+}}
+{{Inventory
+| align = right
+| 1 = Slayer's staff
+| 2 = Divine super combat potion(4)
+| 3 = Extended super antifire(4)
+| 4 = Extended anti-venom+(4)
+| 5 = Voidwaker
+| 6 = {{Cheap prayer}}
+| 7 = {{Cheap prayer}}
+| 8 = {{Cheap prayer}}
+| 9 = Anglerfish
+| 10 = Surge potion(2)
+| 11 = {{Cheap food}}
+| 12 = {{Cheap food}}
+| 13 = {{Cheap food}}
+| 14 = {{Cheap food}}
+| 15 = {{Cheap food}}
+| 16 = {{Cheap food}}
+| 17 = {{Cheap food}}
+| 18 = {{Cheap food}}
+| 19 = {{Cheap food}}
+| 20 = {{Cheap food}}
+| 21 = {{Cheap food}}
+| 28 = Rune pouch
+}}
+{{Rune pouch|align=right
+|1=Law rune
+|2=Dust rune
+|3=Chaos rune
+}}
+</tabber>
