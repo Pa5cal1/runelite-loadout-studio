@@ -1,6 +1,6 @@
 @echo off
 setlocal
-cd /d "%~dp0"
+cd /d "%~dp0.."
 set "STUDIO_JAVA=%LOCALAPPDATA%\RuneLite\jre\bin\java.exe"
 if not exist "%STUDIO_JAVA%" set "STUDIO_JAVA=%JAVA_HOME%\bin\java.exe"
 if not exist "%STUDIO_JAVA%" (
