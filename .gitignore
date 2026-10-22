@@ -10,3 +10,6 @@ nbproject/
 *.class
 test-home/
 *.log
+
+# Never publish RuneLite profiles, sessions or credentials
+.runelite/
