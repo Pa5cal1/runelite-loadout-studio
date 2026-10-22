@@ -14,9 +14,9 @@ public class NativeEditorTest
 {
     private static class Host extends PanelTest.FakeHost
     {
-        Consumer<Integer> choose; Consumer<String> amount; int searches,prompts;
+        Consumer<Integer> choose; Consumer<String> amount; int searches,prompts; String initial;
         @Override public void chooseItem(Consumer<Integer> callback,Consumer<String> error){choose=callback;searches++;}
-        @Override public void enterQuantity(String initial,Consumer<String> callback,Consumer<String> error){amount=callback;prompts++;}
+        @Override public void enterQuantity(String initial,Consumer<String> callback,Consumer<String> error){amount=callback;this.initial=initial;prompts++;}
         @Override public void describe(int id,Consumer<StudioPanel.ItemInfo> callback){BufferedImage image=new BufferedImage(32,32,BufferedImage.TYPE_INT_ARGB);Graphics2D g=image.createGraphics();g.setColor(Color.GRAY);g.fillOval(3,3,26,26);g.dispose();callback.accept(new StudioPanel.ItemInfo(id,"Death rune",true,-1,new ImageIcon(image)));}
     }
     private static JButton slot(Container c,String key,int index){for(Component child:c.getComponents()){if(child instanceof JButton && key.equals(((JButton)child).getClientProperty("slotContainer")) && Integer.valueOf(index).equals(((JButton)child).getClientProperty("slotIndex")))return (JButton)child;if(child instanceof Container){JButton result=slot((Container)child,key,index);if(result!=null)return result;}}return null;}
@@ -52,6 +52,11 @@ public class NativeEditorTest
     {
         SwingUtilities.invokeAndWait(()->{Host host=new Host();StudioPanel p=new StudioPanel(host,RuneLiteAPI.GSON);p.newDraft(SetupCodec.blank("Inventory runes"));slot(p,"inv",0).doClick();host.choose.accept(560);host.amount.accept("200k");assertEquals(200000,SetupCodec.quantity(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("inv").get(0)));
             menu(slot(p,"inv",0),"Set quantity").doClick();host.amount.accept("0");assertTrue(SetupCodec.unlimited(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("inv").get(0)));assertNotNull(new SetupCodec(RuneLiteAPI.GSON).inventory(host.selectedBankSetup));p.dispose();});
+    }
+
+    @Test public void unknownQuantityDoesNotDefaultToUnlimited() throws Exception
+    {
+        SwingUtilities.invokeAndWait(()->{Host host=new Host();StudioPanel panel=new StudioPanel(host,RuneLiteAPI.GSON);JsonObject draft=SetupCodec.blank("Unknown runes");JsonObject rune=SetupCodec.item(560,1);rune.add("q",JsonNull.INSTANCE);SetupCodec.setup(draft).getAsJsonArray("rp").set(0,rune);SetupCodec.rebuildLayout(draft);panel.newDraft(draft);menu(slot(panel,"rp",0),"Set quantity").doClick();assertEquals("",host.initial);host.amount.accept("15000");assertEquals(15000,SetupCodec.quantity(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("rp").get(0)));panel.dispose();});
     }
 
 }
