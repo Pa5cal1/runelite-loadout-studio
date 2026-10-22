@@ -48,6 +48,10 @@
   - Be **disabled by default** (opt-in)
   - Have a `warning` field set to: `"This feature submits your IP address to a 3rd-party server not controlled or verified by RuneLite developers"`
 
+### Project-specific Wiki networking decision (2026-10-22)
+
+The user explicitly requested Wiki requests always available and removal of the enable checkbox and config gate. This overrides the default-off guidance above for this feature. The obsolete wikiRequests flag is ignored without altering saved loadouts. Opening the plugin alone must not make Wiki requests. Use a precise warning about IP address, search queries and page titles; do not suggest that gear, saved setups or account credentials are uploaded. Before public Plugin Hub submission, include that warning in the hub manifest for review.
+
 ## Plugin Setup & Packaging
 
 - Rename everything from the template. Do not leave `com.example`, `ExamplePlugin`, `ExampleConfig`, or `example` as the config group. Rename the package path, class names, config group, `build.gradle` group, `settings.gradle` project name, and `runelite-plugin.properties`.
