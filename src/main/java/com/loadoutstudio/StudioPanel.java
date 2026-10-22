@@ -62,6 +62,14 @@ public final class StudioPanel extends PluginPanel
 	public interface Host
 	{
 		String scope();
+        default String recoveryOwner(){return String.valueOf(scope());}
+        default String readRecovery(String scope,String owner){return null;}
+        default void saveRecovery(String scope,String owner,String text){ }
+        default void existingSetups(Consumer<ExistingSetupReader.Result> success,Consumer<String> error){success.accept(new ExistingSetupReader.Result());}
+        default void compareSetup(JsonObject expected,boolean ignoreAmmo,Consumer<Set<String>> success,Consumer<String> error){capture(actual->success.accept(SetupComparison.differences(expected,actual,ignoreAmmo,id->id)),error);}
+        default void fetchWikiPage(String url,boolean strategies,boolean refresh,BiConsumer<WikiClient.Page,String> callback){fetchWikiPage(url,strategies,callback);}
+        default String wikiCacheWarning(){return "";}
+        default void localWikiSuggestions(String query,Consumer<List<String>> callback){callback.accept(java.util.Collections.emptyList());}
         default void openSupportPage() { }
         default void chooseItem(Consumer<Integer> chosen, Consumer<String> error) { error.accept("Use the running RuneLite client for chatbox Item Search."); }
         default void enterQuantity(String initial, Consumer<String> chosen, Consumer<String> error) { error.accept("Use the running RuneLite client for chatbox quantity input."); }
@@ -108,7 +116,7 @@ public final class StudioPanel extends PluginPanel
 	private final JTabbedPane tabs = new JTabbedPane();
 	private final JPanel libraryRows = vertical(), builder = vertical(), builderTools = vertical();
 	private final Set<String> expandedPanels = new HashSet<>();
-	private final JTextField search = new JTextField(), setupName = new JTextField();
+	private final JTextField search = new JTextField(), setupName = new JTextField(){@Override public javax.swing.JToolTip createToolTip(){javax.swing.JToolTip tip=super.createToolTip();tip.putClientProperty("html.disable",true);return tip;}};
 	private final JCheckBox favorites = new JCheckBox("Favorites"), archived = new JCheckBox("Archived"), favorite = new JCheckBox("Favorite"), ignoreAmmo = new JCheckBox("Ignore Ammo quantities");
 	private final JComboBox<String> spellbook = new JComboBox<>(new String[]{"Standard", "Ancient", "Lunar", "Arceuus", "None"});
 	private final JCheckBox filterBank = new JCheckBox("Filter Bank"), bottomToTop = new JCheckBox("Zigzag: bottom row first");
@@ -132,7 +140,11 @@ public final class StudioPanel extends PluginPanel
 	private final List<String> sectionIds = new ArrayList<>();
 	private SetupLibrary library = new SetupLibrary();
 	private JsonObject draft;
-	private String editingId, scope, session = UUID.randomUUID().toString();
+	private String recoveryOwner;
+    private JsonObject recovery;
+    private final JPanel recoveryControls=vertical(), existingControls=vertical();
+    private final JTextArea conversionNotice=info("",3);
+    private String editingId, scope, session = UUID.randomUUID().toString();
 	private String editorSection;
 	private boolean editorFavorite;
 	private boolean dirty, rendering, disposed, storageError;
@@ -153,7 +165,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.5.0-test - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.6.0-test - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel titleBar = new JPanel(new BorderLayout(3, 0)); titleBar.add(title, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
 		JPanel menu = new JPanel(new GridLayout(2, 2, 4, 4));
@@ -248,12 +260,23 @@ public final class StudioPanel extends PluginPanel
 		if (component instanceof JTextField || component instanceof JComboBox || component instanceof JList) component.setBackground(CONTROL);
 		if (component instanceof JTextField) ((JTextField) component).setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE), BorderFactory.createEmptyBorder(4, 5, 4, 5)));
 		if (component instanceof JScrollPane) ((JScrollPane) component).setBorder(BorderFactory.createLineBorder(OUTLINE));
-		if (component instanceof JList) { ((JList<?>) component).setSelectionBackground(new Color(62, 53, 35)); ((JList<?>) component).setSelectionForeground(GOLD); }
+		if(component instanceof JComboBox)((JComboBox<?>)component).setRenderer(plainNames());
+        if (component instanceof JList) { ((JList<?>)component).setCellRenderer(plainNames());((JList<?>) component).setSelectionBackground(new Color(62, 53, 35)); ((JList<?>) component).setSelectionForeground(GOLD); }
 		if (component instanceof JTextArea) { JTextArea a = (JTextArea) component; a.setForeground(a.isEditable() ? TEXT : MUTED); a.setBackground(a.isEditable() ? CONTROL : BG); }
 		if ("exportCode".equals(component.getName())) component.setBackground(CONTROL);
 		if (component instanceof JLabel && "sectionTitle".equals(component.getName())) { component.setForeground(GOLD); component.setFont(ACTION_FONT); }
 		if (component instanceof Container) for (Component child : ((Container) component).getComponents()) applyTheme(child);
 	}
+    private static javax.swing.DefaultListCellRenderer plainNames()
+    {
+        return new javax.swing.DefaultListCellRenderer()
+        {
+            @Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focus)
+            {
+                putClientProperty("html.disable",true);return super.getListCellRendererComponent(list,value,index,selected,focus);
+            }
+        };
+    }
 	private static JButton button(String label, Runnable action) { JButton button = new JButton(label); button.putClientProperty("html.disable", true); button.setFont(ACTION_FONT); button.setForeground(TEXT); button.setBackground(CONTROL); button.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE), BorderFactory.createEmptyBorder(5, 6, 5, 6))); button.setFocusPainted(true); button.setMargin(new Insets(5, 6, 5, 6)); button.addActionListener(e -> action.run()); return button; }
 	private static JPanel row(Component... children) { JPanel p = new JPanel(new GridLayout(0, Math.max(1, Math.min(2, children.length)), 3, 3)); p.setAlignmentX(Component.LEFT_ALIGNMENT); for (Component c : children) p.add(c); p.setMaximumSize(new Dimension(500, p.getPreferredSize().height)); return p; }
 	private static JScrollPane scroll(Component c) { JScrollPane pane = new JScrollPane(c); pane.setBorder(null); pane.getVerticalScrollBar().setUnitIncrement(18); pane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER); return pane; }
@@ -264,11 +287,80 @@ public final class StudioPanel extends PluginPanel
 	public void reloadScope()
 	{
 		host.cancelItemInput(); host.clearBankFilter(); bankMessage("Bank filter off.");
-		if (disposed) return; if (wikiSuggestTimer != null) wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); wikiSearchRevision++; wikiPageRevision++; wikiPresetRows.removeAll(); wikiPageStatus.setText("Choose a Wiki page to see its setups."); scope = host.scope(); draft = null; editingId = null; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); code.setText(""); storageError = false;
+		if (disposed) return; if (wikiSuggestTimer != null) wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); wikiSearchRevision++; wikiPageRevision++; wikiPresetRows.removeAll(); wikiPageStatus.setText("Choose a Wiki page to see its setups."); scope = host.scope(); recoveryOwner=host.recoveryOwner(); recovery=null;existingControls.removeAll(); draft = null; editingId = null; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); code.setText(""); storageError = false;
 		try { library = SetupLibrary.read(host.read(scope), gson); } catch (RuntimeException e) { library = new SetupLibrary(); storageError = true; message("Library could not be read. Existing data was not overwritten. Restore a backup before saving."); }
-		scopeLabel.setText(scope == null ? "Local guest library" : "Character-specific library"); renderLibrary(); renderBuilder();
+		try{recovery=DraftRecovery.decode(host.readRecovery(scope,recoveryOwner),gson);}catch(RuntimeException ex){message("Recovery data could not be read. It was not overwritten.");}
+        renderRecovery();
+        scopeLabel.setText(scope == null ? "Local guest library" : "Character-specific library"); renderLibrary(); renderBuilder();
 		if (!storageError) message("Ready. Choose a saved setup, capture gear or search Wiki.");
 	}
+    private static String pageAge(WikiClient.Page page)
+    {
+        if(page.fetchedAt<1)return "";
+        String date=java.time.Instant.ofEpochMilli(page.fetchedAt).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        return (page.stale?"Stale cached source · ":page.cached?"Cached source · ":"Fetched from Wiki · ")+date;
+    }
+    private void persistRecovery()
+    {
+        if(disposed || rendering || !dirty || draft==null)return;
+        try{host.saveRecovery(scope,recoveryOwner,DraftRecovery.encode(draft,editingId,editorSection,editorFavorite,editorLayout,editorBottom,ignoreAmmo.isSelected(),gson));}
+        catch(RuntimeException ex){message("Draft recovery could not be saved. Use Save or export a backup.");}
+    }
+    private void clearRecovery(){host.saveRecovery(scope,recoveryOwner,null);recovery=null;renderRecovery();}
+    private void renderRecovery()
+    {
+        recoveryControls.removeAll();
+        if(recovery!=null)
+        {
+            recoveryControls.add(info("An unsaved draft is available for this character/profile.",2));
+            JButton restore=button("Restore draft",this::restoreRecovery);restore.setName("restoreDraft");recoveryControls.add(row(restore,button("Discard recovery",()->{if(JOptionPane.showConfirmDialog(this,"Discard this unsaved recovery? Saved setups stay intact.","Discard recovery",JOptionPane.OK_CANCEL_OPTION)==JOptionPane.OK_OPTION)clearRecovery();})));
+        }
+        themeForm(recoveryControls);recoveryControls.revalidate();recoveryControls.repaint();
+    }
+    private void restoreRecovery()
+    {
+        if(recovery==null)return;JsonObject value=recovery.deepCopy();if(!discard())return;
+        host.cancelItemInput();draft=value.getAsJsonObject("portable").deepCopy();editingId=DraftRecovery.optional(value,"editingId");if(editingId!=null && library.find(editingId)==null)editingId=null;
+        editorSection=DraftRecovery.optional(value,"section");editorFavorite=value.get("favorite").getAsBoolean();editorLayout=BankLayouts.Mode.valueOf(value.get("layout").getAsString());editorBottom=value.get("bottom").getAsBoolean();ignoreAmmo.setSelected(value.get("ignoreAmmo").getAsBoolean());
+        dirty=true;session=UUID.randomUUID().toString();differences.clear();recovery=null;renderRecovery();renderBuilder();persistRecovery();syncBankFilter();tabs.setSelectedIndex(1);message("Unsaved draft restored. Review it, then Save.");
+    }
+    private void showImportOptions()
+    {
+        existingControls.removeAll();existingControls.add(button("Paste JSON / Bank Tag",this::importDialog));existingControls.add(button("From installed plugins",this::showExisting));themeForm(existingControls);existingControls.revalidate();
+    }
+    private void showExisting()
+    {
+        String owner=recoveryOwner;existingControls.removeAll();existingControls.add(info("Reading setups from this RuneLite profile…",2));existingControls.revalidate();
+        host.existingSetups(result->
+        {
+            if(disposed || !Objects.equals(owner,recoveryOwner))return;
+            existingControls.removeAll();existingControls.add(info("Copy from installed plugins. Originals stay unchanged.",2));
+            JTextField query=new JTextField();query.setName("existingSearch");existingControls.add(query);
+            DefaultListModel<ExistingSetupReader.Entry> model=new DefaultListModel<>();JList<ExistingSetupReader.Entry> choices=new JList<>(model){@Override public boolean getScrollableTracksViewportWidth(){return true;}};choices.setName("existingSetups");choices.setCellRenderer(plainNames());choices.putClientProperty("html.disable",true);choices.setVisibleRowCount(4);choices.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+            Runnable filter=()->{model.clear();String needle=query.getText().trim().toLowerCase(java.util.Locale.ROOT);for(ExistingSetupReader.Entry entry:result.entries)if(entry.toString().toLowerCase(java.util.Locale.ROOT).contains(needle))model.addElement(entry);};watch(query,filter);filter.run();
+            JScrollPane list=scroll(choices);list.setPreferredSize(new Dimension(190,96));list.setMaximumSize(new Dimension(500,100));existingControls.add(list);
+            JTextArea review=info("Select setups to review or copy.",6);review.setName("existingReview");existingControls.add(review);
+            choices.addListSelectionListener(e->{ExistingSetupReader.Entry selected=choices.getSelectedValue();review.setText(selected==null?"Select setups to review or copy.":ConversionReview.imported(selected.portable,selected.source));review.setToolTipText(review.getText());});
+            existingControls.add(row(button("Save copies",()->attempt(()->{List<ExistingSetupReader.Entry> selected=choices.getSelectedValuesList();if(selected.isEmpty())throw new IllegalArgumentException("Select one or more setups first.");if(JOptionPane.showConfirmDialog(this,"Copy "+selected.size()+" selected setup(s) into Loadout Studio? Existing entries and other plugins are retained.","Copy setups",JOptionPane.OK_CANCEL_OPTION)!=JOptionPane.OK_OPTION)return;int count=importCopies(selected);message("Copied "+count+" setup(s); identical copies were skipped.");})),button("Open copy",()->{ExistingSetupReader.Entry selected=choices.getSelectedValue();if(selected!=null)newDraft(selected.portable);})));existingControls.add(button("Close import list",()->{existingControls.removeAll();existingControls.revalidate();}));
+            if(result.entries.isEmpty())review.setText("No compatible setups found in this RuneLite profile. Portable JSON/Bank Tag import remains available.");
+            if(!result.warnings.isEmpty())existingControls.add(info(String.join("\n",result.warnings),3));themeForm(existingControls);existingControls.revalidate();existingControls.repaint();
+        },error->{if(Objects.equals(owner,recoveryOwner)){existingControls.removeAll();existingControls.add(info(error,3));existingControls.revalidate();}});
+    }
+    int importCopies(List<ExistingSetupReader.Entry> selected)
+    {
+        if(selected.size()>100)throw new IllegalArgumentException("Copy at most 100 setups at once.");int[] count={0};
+        commit(next->{for(ExistingSetupReader.Entry candidate:selected)
+        {
+            if(next.setups.stream().anyMatch(entry->entry.portable.equals(candidate.portable)))continue;
+            SetupLibrary.Entry copy=new SetupLibrary.Entry(candidate.portable);copy.favorite=candidate.favorite;
+            if(candidate.section!=null)
+            {
+                SetupLibrary.Section target=next.sections.stream().filter(group->group.name.equals(candidate.section)).findFirst().orElse(null);
+                if(target==null){target=new SetupLibrary.Section(candidate.section);next.sections.add(target);}copy.section=target.id;
+            }
+            copy.bankLayout=BankLayouts.infer(copy.portable);copy.zigzagBottomToTop=BankLayouts.inferBottom(copy.portable);next.setups.add(copy);count[0]++;
+        }});return count[0];
+    }
 	private void commit(Consumer<SetupLibrary> change)
 	{
 		if (storageError) throw new IllegalStateException("Restore a valid library backup before saving.");
@@ -280,14 +372,16 @@ public final class StudioPanel extends PluginPanel
         JPanel toolbar = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 3, 0)); toolbar.setName("libraryToolbar");
         toolbar.add(libraryTool("New setup", SidebarIcon.Kind.NEW, () -> newDraft(SetupCodec.blank("New loadout"))));
         toolbar.add(libraryTool("Capture gear", SidebarIcon.Kind.CAPTURE, this::capture));
-        toolbar.add(libraryTool("Import setup", SidebarIcon.Kind.IMPORT, this::importDialog));
+        toolbar.add(libraryTool("Import setup", SidebarIcon.Kind.IMPORT, this::showImportOptions));
         toolbar.add(libraryTool("Sections", SidebarIcon.Kind.SECTIONS, this::manageSections)); controls.add(toolbar);
         JPanel searchBar = new JPanel(new BorderLayout(3, 0)); searchBar.setName("librarySearchBar");
         JLabel searchIcon = text(""); searchIcon.setIcon(new SidebarIcon(SidebarIcon.Kind.SEARCH)); searchBar.add(searchIcon, BorderLayout.WEST);
         search.setName("librarySearch"); search.setToolTipText("Search saved setups"); search.getAccessibleContext().setAccessibleName("Search saved setups"); searchBar.add(search, BorderLayout.CENTER);
         searchBar.add(libraryTool("Clear search", SidebarIcon.Kind.CLEAR, () -> search.setText("")), BorderLayout.EAST); controls.add(searchBar); controls.add(row(favorites, archived));
 		favorites.setToolTipText("Show favorite setups only"); archived.setToolTipText("Show archived setups"); watch(search, this::renderLibrary); favorites.addActionListener(e -> renderLibrary()); archived.addActionListener(e -> renderLibrary());
-		p.add(controls, BorderLayout.NORTH); p.add(scroll(libraryRows), BorderLayout.CENTER); p.add(disclosure("Library tools", button("Copy library backup", this::backup)), BorderLayout.SOUTH); return p;
+		controls.add(recoveryControls);controls.add(existingControls);
+        p.add(controls, BorderLayout.NORTH); p.add(scroll(libraryRows), BorderLayout.CENTER);
+        JPanel tools=vertical();tools.add(button("From installed plugins",this::showExisting));tools.add(button("Copy library backup",this::backup));p.add(disclosure("Library tools",tools),BorderLayout.SOUTH);return p;
 	}
     private static JButton libraryTool(String label, SidebarIcon.Kind icon, Runnable action)
     {
@@ -322,7 +416,9 @@ public final class StudioPanel extends PluginPanel
 	}
 	private boolean discard()
 	{
-		return !dirty || JOptionPane.showConfirmDialog(this, "Discard the unsaved changes in the Builder?", "Unsaved setup", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION;
+		if(!dirty)return true;
+        if(JOptionPane.showConfirmDialog(this,"Discard the unsaved changes in the Builder?","Unsaved setup",JOptionPane.OK_CANCEL_OPTION)!=JOptionPane.OK_OPTION)return false;
+        clearRecovery();return true;
 	}
 	void open(SetupLibrary.Entry entry)
 	{
@@ -330,7 +426,7 @@ public final class StudioPanel extends PluginPanel
 	}
 	void newDraft(JsonObject p)
 	{
-		if (!discard()) return; host.cancelItemInput(); draft = p.deepCopy(); editorLayout = BankLayouts.infer(draft); editorBottom = BankLayouts.inferBottom(draft); editingId = null; editorSection = null; editorFavorite = false; dirty = true; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); message("New draft. Review it, then Save to your library.");
+		if (!discard()) return; host.cancelItemInput(); draft = p.deepCopy(); editorLayout = BankLayouts.infer(draft); editorBottom = BankLayouts.inferBottom(draft); editingId = null; editorSection = null; editorFavorite = false; dirty = true; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); persistRecovery();message("New draft. Review it, then Save to your library.");
 	}
 	private void capture()
 	{
@@ -352,7 +448,7 @@ public final class StudioPanel extends PluginPanel
 	}
 	private void markDirty()
 	{
-		if (rendering || draft == null) return; dirty = true; draftLabel.setText("Unsaved changes"); setupName.setToolTipText(setupName.getText() + " - Unsaved changes (Ctrl+S to save)"); code.setText("");
+		if (rendering || draft == null) return; dirty = true; draftLabel.setText("Unsaved changes"); setupName.setToolTipText(setupName.getText() + " - Unsaved changes (Ctrl+S to save)"); code.setText(""); fieldsToDraft();persistRecovery();
 	}
 	private void fieldsToDraft()
 	{
@@ -369,10 +465,11 @@ public final class StudioPanel extends PluginPanel
 			builder.removeAll(); builderTools.removeAll(); exportCopy.setEnabled(draft != null); exportPreview.setEnabled(draft != null); if (draft == null) { builder.add(card("Build a loadout", info("Capture your gear, create a blank setup or choose a Wiki preset.", 3), button("Capture gear", this::capture), button("New setup", () -> newDraft(SetupCodec.blank("New loadout"))), button("Find Wiki content", () -> tabs.setSelectedIndex(2)))); builder.revalidate(); builder.repaint(); return; }
 			JsonObject s = SetupCodec.setup(draft); 
 			setupName.setText(SetupCodec.name(draft)); setupName.setMaximumSize(new Dimension(500, 28)); spellbook.setSelectedIndex(s.has("sb") ? s.get("sb").getAsInt() : 4); notes.setText(s.has("notes") && !s.get("notes").isJsonNull() ? s.get("notes").getAsString() : ""); notes.setLineWrap(true); notes.setWrapStyleWord(true);
-			section.removeAllItems(); sectionIds.clear(); section.addItem("Unfiled"); sectionIds.add(null); int selectedSection = 0;
+			section.setRenderer(plainNames());section.removeAllItems(); sectionIds.clear(); section.addItem("Unfiled"); sectionIds.add(null); int selectedSection = 0;
 			for (SetupLibrary.Section group : library.sections) { section.addItem(group.name); sectionIds.add(group.id); if (Objects.equals(group.id, editorSection)) selectedSection = sectionIds.size() - 1; } section.setSelectedIndex(selectedSection); favorite.setSelected(editorFavorite);
             setupName.getAccessibleContext().setAccessibleName("Setup name"); setupName.setToolTipText("Setup name");
             JPanel titleBar = new JPanel(new BorderLayout(4, 0)); titleBar.add(setupName, BorderLayout.CENTER); titleBar.add(button("Save", () -> saveDraft(false)), BorderLayout.EAST); builderTools.add(titleBar);
+            addResolutionGuide();
             JPanel itemSearch = vertical(); itemSearch.add(catalogueQuery); JScrollPane results = scroll(catalogueList); results.setPreferredSize(new Dimension(176, 96)); results.setMaximumSize(new Dimension(500, 100)); itemSearch.add(results); itemSearch.add(catalogueCount); itemSearch.add(button("Add to Inventory", this::addSelectedItem)); builderTools.add(disclosure("Find items", itemSearch));
 
             draftLabel.setText(dirty ? "Unsaved changes" : "Saved setup"); setupName.setToolTipText(SetupCodec.name(draft) + " - " + draftLabel.getText());
@@ -386,7 +483,7 @@ public final class StudioPanel extends PluginPanel
             int[][] positions = {{0,1,0},{1,0,1},{2,1,1},{13,2,1},{3,0,2},{4,1,2},{5,2,2},{7,1,3},{9,0,4},{10,1,4},{12,2,4}};
             for (int[] position : positions) { GridBagConstraints c = new GridBagConstraints(); c.gridx = position[1]; c.gridy = position[2]; c.insets = new Insets(0, 0, 0, 0); equipment.add(slot("eq", position[0]), c); }
             equipment.setPreferredSize(new Dimension(132, 220)); builder.add(loadoutSection("Equipment", equipment));
-            spellbook.setPreferredSize(new Dimension(132, 28)); builder.add(loadoutSection("Spellbook", spellbook));
+            spellbook.setBorder(differences.contains("spellbook")?BorderFactory.createLineBorder(RED,2):javax.swing.UIManager.getBorder("ComboBox.border"));spellbook.setPreferredSize(new Dimension(132, 28)); builder.add(loadoutSection("Spellbook", spellbook));
             JPanel quiver = itemGrid(1, 1); quiver.add(slot("qv", 0)); builder.add(loadoutSection("Quiver", quiver));
 
             int extraCount = Math.max(4, ((s.getAsJsonObject("afi").size() + 3) / 4) * 4);
@@ -400,6 +497,29 @@ public final class StudioPanel extends PluginPanel
 		}
 		finally { rendering = false; themeForm(builderTools); themeForm(builder); builderTools.revalidate(); builderTools.repaint(); builder.revalidate(); builder.repaint(); if (viewport != null) SwingUtilities.invokeLater(() -> { if (!disposed && renderToken.equals(session)) viewport.setViewPosition(new java.awt.Point(0, Math.min(viewportPosition.y, Math.max(0, builder.getPreferredSize().height - viewport.getExtentSize().height)))); }); }
 	}
+    private void addResolutionGuide()
+    {
+        int remaining=0;String targetKey=null;int targetIndex=0;JsonObject target=null;
+        for(String key:new String[]{"eq","inv","rp","qv"})
+        {
+            JsonArray items=SetupCodec.setup(draft).getAsJsonArray(key);
+            for(int i=0;i<items.size();i++)if(!items.get(i).isJsonNull())
+            {
+                JsonObject item=items.get(i).getAsJsonObject();if(SetupCodec.id(item)==0 || item.has("q")&&item.get("q").isJsonNull())
+                {remaining++;if(target==null){target=item;targetKey=key;targetIndex=i;}}
+            }
+        }
+        if(target==null)return;
+        JPanel guide=vertical();guide.setName("resolutionGuide");String key=targetKey;int index=targetIndex;JsonObject item=target;
+        String label=item.has("label")?item.get("label").getAsString():key+" slot "+(index+1);
+        guide.add(info(remaining+" choice(s) needed · "+label,2));
+        if(item.has("choices") && item.get("choices").isJsonArray())
+        {
+            JComboBox<String> alternatives=new JComboBox<>();alternatives.addItem("Choose an alternative…");for(JsonElement option:item.getAsJsonArray("choices"))alternatives.addItem(option.getAsString());alternatives.setName("wikiAlternatives");guide.add(alternatives);
+            alternatives.addActionListener(e->{if(alternatives.getSelectedIndex()<1)return;String chosen=(String)alternatives.getSelectedItem();ItemInfo exact=host.exactItem(chosen);if(exact==null){message("Choose the exact item/variant using Item Search. Source conditions remain in Notes.");editSlot(key,index);return;}itemCache.put(exact.id,exact);attempt(()->{JsonObject replacement=item.deepCopy();replacement.addProperty("id",exact.id);replacement.addProperty("label",exact.name);validateSlot(key,index,replacement);put(key,index,replacement);changedSlot();});});
+        }
+        guide.add(button(SetupCodec.id(item)==0?"Choose item in chat":"Enter missing quantity",()->{if(SetupCodec.id(item)==0)editSlot(key,index);else editQuantity(key,index);}));builderTools.add(guide);
+    }
     private static JPanel itemGrid(int rows, int columns)
     {
         JPanel grid = new JPanel(new GridLayout(rows, columns, 0, 0)); grid.setPreferredSize(new Dimension(columns * 44, rows * 44)); return grid;
@@ -432,8 +552,8 @@ public final class StudioPanel extends PluginPanel
         button.getModel().addChangeListener(e -> button.setBorder(BorderFactory.createLineBorder(differences.contains(key + ":" + index) ? RED : button.getModel().isRollover() ? OUTLINE : BG)));
         button.getAccessibleContext().setAccessibleName((container + " slot " + (index + 1)) + (id < 0 ? " - empty" : " - edit item"));
         if (id < 0) button.setToolTipText("Empty " + container + " slot - click to add an item");
-		if (id == 0) button.setToolTipText(entry.getAsJsonObject().get("label").getAsString() + " · choose an exact Item ID");
-		if (id > 0) host.describe(id, info -> { if (disposed) return; itemCache.put(id, info); button.setIcon(info.icon); button.setText(""); button.amount(SetupCodec.unlimited(entry) ? "∞" : key.equals("rp") && SetupCodec.quantity(entry)==0 ? "?" : SetupCodec.quantity(entry) > 1 || key.equals("rp") ? compact(SetupCodec.quantity(entry)) : ""); button.setToolTipText(info.name + " · " + id + " · quantity " + (SetupCodec.unlimited(entry) ? "unlimited (quantity ignored)" : SetupCodec.quantity(entry) == 0 ? "unknown" : SetupCodec.quantity(entry))); });
+		if (id == 0) button.setToolTipText((entry.getAsJsonObject().has("label")?entry.getAsJsonObject().get("label").getAsString():"Unresolved item") + " · choose an exact Item ID");
+		if (id > 0) host.describe(id, info -> { if (disposed) return; itemCache.put(id, info); button.itemIcon(info.icon); button.setText(info.icon == null ? "!" : ""); button.amount(SetupCodec.unlimited(entry) ? "∞" : key.equals("rp") && SetupCodec.quantity(entry)==0 ? "?" : SetupCodec.quantity(entry) > 1 || key.equals("rp") ? compact(SetupCodec.quantity(entry)) : ""); button.setToolTipText(info.name + " · " + id + " · quantity " + (SetupCodec.unlimited(entry) ? "unlimited (quantity ignored)" : SetupCodec.quantity(entry) == 0 ? "unknown" : SetupCodec.quantity(entry))); });
         button.setTransferHandler(new TransferHandler()
         {
             @Override public int getSourceActions(javax.swing.JComponent c) { return MOVE; }
@@ -546,15 +666,19 @@ public final class StudioPanel extends PluginPanel
         if(draft==null) return; fieldsToDraft(); String token=session; JsonElement before=get(key,index).deepCopy(); message("Choose an item in the RuneLite chatbox.");
         host.chooseItem(id->{ if(disposed || !token.equals(session) || id<1 || !before.equals(get(key,index))) return;
             host.describe(id,info->{ if(disposed || !token.equals(session) || !before.equals(get(key,index))) return; itemCache.put(id,info);
-                if(info.stackable || key.equals("rp") || key.equals("qv")) host.enterQuantity(before.isJsonNull() ? "1" : String.valueOf(SetupCodec.quantity(before)),value->{ if(token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,id,value); },this::message);
+                if(info.stackable || key.equals("rp") || key.equals("qv")) host.enterQuantity(amountText(before),value->{ if(token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,id,value); },this::message);
                 else applySlotItem(key,index,id,"1");
             });
         },this::message);
     }
+    private static String amountText(JsonElement item)
+    {
+        return item.isJsonNull()?"1":item.getAsJsonObject().has("q")&&item.getAsJsonObject().get("q").isJsonNull()?"":String.valueOf(SetupCodec.quantity(item));
+    }
     private void editQuantity(String key,int index)
     {
         JsonElement before=get(key,index).deepCopy(); String token=session; if(before.isJsonNull()) return;
-        host.enterQuantity(String.valueOf(SetupCodec.quantity(before)),value->{ if(!disposed && token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,SetupCodec.id(before),value); },this::message);
+        host.enterQuantity(amountText(before),value->{ if(!disposed && token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,SetupCodec.id(before),value); },this::message);
     }
     private void applySlotItem(String key,int index,int id,String amount)
     {
@@ -578,16 +702,16 @@ public final class StudioPanel extends PluginPanel
 	{
 		if (draft == null) return;
 		attempt(() -> { fieldsToDraft(); SetupCodec.validate(draft, false); String chosenSection = sectionIds.get(Math.max(0, section.getSelectedIndex())); boolean chosenFavorite = favorite.isSelected(); String id = copy || editingId == null ? UUID.randomUUID().toString() : editingId;
-			commit(l -> { SetupLibrary.Entry record = l.find(id); if (record == null) { record = new SetupLibrary.Entry(draft); record.id = id; l.setups.add(record); } record.portable = draft.deepCopy(); record.section = chosenSection; record.favorite = chosenFavorite; record.bankLayout = editorLayout; record.zigzagBottomToTop = editorBottom; }); editingId = id; dirty = false; draftLabel.setText("Saved setup"); setupName.setToolTipText(setupName.getText() + " - Saved setup"); message("Saved to this character/profile library."); });
+			commit(l -> { SetupLibrary.Entry record = l.find(id); if (record == null) { record = new SetupLibrary.Entry(draft); record.id = id; l.setups.add(record); } record.portable = draft.deepCopy(); record.section = chosenSection; record.favorite = chosenFavorite; record.bankLayout = editorLayout; record.zigzagBottomToTop = editorBottom; }); editingId = id; dirty = false; clearRecovery(); draftLabel.setText("Saved setup"); setupName.setToolTipText(setupName.getText() + " - Saved setup"); message("Saved to this character/profile library."); });
 	}
 	private void compareGear()
 	{
 		if (draft == null) return; fieldsToDraft(); String token = session;
-		host.capture(actual -> { if (!token.equals(session)) return; differences.clear(); JsonObject current = SetupCodec.setup(actual); for (String key : new String[]{"eq", "inv", "rp", "qv"}) { int length = key.equals("eq") ? 14 : key.equals("inv") ? 28 : key.equals("rp") ? 4 : 1; for (int i = 0; i < length; i++) { JsonElement expected = get(key, i), present = current.getAsJsonArray(key).size() > i ? current.getAsJsonArray(key).get(i) : JsonNull.INSTANCE; boolean quantity = !SetupCodec.unlimited(expected) && !(ignoreAmmo.isSelected() && (key.equals("qv") || key.equals("eq") && i == 13)); if (SetupCodec.id(expected) != SetupCodec.id(present) || quantity && SetupCodec.quantity(expected) != SetupCodec.quantity(present)) differences.add(key + ":" + i); } } renderBuilder(); message(differences.size() + " slot differences. Red borders mark differences; fuzzy/Stack comparison rules are preserved in exports but this test comparison uses exact IDs and quantities."); }, this::message);
+        host.compareSetup(draft.deepCopy(),ignoreAmmo.isSelected(),result->{if(disposed || !token.equals(session))return;differences.clear();differences.addAll(result);renderBuilder();message(result.size()+" difference(s). Fuzzy variants, Stack comparison, unordered Inventory and Ammo preferences are applied.");},this::message);
 	}
 	private JPanel exportTab()
 	{
-		JPanel p = new JPanel(new BorderLayout(0, 8)), controls = vertical(); controls.add(text("Export the open setup")); controls.add(format); exportPreview = button("Show code", this::refreshCode); exportCopy = button("Copy code", () -> attempt(() -> { refreshCodeOrThrow(); getToolkit().getSystemClipboard().setContents(new StringSelection(code.getText()), null); message("Copied " + format.getSelectedItem() + "."); })); controls.add(row(exportPreview, exportCopy));
+		JPanel p = new JPanel(new BorderLayout(0, 8)), controls = vertical(); controls.add(text("Export the open setup")); controls.add(format);conversionNotice.setName("conversionNotice");controls.add(conversionNotice); exportPreview = button("Show code", this::refreshCode); exportCopy = button("Copy code", () -> attempt(() -> { refreshCodeOrThrow(); getToolkit().getSystemClipboard().setContents(new StringSelection(code.getText()), null); message("Copied " + format.getSelectedItem() + "."); })); controls.add(row(exportPreview, exportCopy));
 		code.setName("exportCode"); code.setEditable(false); code.setLineWrap(false); p.add(controls, BorderLayout.NORTH); p.add(new JScrollPane(code), BorderLayout.CENTER);
 		p.add(disclosure("Import instructions", info("Inventory Setups: import icon > Import setup > Enter setup data. Bank Tags: right-click the Bank + tab > Import tag tab. Bank Tags do not store Equipment slots, quantities, Spellbook or Notes.", 7)), BorderLayout.SOUTH);
 		format.addActionListener(e -> { code.setText(""); if (draft != null) refreshCode(); });
@@ -596,7 +720,7 @@ public final class StudioPanel extends PluginPanel
 	private void refreshCode() { attempt(this::refreshCodeOrThrow); }
 	private void refreshCodeOrThrow()
 	{
-		code.setText(""); if (draft == null) throw new IllegalStateException("Open a setup in the Builder first."); fieldsToDraft(); JsonObject p = draft.deepCopy();
+		code.setText(""); if (draft == null) throw new IllegalStateException("Open a setup in the Builder first."); fieldsToDraft(); JsonObject p = draft.deepCopy();conversionNotice.setText(format.getSelectedIndex()==0?ConversionReview.inventory(p):ConversionReview.bank(p));conversionNotice.setRows(format.getSelectedIndex()==0?4:8);conversionNotice.setMaximumSize(new Dimension(500,conversionNotice.getRows()*18+8));conversionNotice.setToolTipText(conversionNotice.getText());
 		if (ignoreAmmo.isSelected()) for (String key : new String[]{"eq", "qv"}) { JsonArray items = SetupCodec.setup(p).getAsJsonArray(key); if (items == null) continue; int start = key.equals("eq") ? 13 : 0; for (int i = start; i < items.size(); i++) if (!items.get(i).isJsonNull()) { items.get(i).getAsJsonObject().remove("q"); items.get(i).getAsJsonObject().remove("sc"); } }
 		code.setText(format.getSelectedIndex() == 0 ? codec.inventory(p) : codec.bank(p, format.getSelectedIndex() == 2)); code.setCaretPosition(0);
 	}
@@ -611,7 +735,9 @@ public final class StudioPanel extends PluginPanel
 				SetupLibrary restored = SetupLibrary.read(text, gson); if (JOptionPane.showConfirmDialog(this, "Replace this plugin's current library with " + restored.setups.size() + " saved setups? Export a backup first if needed.", "Restore library backup", JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION) return;
 				host.save(scope, restored.serialize(gson)); reloadScope(); message("Library backup restored."); return;
 			}
-			List<JsonObject> imported = codec.importText(text); if (JOptionPane.showConfirmDialog(this, "Add " + imported.size() + " setup(s)? First: " + SetupCodec.name(imported.get(0)) + "\nExisting saved setups are retained.", "Review import", JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION) return;
+			List<JsonObject> imported=codec.importText(text);boolean bankImport=!(text.startsWith("{")||text.startsWith("[")) || parsed!=null&&parsed.isJsonObject()&&parsed.getAsJsonObject().has("bankTag");
+            JTextArea review=info("Add "+imported.size()+" setup(s)? Existing saved setups are retained.\n"+ConversionReview.imported(imported.get(0),bankImport?"Bank Tag":"Inventory Setup"),9);
+            if(JOptionPane.showConfirmDialog(this,review,"Review import",JOptionPane.OK_CANCEL_OPTION)!=JOptionPane.OK_OPTION)return;
 			commit(l -> { for (JsonObject p : imported) l.setups.add(new SetupLibrary.Entry(p)); }); message("Imported " + imported.size() + " setup(s). Open them from Library."); renderLibrary();
 		});
 	}
@@ -643,22 +769,28 @@ public final class StudioPanel extends PluginPanel
 				else { for (String name : titles) matches.addElement(name); searchHint.setText(titles.isEmpty() ? "No pages found. Try another name." : "Select a page to load its setups."); }
 			});
 		});
-		wikiSuggestTimer = new Timer(350, e -> searchPages.run()); wikiSuggestTimer.setRepeats(false);
+		wikiSuggestTimer = new Timer(250, e ->
+        {
+            String term=query.getText().trim(),owner=recoveryOwner;long revision=wikiSearchRevision;
+            host.localWikiSuggestions(term,titles->{if(disposed || revision!=wikiSearchRevision || !Objects.equals(owner,recoveryOwner))return;matches.clear();for(String name:titles)matches.addElement(name);searchHint.setText(titles.isEmpty()?"Press Enter or Search Wiki to load suggestions.":"Cached suggestions · Search Wiki finds more.");});
+        });wikiSuggestTimer.setRepeats(false);
 		JButton find = button("Search Wiki", searchPages); find.setToolTipText("Search OSRS Wiki once; repeated requests reuse cached results");
 		watch(query, () ->
 		{
 			wikiSearchRevision++; wikiPageRevision++; wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); matches.clear(); wikiPresetRows.removeAll(); wikiPageStatus.setText("Choose a Wiki page to see its setups.");
 			int length = query.getText().trim().length();
 			if (length < 2 || length > 120) searchHint.setText("Enter 2–120 characters to search.");
-			else searchHint.setText("Press Enter or Search Wiki to load suggestions.");
+			else{searchHint.setText("Checking cached suggestions…");wikiSuggestTimer.restart();}
 		});
 		tabs.addChangeListener(e -> { if (tabs.getSelectedIndex() != 2) { wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); wikiSearchRevision++; wikiPageRevision++; } });
 		query.addActionListener(e -> find.doClick()); p.add(find); JScrollPane pageList = new JScrollPane(pages); pageList.setPreferredSize(new Dimension(210, 96)); pageList.setMaximumSize(new Dimension(500, 110)); p.add(pageList); p.add(strategies);
-		wikiPageStatus.setRows(2); wikiPageStatus.setMaximumSize(new Dimension(500, 44)); wikiPageStatus.setName("wikiPageStatus"); wikiPageStatus.setEditable(false); wikiPageStatus.setLineWrap(true); wikiPageStatus.setWrapStyleWord(true);
+		wikiPageStatus.setRows(4); wikiPageStatus.setMaximumSize(new Dimension(500, 78)); wikiPageStatus.setName("wikiPageStatus"); wikiPageStatus.setEditable(false); wikiPageStatus.setLineWrap(true); wikiPageStatus.setWrapStyleWord(true);
 		wikiPresetRows.setName("wikiPresetChoices"); p.add(text("Available setups")); p.add(wikiPageStatus); p.add(wikiPresetRows);
-		Runnable fetchPage = () ->
+		final boolean[] refreshRequested={false};
+        Runnable fetchPage = () ->
 		{
-			wikiPageTimer.stop(); long revision = ++wikiPageRevision; wikiPresetRows.removeAll(); wikiPresetRows.revalidate(); wikiPresetRows.repaint();
+			boolean force=refreshRequested[0];refreshRequested[0]=false;
+            wikiPageTimer.stop(); long revision = ++wikiPageRevision; if(!force){wikiPresetRows.removeAll();wikiPresetRows.revalidate();wikiPresetRows.repaint();}
 			String requested = url.getText().trim(), capturedScope = scope;
 			if (disposed) return;
 			final String page;
@@ -666,11 +798,11 @@ public final class StudioPanel extends PluginPanel
 			wikiPageStatus.setText("Loading setups from " + page + "...");
 			try
 			{
-				host.fetchWikiPage(requested, strategies.isSelected(), (loaded, error) ->
+				host.fetchWikiPage(requested, strategies.isSelected(), force, (loaded, error) ->
 				{
 					if (disposed || revision != wikiPageRevision || !Objects.equals(scope, capturedScope) || !url.getText().trim().equals(requested)) return;
-					if (error != null) { wikiPageStatus.setText(error); message(error); return; }
-					try { title.setText(loaded.title.split("(?i)/Strategies", 2)[0]); url.setToolTipText(loaded.url()); generateWiki(loaded.text, loaded.title, loaded.url()); }
+					if (error != null) { wikiPageStatus.setText((force?"Refresh failed; existing choices are retained. ":"")+error); message(error); return; }
+					try { title.setText(loaded.title.split("(?i)/Strategies", 2)[0]); url.setToolTipText(loaded.url()); generateWiki(loaded.text, loaded.title, loaded.url());wikiPageStatus.setText(wikiPageStatus.getText()+"\n"+pageAge(loaded)+(host.wikiCacheWarning().isEmpty()?"":"\n"+host.wikiCacheWarning()));wikiPageStatus.setToolTipText(wikiPageStatus.getText()); }
 					catch (RuntimeException failure) { wikiPageStatus.setText(failureMessage(failure)); message(failureMessage(failure)); }
 				});
 			}
@@ -685,7 +817,7 @@ public final class StudioPanel extends PluginPanel
 		});
 		Runnable selectPage = () -> { String selected = pages.getSelectedValue(); if (selected != null) { title.setText(selected.split("(?i)/Strategies", 2)[0]); url.setText(WikiClient.articleUrl(selected)); } };
 		pages.addListSelectionListener(e -> { if (!e.getValueIsAdjusting()) selectPage.run(); }); strategies.addActionListener(e -> selectPage.run());
-		url.addActionListener(e -> fetchPage.run()); p.add(button("Reload setups", fetchPage));
+		url.addActionListener(e -> fetchPage.run()); p.add(row(button("Use cache", fetchPage),button("Refresh Wiki",()->{if(JOptionPane.showConfirmDialog(this,"Fetch a fresh copy from OSRS Wiki? Cached pages already work without a new request.","Refresh Wiki source",JOptionPane.OK_CANCEL_OPTION)==JOptionPane.OK_OPTION){refreshRequested[0]=true;fetchPage.run();}})));
 		JPanel advanced = vertical(); advanced.setVisible(false);
 		p.add(button("URL / pasted wikitext", () -> { advanced.setVisible(!advanced.isVisible()); p.revalidate(); })); p.add(advanced);
 		advanced.add(text("Wiki article URL")); advanced.add(url); advanced.add(text("Page name (pasted text)")); advanced.add(title); advanced.add(text("Wikitext (optional)")); advanced.add(new JScrollPane(raw));

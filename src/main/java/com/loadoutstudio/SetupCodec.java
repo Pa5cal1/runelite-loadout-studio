@@ -169,6 +169,13 @@ public final class SetupCodec
 			if (item.get("q").isJsonNull()) { if (complete) throw new IllegalArgumentException("Enter missing item quantities."); }
 			else { int q = integer(item.get("q")); if (q < 0 || (rune && q > 16000)) throw new IllegalArgumentException(rune ? "Rune pouch stacks must contain 0–16000 runes (0 ignores quantity)." : "Invalid item quantity."); }
 		}
+        if(item.has("label") && (item.get("label").isJsonNull() || !item.get("label").isJsonPrimitive() || !item.get("label").getAsJsonPrimitive().isString() || item.get("label").getAsString().length()>500))throw new IllegalArgumentException("Invalid item label.");
+        if(item.has("choices"))
+        {
+            if(!item.get("choices").isJsonArray() || item.getAsJsonArray("choices").size()>40)throw new IllegalArgumentException("Too many item alternatives.");
+            for(JsonElement choice:item.getAsJsonArray("choices"))if(!choice.isJsonPrimitive() || !choice.getAsJsonPrimitive().isString() || choice.getAsString().length()>150)throw new IllegalArgumentException("Invalid item alternative.");
+        }
+
 		if (item.has("sc") && !Arrays.asList("None", "Standard", "Less_Than", "Greater_Than").contains(item.get("sc").getAsString())) throw new IllegalArgumentException("Invalid Stack comparison.");
 	}
 
@@ -188,7 +195,7 @@ public final class SetupCodec
 		}
 		return gson.toJson(copy);
 	}
-	private static void cleanItem(JsonElement e) { if (e != null && e.isJsonObject()) { e.getAsJsonObject().remove("label"); if (quantity(e) == 1) e.getAsJsonObject().remove("q"); } }
+	private static void cleanItem(JsonElement e) { if (e != null && e.isJsonObject()) { e.getAsJsonObject().remove("label"); e.getAsJsonObject().remove("choices"); if (quantity(e) == 1) e.getAsJsonObject().remove("q"); } }
 
 	public static void rebuildLayout(JsonObject p)
 	{

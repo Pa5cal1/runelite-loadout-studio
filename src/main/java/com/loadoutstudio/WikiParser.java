@@ -157,7 +157,42 @@ public final class WikiParser
 		}
 		if (group.stream().anyMatch(n -> n.kind.equals("inventory") || n.kind.equals("equipment"))) result.add(fill(title, variant.isEmpty() ? "Wiki preset " + (result.size() + 1) : variant, source, group));
 		if (result.size() > 100) throw new IllegalArgumentException("Too many presets on this page.");
-		if (result.isEmpty()) throw new IllegalArgumentException("No concrete Equipment/Inventory templates found. Ranked Recommended equipment tables are not expanded in this test version; use the Builder or import a setup.");
+		if(result.isEmpty())result.addAll(recommendations(text,title,source));
+        if(result.isEmpty())throw new IllegalArgumentException("No Equipment, Inventory or Recommended equipment templates found. Use the Builder or import a setup.");
 		return result;
 	}
+    /** Ranked gear is an explicit choice draft, never silently promoted to a complete preset. */
+    private List<JsonObject> recommendations(String text,String title,String source)
+    {
+        List<JsonObject> result=new ArrayList<>();String[] keys={"head","cape","neck","weapon","body","shield","","legs","","hands","feet","","ring","ammo"};
+        for(Node table:nodes(text))if(table.kind.equals("recommended equipment"))
+        {
+            if(result.size()>=100)throw new IllegalArgumentException("Too many recommendation tables.");
+            String style=plain(table.fields.getOrDefault("style","Gear"));if(style.length()>80)style=style.substring(0,80);JsonObject p=SetupCodec.blank(title);JsonObject setup=SetupCodec.setup(p);StringBuilder notes=new StringBuilder("Source: "+source+"\nPreset: Recommended "+style+" (manual choices)\nGear alternatives only: Inventory, quantities and Spellbook must be reviewed. Conditions and combinations from the source are retained below.\n");
+            int populated=0;
+            for(int i=0;i<keys.length;i++)if(!keys[i].isEmpty())
+            {
+                JsonArray choices=new JsonArray();java.util.Set<String> names=new java.util.LinkedHashSet<>();StringBuilder hints=new StringBuilder();
+                for(int rank=1;rank<=10;rank++)
+                {
+                    String value=table.fields.get(keys[i]+rank);if(value==null || value.isBlank() || value.matches("(?i)none|empty|-"))continue;
+                    hints.append(keys[i]).append(" rank ").append(rank).append(": ").append(plain(value)).append('\n');
+                    // Keep '+' combinations manual; never split a combination into interchangeable single items.
+                    if(value.contains("+"))continue;
+                    List<Node> nested=nodes(value);
+                    for(Node item:nested)if(item.kind.equals("plink") && nested.stream().noneMatch(parent->parent!=item && parent.start<item.start && parent.end>item.end && (parent.kind.equals("efn") || parent.kind.equals("refn"))))
+                    {
+                        String name=plain(item.fields.getOrDefault("1",""));if(!name.isEmpty() && name.length()<150)names.add(name);
+                    }
+                    if(names.isEmpty() && !value.contains("{{")){for(String name:plain(value).split("\\s+/\\s+"))if(!name.isBlank() && name.length()<150)names.add(name.trim());}
+                }
+                if(hints.length()==0)continue;
+                for(String name:names)if(choices.size()<40)choices.add(name);
+                JsonObject item=SetupCodec.item(0,1);item.addProperty("label","Choose "+keys[i]+" · "+style);item.add("choices",choices);if(i==13)item.add("q",JsonNull.INSTANCE);setup.getAsJsonArray("eq").set(i,item);populated++;notes.append(hints);
+            }
+            if(populated>0){String detail=notes.toString();setup.addProperty("notes",detail.length()>10000?detail.substring(0,9900)+"\nSee the source page for remaining conditions.":detail);SetupCodec.rebuildLayout(p);result.add(p);}
+        }
+        return result;
+    }
+
 }

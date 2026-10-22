@@ -31,7 +31,6 @@ import net.runelite.client.events.ProfileChanged;
 import net.runelite.client.events.RuneScapeProfileChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.ItemStats;
-import net.runelite.client.game.ItemVariationMapping;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDependency;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -62,10 +61,12 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	@Inject private TagManager tagManager;
 	@Inject private LayoutManager layoutManager;
 	private StudioBankFilter bankFilter;
-	private final java.util.concurrent.atomic.AtomicLong bankRevision = new java.util.concurrent.atomic.AtomicLong();
+	private final java.util.concurrent.atomic.AtomicLong importRevision = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong bankRevision = new java.util.concurrent.atomic.AtomicLong();
 	private NavigationButton navigation;
 	private StudioPanel panel;
 	private WikiClient wiki;
+    private java.util.concurrent.ExecutorService importWorker;
 	private volatile boolean active;
 	private boolean indexing;
 	private int nextItem;
@@ -74,14 +75,15 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 
 	@Override protected void startUp()
 	{
-		active = true; wiki = new WikiClient(http, gson);
+		active = true; wiki = new WikiClient(http, gson, 2000, new WikiCacheFile(this::getPluginDirectory));
+        importWorker=java.util.concurrent.Executors.newSingleThreadExecutor(r->{Thread t=new Thread(r,"loadout-local-import");t.setDaemon(true);return t;});
 		bankFilter = new StudioBankFilter(new StudioBankFilter.Gateway()
 		{
 			public boolean bankOpen() { net.runelite.api.widgets.Widget w = client.getWidget(InterfaceID.Bankmain.ITEMS); return client.getGameState() == GameState.LOGGED_IN && w != null && !w.isHidden() && w.getChildren() != null && w.getChildren().length > 0; }
 			public int capacity() { net.runelite.api.widgets.Widget w = client.getWidget(InterfaceID.Bankmain.ITEMS); return w == null || w.getChildren() == null ? 0 : w.getChildren().length; }
 			public String activeTag() { return bankTags.getActiveTag(); }
 			public int canonicalize(int id) { return itemManager.canonicalize(id); }
-			public int variation(int id) { return ItemVariationMapping.map(id); }
+			public int variation(int id) { return SetupVariationMapping.map(id); }
 			public void register(String tag, java.util.function.IntPredicate matches) { tagManager.registerTag(tag, matches::test); }
 			public void open(String tag, int[] layout)
 			{
@@ -102,7 +104,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	}
 	@Override protected void shutDown()
 	{
-		active = false; cancelItemInput(); if (wiki != null) wiki.close();
+		active = false; importRevision.incrementAndGet(); cancelItemInput(); if (wiki != null) wiki.close(); if(importWorker!=null)importWorker.shutdownNow();
 		bankRevision.incrementAndGet(); StudioBankFilter previousFilter = bankFilter; bankFilter = null; clientThread.invoke(() -> { if (previousFilter != null) previousFilter.clear(); });
 		SwingUtilities.invokeLater(() -> { if (navigation != null) toolbar.removeNavigation(navigation); if (panel != null) panel.dispose(); panel = null; navigation = null; });
 		catalogue.clear(); indexing = false; nextItem = 0;
@@ -127,7 +129,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	private void reportBankStatus(String message) { long revision = bankRevision.get(); SwingUtilities.invokeLater(() -> { if (active && panel != null && revision == bankRevision.get()) panel.bankMessage(message); }); }
 	@Subscribe public void onRuneScapeProfileChanged(RuneScapeProfileChanged event) { reload(); }
 	@Subscribe public void onProfileChanged(ProfileChanged event) { reload(); }
-	private void reload() { clearBankFilter(); SwingUtilities.invokeLater(() -> { if (active && panel != null) panel.reloadScope(); }); }
+	private void reload() { importRevision.incrementAndGet(); clearBankFilter(); SwingUtilities.invokeLater(() -> { if (active && panel != null) panel.reloadScope(); }); }
 	@Override public void clearBankFilter()
 	{
 		long revision = bankRevision.incrementAndGet(); clientThread.invoke(() -> { if (bankFilter != null && revision == bankRevision.get()) bankFilter.clear(); });
@@ -171,6 +173,46 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	{
 		wiki.fetchPage(url, preferStrategies, (page, error) -> SwingUtilities.invokeLater(() -> { if (active) callback.accept(page, error); }));
 	}
+    @Override public String recoveryOwner() { return String.valueOf(configManager.getProfile()==null?"guest":configManager.getProfile().getId())+":"+scope(); }
+    @Override public String readRecovery(String expectedScope,String owner) { return owner.equals(recoveryOwner())?configManager.getConfiguration(LoadoutStudioConfig.GROUP,expectedScope,"draft-v1"):null; }
+    @Override public void saveRecovery(String expectedScope,String owner,String text)
+    {
+        if(!owner.equals(recoveryOwner()) || !java.util.Objects.equals(expectedScope,scope()))return;
+        if(text==null)configManager.unsetConfiguration(LoadoutStudioConfig.GROUP,expectedScope,"draft-v1");
+        else configManager.setConfiguration(LoadoutStudioConfig.GROUP,expectedScope,"draft-v1",text);
+    }
+    @Override public void compareSetup(JsonObject expected,boolean ignoreAmmo,Consumer<java.util.Set<String>> success,Consumer<String> error)
+    {
+        capture(actual->clientThread.invoke(()->{if(!active)return;java.util.Set<String> result=SetupComparison.differences(expected,actual,ignoreAmmo,id->SetupVariationMapping.map(itemManager.canonicalize(id)));SwingUtilities.invokeLater(()->{if(active)success.accept(result);});}),error);
+    }
+    @Override public void existingSetups(Consumer<ExistingSetupReader.Result> success,Consumer<String> error)
+    {
+        String owner=recoveryOwner();long revision=importRevision.incrementAndGet();
+        if(importWorker==null || importWorker.isShutdown())return;
+        importWorker.execute(()->
+        {
+            try
+            {
+                ExistingSetupReader.Result result=new ExistingSetupReader(gson,new ExistingSetupReader.Source()
+                {
+                    public List<String> keys(String group,String prefix)
+                    {
+                        String whole=ConfigManager.getWholeKey(group,null,prefix);List<String> keys=new java.util.ArrayList<>();
+                        for(String key:configManager.getConfigurationKeys(whole))keys.add(key.substring(whole.length()-prefix.length()));return keys;
+                    }
+                    public String get(String group,String key){return configManager.getConfiguration(group,key);}
+                }).read();
+                SwingUtilities.invokeLater(()->{if(active && revision==importRevision.get() && owner.equals(recoveryOwner()))success.accept(result);});
+            }
+            catch(RuntimeException ex){SwingUtilities.invokeLater(()->{if(active && revision==importRevision.get() && owner.equals(recoveryOwner()))error.accept("Existing setups could not be read. Their original data was not changed; portable JSON import is still available.");});}
+        });
+    }
+    @Override public void fetchWikiPage(String url,boolean preferStrategies,boolean refresh,java.util.function.BiConsumer<WikiClient.Page,String> callback)
+    {
+        wiki.fetchPage(url,preferStrategies,refresh,(page,error)->SwingUtilities.invokeLater(()->{if(active)callback.accept(page,error);}));
+    }
+    @Override public String wikiCacheWarning(){return wiki.cacheWarning();}
+    @Override public void localWikiSuggestions(String query,Consumer<List<String>> callback){wiki.suggestLocal(query,titles->SwingUtilities.invokeLater(()->{if(active)callback.accept(titles);}));}
 	@Override public List<StudioPanel.ItemInfo> search(String query) { return catalogue.search(query); }
 	@Override public StudioPanel.ItemInfo exactItem(String name) { return catalogue.exact(name); }
 	@Override public void whenItemsReady(Consumer<String> callback)

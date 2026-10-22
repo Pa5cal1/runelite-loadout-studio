@@ -3,13 +3,24 @@ package com.loadoutstudio;
 
 import java.awt.*;
 import javax.swing.JButton;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import net.runelite.client.ui.FontManager;
+import net.runelite.client.util.AsyncBufferedImage;
 
 /** Counts are an overlay inside the cell, not a second layout row above its icon. */
 final class LoadoutSlotButton extends JButton
 {
+    @Override public javax.swing.JToolTip createToolTip(){javax.swing.JToolTip tip=super.createToolTip();tip.putClientProperty("html.disable",true);return tip;}
     private String amount = "";
     LoadoutSlotButton(String text) { super(text); putClientProperty("html.disable", true); }
+    /** RuneLite sprites arrive asynchronously; its helper repaints this cell on completion. */
+    void itemIcon(Icon icon)
+    {
+        if (icon instanceof ImageIcon && ((ImageIcon) icon).getImage() instanceof AsyncBufferedImage)
+            ((AsyncBufferedImage) ((ImageIcon) icon).getImage()).addTo(this);
+        else setIcon(icon);
+    }
     void amount(String value) { amount = value; repaint(); }
     @Override protected void paintComponent(Graphics graphics)
     {

@@ -47,6 +47,7 @@ final class LibrarySetupRow extends JPanel
             setHorizontalAlignment(LEFT); setMargin(new Insets(2, 5, 2, 3));
             setPreferredSize(new Dimension(120, 30)); setMinimumSize(new Dimension(0, 30));
         }
+        @Override public JToolTip createToolTip(){JToolTip tip=super.createToolTip();tip.putClientProperty("html.disable",true);return tip;}
         @Override public void setBounds(int x, int y, int width, int height)
         {
             super.setBounds(x, y, width, height);
