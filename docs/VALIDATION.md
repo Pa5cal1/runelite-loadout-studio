@@ -133,3 +133,11 @@ Bank filtering now uses the built-in Bank Tags dependency, an in-memory custom t
 - Opening an older unresolved saved copy resolves supported names locally after catalogue readiness and requires Save to persist. Per-draft guards reject late callbacks. Bundled Cheap food / Cheap prayer defaults select Manta ray / Prayer potion(4) without template or price requests. Unsupported source expressions remain repairable; unknown amounts remain unknown.
 - Final native Windows Java 11 validation: 84 tests passed, zero failures/errors; test, shadowJar and jar succeeded. Includes recommendation order, duplicate-name ordering, old-copy isolation, slot positions, fixed-ID preservation, unknown quantities and zero HTTP during default resolution. The first sandboxed run blocked an atomic temporary-file rename; the same unmodified cache test passed outside the sandbox.
 - Versioned 0.6.1 artifacts copied to build/libs. Manual RuneLite acceptance of actual item sprites remains pending; no game input was automated.
+
+## Archive controls and permanent deletion — 0.6.2-test — 2026-10-23
+
+- Active setups now use an archive-box icon. Archived setups expose distinct restore and red trash actions alongside Favorite; all controls fit at 220 and 260 px with truncated titles and full tooltips.
+- Permanent deletion requires an archived entry and explicit confirmation with Cancel as the default. Other sections/setups remain unchanged. Failed persistence leaves the entry intact. The dialog captures profile ownership to avoid deleting across a profile switch.
+- Deleting the matching open archived setup closes its Builder draft, clears its recovery and owned Bank filter, and invalidates pending draft callbacks. The confirmation warns about discarding unsaved changes. Unrelated drafts remain open.
+- Final native Windows Java 11 build: 88 tests passed, zero failures/errors; test, shadowJar and jar succeeded. New tests cover cancellation, active/missing entries, stale deletion, storage failure, matching-editor cleanup and narrow archived rows. Both active and archived previews were visually inspected.
+- Versioned 0.6.2 test artifacts copied to build/libs. Manual confirmation in RuneLite is still required; no game input or existing user setup was operated on.

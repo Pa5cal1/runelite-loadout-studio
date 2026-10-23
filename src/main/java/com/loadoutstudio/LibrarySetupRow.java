@@ -5,10 +5,10 @@ import java.awt.*;
 import java.awt.geom.Path2D;
 import javax.swing.*;
 
-/** A single compact row, with space reserved for both actions at every width. */
+/** A single compact row, with space reserved for all actions at every width. */
 final class LibrarySetupRow extends JPanel
 {
-    LibrarySetupRow(String id, String title, boolean favorite, boolean archived, Runnable open, Runnable toggleFavorite, Runnable toggleArchive)
+    LibrarySetupRow(String id, String title, boolean favorite, boolean archived, Runnable open, Runnable toggleFavorite, Runnable toggleArchive, Runnable delete)
     {
         super(new BorderLayout(2, 0));
         setName("libraryRow:" + id);
@@ -21,10 +21,11 @@ final class LibrarySetupRow extends JPanel
         name.getAccessibleContext().setAccessibleName("Open " + title);
         name.addActionListener(e -> open.run());
         add(name, BorderLayout.CENTER);
-        JPanel actions = new JPanel(new GridLayout(1, 2, 2, 0));
-        actions.setPreferredSize(new Dimension(58, 30));
+        JPanel actions = new JPanel(new GridLayout(1, archived ? 3 : 2, 2, 0));
+        actions.setPreferredSize(new Dimension(archived ? 88 : 58, 30));
         actions.add(action("libraryFavorite:" + id, favorite ? "Remove favorite" : "Add favorite", title, icon(0, favorite), toggleFavorite));
         actions.add(action("libraryArchive:" + id, archived ? "Restore setup" : "Move setup to archive", title, icon(archived ? 2 : 1, false), toggleArchive));
+        if (archived) actions.add(action("libraryDelete:" + id, "Delete permanently", title, icon(3, false), delete));
         add(actions, BorderLayout.EAST);
     }
 
@@ -83,7 +84,11 @@ final class LibrarySetupRow extends JPanel
                 }
                 else if (kind == 1)
                 {
-                    g.drawLine(2, 4, 13, 4); g.drawRect(6, 1, 4, 2); g.drawRect(4, 5, 8, 9); g.drawLine(7, 7, 7, 12); g.drawLine(9, 7, 9, 12);
+                    g.drawRect(2, 5, 12, 9); g.drawRect(1, 2, 14, 3); g.drawRect(6, 8, 4, 2);
+                }
+                else if (kind == 3)
+                {
+                    g.setColor(new Color(218, 117, 117)); g.drawLine(2, 4, 13, 4); g.drawRect(6, 1, 4, 2); g.drawRect(4, 5, 8, 9); g.drawLine(7, 7, 7, 12); g.drawLine(9, 7, 9, 12);
                 }
                 else
                 {

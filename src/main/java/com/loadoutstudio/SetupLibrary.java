@@ -46,5 +46,6 @@ public final class SetupLibrary
 		SetupLibrary result = gson.fromJson(text, SetupLibrary.class); if (result == null) throw new IllegalArgumentException("Invalid library."); result.validate(); return result;
 	}
 	public void removeSection(String id) { sections.removeIf(s -> s.id.equals(id)); for (Entry entry : setups) if (id.equals(entry.section)) entry.section = null; }
+	public boolean removeArchived(String id) { Entry entry = find(id); return entry != null && entry.archived && setups.remove(entry); }
 	public Entry find(String id) { return setups.stream().filter(e -> e.id.equals(id)).findFirst().orElse(null); }
 }

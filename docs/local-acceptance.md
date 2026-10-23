@@ -26,3 +26,7 @@ Record the RuneLite version, scenario and observed result when reporting a failu
 ## First-choice defaults (0.6.1)
 
 Open a Wiki recommendation setup: its first listed items should appear immediately. In Vorkath, Cheap food should become Manta ray and Cheap prayer should become Prayer potion(4), with original Inventory positions retained. Open an older unresolved saved copy and check that known items are resolved locally; Save should persist these defaults. Replace a slot through chatbox search and reopen it: the chosen positive Item ID must remain unchanged. Missing quantities must still request an amount. No additional Wiki request should occur when opening a saved copy.
+
+## Archive actions (0.6.2)
+
+Archive a disposable setup with the box icon, then enable Archived. Confirm that restore and red trash are distinct and fit on the same row. Restore should return the setup to the active list. Archive again, click trash and choose Cancel: it must remain. Click trash again, confirm Delete permanently and verify it disappears after reopening the plugin. Check that other setups and sections remain. For an open archived setup, the warning must explain discarding its Builder draft, and confirmation must close that draft. Do not use a setup you need for this acceptance test.

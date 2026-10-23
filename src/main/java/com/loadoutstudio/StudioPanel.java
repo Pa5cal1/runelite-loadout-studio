@@ -171,7 +171,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.6.1-test - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.6.2-test - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel titleBar = new JPanel(new BorderLayout(3, 0)); titleBar.add(title, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
 		JPanel menu = new JPanel(new GridLayout(2, 2, 4, 4));
@@ -415,11 +415,34 @@ public final class StudioPanel extends PluginPanel
                 libraryRows.add(new LibrarySetupRow(entry.id, SetupCodec.name(entry.portable), entry.favorite, entry.archived,
                     () -> open(entry),
                     () -> attempt(() -> commit(l -> l.find(entry.id).favorite = !entry.favorite)),
-                    () -> attempt(() -> commit(l -> l.find(entry.id).archived = !entry.archived))));
+                    () -> attempt(() -> commit(l -> l.find(entry.id).archived = !entry.archived)),
+                    () -> confirmDeleteArchived(entry.id)));
 			}
 		}
-		if (libraryRows.getComponentCount() == 0) libraryRows.add(info("No saved setups yet. Capture gear, create a setup or import one.", 3)); themeForm(libraryRows); libraryRows.revalidate(); libraryRows.repaint();
+		if (libraryRows.getComponentCount() == 0) libraryRows.add(info(archived.isSelected()?"No archived setups.":"No saved setups match this view. Create or import a setup.", 3)); themeForm(libraryRows); libraryRows.revalidate(); libraryRows.repaint();
 	}
+    private void confirmDeleteArchived(String id)
+    {
+        SetupLibrary.Entry entry=library.find(id);if(entry==null||!entry.archived)return;
+        String capturedScope=scope,owner=recoveryOwner;
+        String warning="Permanently delete \""+SetupCodec.name(entry.portable)+"\" from your saved library?\nThis cannot be undone.";
+        if(id.equals(editingId))warning+="\nThe open Builder draft and its unsaved changes will also be discarded.";
+        Object[] options={"Cancel","Delete permanently"};
+        int chosen=JOptionPane.showOptionDialog(this,warning,"Delete archived setup",JOptionPane.DEFAULT_OPTION,JOptionPane.WARNING_MESSAGE,null,options,options[0]);
+        if(Objects.equals(capturedScope,scope)&&Objects.equals(owner,recoveryOwner))attempt(()->deleteArchived(id,chosen==1));
+    }
+    boolean deleteArchived(String id,boolean confirmed)
+    {
+        SetupLibrary.Entry entry=library.find(id);if(!confirmed||entry==null||!entry.archived)return false;
+        commit(l->{if(!l.removeArchived(id))throw new IllegalStateException("Only archived setups can be deleted.");});
+        if(id.equals(editingId))
+        {
+            host.cancelItemInput();session=UUID.randomUUID().toString();draft=null;editingId=null;dirty=false;differences.clear();
+            setupName.setText("");notes.setText("");code.setText("");clearRecovery();host.clearBankFilter();renderBuilder();tabs.setSelectedIndex(0);
+        }
+        else if(draft==null && recovery!=null && id.equals(DraftRecovery.optional(recovery,"editingId")))clearRecovery();
+        message("Archived setup permanently deleted.");return true;
+    }
 	private boolean discard()
 	{
 		if(!dirty)return true;

@@ -44,7 +44,7 @@ The `*-all.jar` is the development client; the small regular JAR contains only t
 
 ## Features
 
-Version **0.6.1-test** provides a consistent native RuneLite sidebar with fixed navigation, a persistent Save area, compact Wiki results and collapsible details. Wiki requests are always available without a checkbox. The built-in **Bank Tags** plugin is a required dependency. See the [sidebar system design](docs/sidebar-system-design.md) for layout decisions and acceptance checks.
+Version **0.6.2-test** provides a consistent native RuneLite sidebar with fixed navigation, a persistent Save area, compact Wiki results and collapsible details. Wiki requests are always available without a checkbox. The built-in **Bank Tags** plugin is a required dependency. See the [sidebar system design](docs/sidebar-system-design.md) for layout decisions and acceptance checks.
 
 - **Library:** character-scoped storage in this plugin's own ConfigManager group, plus a separate guest library. Sections, search, favorites, archive/restore and complete JSON backup through the clipboard.
 - **Builder:** a calm Inventory-first layout with Rune Pouch, Equipment, Spellbook, Quiver, Additional filtered items and Notes. Save and Find items remain above the scrolling loadout. Search, double-click or drag catalogue items into a setup. Move/swap compatible items between all five containers. Occasional editing and Bank controls are grouped in expandable panels. Ctrl+F opens search and Ctrl+S saves.
@@ -112,7 +112,7 @@ Ctrl+F focuses the relevant search field; Ctrl+S saves the current draft. Draggi
 
 Right-click a slot to replace it from RuneLite chatbox search or the corresponding current container, change quantity, toggle Fuzzy/Stack comparison or remove it. Search uses RuneLite's chatbox, not a separate Choose item window. Notes start at ten rows and grow without an inner scrollbar. Item counts are painted inside each slot. Bank filtering shows the readable loadout name while retaining a unique internal tag. The sword asset is bundled locally; see [asset credits](docs/ASSETS.md).
 
-## Existing RuneLite setups and recovery — 0.6.1-test
+## Existing RuneLite setups and recovery — 0.6.2-test
 
 - Library → Import icon → **From installed plugins**, or Library tools → **From installed plugins**, reads saved data in the current RuneLite profile only after you click. Search/select entries, inspect the preview, then **Save copies**. **Open copy** opens a separate editable draft. No original setup, section or Bank Tag is changed.
 - Modern Inventory Setups V3 and V2 serialized setups are supported. Save copies retains names, slots, quantities, matching flags, notes, available layouts, favorites and section names. Identical portable copies are skipped; bulk copies are validated atomically. V1 data should first be migrated/exported through Inventory Setups. Corrupt/unsupported entries produce warnings; portable JSON import remains available.
@@ -124,10 +124,14 @@ Before broad distribution, complete the [manual acceptance matrix](docs/local-ac
 
 ### Item images and unresolved Wiki choices
 
-Version 0.6.1-test repaints asynchronously loaded RuneLite sprites as soon as they arrive. Item images use the local game cache, never Wiki image requests. Known Wiki choices use their first item automatically, including unresolved choices in older saved copies when opened. A `?` with a source label and “choose an exact Item ID” remains only when no supported item name can be resolved. Use the choices guide or right-click **Update Slot from Search** to choose the exact variant in RuneLite's chatbox. Imported concrete positive Item IDs use the sprite path directly. Existing JVMs need a manual restart to run a newer JAR.
+Version 0.6.2-test repaints asynchronously loaded RuneLite sprites as soon as they arrive. Item images use the local game cache, never Wiki image requests. Known Wiki choices use their first item automatically, including unresolved choices in older saved copies when opened. A `?` with a source label and “choose an exact Item ID” remains only when no supported item name can be resolved. Use the choices guide or right-click **Update Slot from Search** to choose the exact variant in RuneLite's chatbox. Imported concrete positive Item IDs use the sprite path directly. Existing JVMs need a manual restart to run a newer JAR.
 
-### Default Wiki items — 0.6.1-test
+### Default Wiki items — 0.6.2-test
 
 The first listed recommendation is selected automatically. For a combination, its first component fills the slot; the complete combination and source conditions remain in Notes. Same-name variants use the first local catalogue result in stable Item ID order. This is a user-selected default, not a claim that every variant is equivalent. Existing positive Item IDs and quantities are preserved. Older unresolved saved copies are resolved locally when opened and only persist if saved.
 
 Bundled first-option mappings: `Cheap food` → Manta ray; `Cheap prayer` → Prayer potion(4). These are fixed first-listed defaults rather than a live cheapest-price calculation. Their template definitions were checked once during development; the plugin adds no template, price or image requests. Unsupported source expressions still require an item choice. Missing quantities are retained as unknown.
+
+### Archive and permanent deletion — 0.6.2-test
+
+The box icon archives an active setup. In the Archived view, the curved arrow restores it and the red trash icon permanently deletes it after confirmation. Cancel is the default action. Deletion only affects the selected archived setup; sections and other setups remain. If that setup is open, the confirmation also explains that its Builder draft and unsaved changes will be discarded. Failed storage leaves it intact, and switching profile during confirmation cancels the action.

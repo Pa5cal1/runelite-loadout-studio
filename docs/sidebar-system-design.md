@@ -89,3 +89,7 @@ An item tooltip can exist before its local sprite has finished rendering. Slots 
 ## 0.6.1 first-choice defaults
 
 The user explicitly selected automatic first choices. Recommendation order remains source order; the first component of a combination fills its slot and the complete conditions remain in Notes. Equal-name variants use stable local search order. Existing positive Item IDs and quantities are never replaced by this resolver. Older ID-zero copies resolve after catalogue readiness, with a per-draft guard against late replies; saving remains explicit. The two common cheap-item template defaults are bundled and introduce no new HTTP operations. Unsupported expressions remain visible for manual repair.
+
+## 0.6.2 archive actions
+
+Active rows retain their two compact controls: favorite and archive box. Archived rows reserve three 28-pixel controls: favorite, restore and red trash. Titles shrink with an ellipsis while tooltips retain the full name. Permanent deletion is restricted to archived entries and uses a Cancel-default confirmation. Library updates are cloned, validated and persisted before replacing UI state. Failed storage preserves the original entry and editor. Confirmations capture profile ownership; scope changes cancel deletion. Successful deletion closes the matching open Builder draft, invalidates its callbacks and clears its recovery/filter; unrelated setups and drafts remain intact.
