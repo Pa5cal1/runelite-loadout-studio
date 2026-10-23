@@ -93,3 +93,7 @@ The user explicitly selected automatic first choices. Recommendation order remai
 ## 0.6.2 archive actions
 
 Active rows retain their two compact controls: favorite and archive box. Archived rows reserve three 28-pixel controls: favorite, restore and red trash. Titles shrink with an ellipsis while tooltips retain the full name. Permanent deletion is restricted to archived entries and uses a Cancel-default confirmation. Library updates are cloned, validated and persisted before replacing UI state. Failed storage preserves the original entry and editor. Confirmations capture profile ownership; scope changes cancel deletion. Successful deletion closes the matching open Builder draft, invalidates its callbacks and clears its recovery/filter; unrelated setups and drafts remain intact.
+
+## 0.6.3 player workflow review
+
+The fixed Builder header exposes Compare and the current Bank filter toggle, so routine gearing does not require scrolling past Notes. The layout selector stays in the existing disclosure. Filtered Library results expand matching sections temporarily, preserving manual collapse preferences when filters clear. Empty views distinguish first use from a restrictive filter and offer direct next steps. A captured gear reply must match the original profile owner, draft session and edit revision; late replies cannot overwrite subsequent edits. Offline Swing fixtures exercise these routes without game interaction or Wiki traffic.

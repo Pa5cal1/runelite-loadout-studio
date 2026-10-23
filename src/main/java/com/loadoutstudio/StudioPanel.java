@@ -154,6 +154,7 @@ public final class StudioPanel extends PluginPanel
 	private String editorSection;
 	private boolean editorFavorite;
 	private boolean dirty, rendering, disposed, storageError;
+	private long draftRevision;
 	private Timer wikiSuggestTimer, wikiPageTimer;
 	private long wikiSearchRevision, wikiPageRevision, wikiChoiceRevision;
 	private final JPanel wikiPresetRows = vertical();
@@ -171,7 +172,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.6.2-test - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.6.3-test - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel titleBar = new JPanel(new BorderLayout(3, 0)); titleBar.add(title, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
 		JPanel menu = new JPanel(new GridLayout(2, 2, 4, 4));
@@ -197,7 +198,7 @@ public final class StudioPanel extends PluginPanel
         getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(javax.swing.KeyStroke.getKeyStroke("control F"), "findItems");
         getActionMap().put("findItems", new javax.swing.AbstractAction() { public void actionPerformed(java.awt.event.ActionEvent e) { if (tabs.getSelectedIndex() == 0) search.requestFocusInWindow(); else if (tabs.getSelectedIndex() == 2) wikiQuery.requestFocusInWindow(); else if (draft != null) { tabs.setSelectedIndex(1); expandedPanels.add("Find items"); renderBuilder(); catalogueQuery.requestFocusInWindow(); } } });
 		watch(setupName, () -> { if (!rendering) { fieldsToDraft(); markDirty(); } }); reloadScope(); tabs.setSelectedIndex(0);
-		filterBank.addActionListener(e -> { if (!rendering) { fieldsToDraft(); markDirty(); syncBankFilter(); } });
+		filterBank.addActionListener(e -> { if (!rendering) setBankFiltering(filterBank.isSelected()); });
 		bankLayout.addActionListener(e -> { if (!rendering && draft != null) { editorLayout = (BankLayouts.Mode) bankLayout.getSelectedItem(); rebuildDraftLayout(); markDirty(); renderBuilder(); } });
 		bottomToTop.addActionListener(e -> { if (!rendering && draft != null) { editorBottom = bottomToTop.isSelected(); if (editorLayout == BankLayouts.Mode.ZIGZAG) rebuildDraftLayout(); markDirty(); } });
 		bankStatus.setEditable(false); bankStatus.setLineWrap(true); bankStatus.setWrapStyleWord(true);
@@ -208,6 +209,11 @@ public final class StudioPanel extends PluginPanel
 	{
 		if (disposed || draft == null) return; String token = session; fieldsToDraft();
 		host.updateBankFilter(draft, scope, value -> { if (token.equals(session)) bankMessage(value); });
+	}
+	private void setBankFiltering(boolean enabled)
+	{
+		if (draft == null) return;
+		filterBank.setSelected(enabled); fieldsToDraft(); markDirty(); syncBankFilter(); renderBuilder();
 	}
 	private void rebuildDraftLayout()
 	{
@@ -400,16 +406,20 @@ public final class StudioPanel extends PluginPanel
 	private void renderLibrary()
 	{
 		libraryRows.removeAll(); String query = search.getText().trim().toLowerCase(java.util.Locale.ROOT);
+		int matching = 0;
 		List<SetupLibrary.Section> groups = new ArrayList<>(); groups.add(new SetupLibrary.Section("Unfiled")); groups.get(0).id = null; groups.addAll(library.sections);
 		for (SetupLibrary.Section group : groups)
 		{
 			List<SetupLibrary.Entry> records = new ArrayList<>();
 			for (SetupLibrary.Entry entry : library.setups) if (Objects.equals(entry.section, group.id) && entry.archived == archived.isSelected() && (!favorites.isSelected() || entry.favorite) && SetupCodec.name(entry.portable).toLowerCase(java.util.Locale.ROOT).contains(query)) records.add(entry);
 			records.sort(Comparator.comparing(e -> SetupCodec.name(e.portable)));
+			matching += records.size();
 			if (records.isEmpty() && (group.id == null || !query.isEmpty() || favorites.isSelected())) continue;
 			String groupId = group.id == null ? "" : group.id;
-			JButton heading = button((collapsed.contains(groupId) ? "+ " : "- ") + group.name + " (" + records.size() + ")", () -> { if (!collapsed.add(groupId)) collapsed.remove(groupId); renderLibrary(); }); heading.setForeground(GOLD); heading.setAlignmentX(LEFT_ALIGNMENT); libraryRows.add(heading);
-			if (collapsed.contains(groupId)) continue;
+			boolean filtering = !query.isEmpty() || favorites.isSelected();
+			boolean folded = collapsed.contains(groupId) && !filtering;
+			JButton heading = button((folded ? "+ " : "- ") + group.name + " (" + records.size() + ")", () -> { if (!collapsed.add(groupId)) collapsed.remove(groupId); renderLibrary(); }); heading.setForeground(GOLD); heading.setAlignmentX(LEFT_ALIGNMENT); heading.setEnabled(!filtering); if (filtering) heading.setToolTipText("Matching sections stay expanded while filtering."); libraryRows.add(heading);
+			if (folded) continue;
 			for (SetupLibrary.Entry entry : records)
 			{
                 libraryRows.add(new LibrarySetupRow(entry.id, SetupCodec.name(entry.portable), entry.favorite, entry.archived,
@@ -419,7 +429,17 @@ public final class StudioPanel extends PluginPanel
                     () -> confirmDeleteArchived(entry.id)));
 			}
 		}
-		if (libraryRows.getComponentCount() == 0) libraryRows.add(info(archived.isSelected()?"No archived setups.":"No saved setups match this view. Create or import a setup.", 3)); themeForm(libraryRows); libraryRows.revalidate(); libraryRows.repaint();
+		if (matching == 0)
+		{
+			boolean filtered = !query.isEmpty() || favorites.isSelected() || archived.isSelected();
+			if (filtered)
+			{
+				libraryRows.add(info(!query.isEmpty() || favorites.isSelected() ? "No setups match these filters." : "No archived setups.", 2));
+				libraryRows.add(button("Clear filters", () -> { favorites.setSelected(false); archived.setSelected(false); search.setText(""); renderLibrary(); }));
+			}
+			else libraryRows.add(card("Start a loadout", info("Find a Wiki setup, capture your gear or start from scratch.", 3), button("Find Wiki content", () -> tabs.setSelectedIndex(2)), button("Capture gear", this::capture), button("New setup", () -> newDraft(SetupCodec.blank("New loadout")))));
+		}
+		themeForm(libraryRows); libraryRows.revalidate(); libraryRows.repaint();
 	}
     private void confirmDeleteArchived(String id)
     {
@@ -473,8 +493,12 @@ public final class StudioPanel extends PluginPanel
     }
 	private void capture()
 	{
-		if (!discard()) return; String capturedScope = scope;
-		host.capture(p -> { if (!disposed && Objects.equals(scope, capturedScope)) { dirty = false; newDraft(p); } }, this::message);
+		if (!discard()) return; String capturedScope = scope, token = session, owner = recoveryOwner; long revision = draftRevision;
+		host.capture(p -> {
+			if (disposed || !Objects.equals(scope, capturedScope) || !Objects.equals(owner, recoveryOwner) || !token.equals(session)) return;
+			if (revision != draftRevision) { message("Capture cancelled because the Builder changed. Your edits were kept."); return; }
+			dirty = false; newDraft(p);
+		}, this::message);
 	}
 	private void manageSections()
 	{
@@ -491,7 +515,7 @@ public final class StudioPanel extends PluginPanel
 	}
 	private void markDirty()
 	{
-		if (rendering || draft == null) return; dirty = true; draftLabel.setText("Unsaved changes"); setupName.setToolTipText(setupName.getText() + " - Unsaved changes (Ctrl+S to save)"); code.setText(""); fieldsToDraft();persistRecovery();
+		if (rendering || draft == null) return; draftRevision++; dirty = true; draftLabel.setText("Unsaved changes"); setupName.setToolTipText(setupName.getText() + " - Unsaved changes (Ctrl+S to save)"); code.setText(""); fieldsToDraft();persistRecovery();
 	}
 	private void fieldsToDraft()
 	{
@@ -517,6 +541,8 @@ public final class StudioPanel extends PluginPanel
 
             draftLabel.setText(dirty ? "Unsaved changes" : "Saved setup"); setupName.setToolTipText(SetupCodec.name(draft) + " - " + draftLabel.getText());
             filterBank.setSelected(s.has("fb") && s.get("fb").getAsBoolean()); bankLayout.setSelectedItem(editorLayout); bottomToTop.setSelected(editorBottom); bottomToTop.setEnabled(editorLayout == BankLayouts.Mode.ZIGZAG);
+			JButton quickFilter = button(filterBank.isSelected() ? "Clear filter" : "Filter Bank", () -> setBankFiltering(!filterBank.isSelected())); quickFilter.setName("quickBankFilter"); quickFilter.setToolTipText("Toggle this setup's Bank filter. Layout settings are below the loadout.");
+			JButton quickCompare = button("Compare", this::compareGear); quickCompare.setName("quickCompareGear"); quickCompare.setToolTipText("Compare your current gear with this setup."); builderTools.add(row(quickFilter, quickCompare));
 
             JPanel inventory = itemGrid(7, 4); inventory.setName("inventoryGrid");
             for (int i = 0; i < 28; i++) inventory.add(slot("inv", i)); builder.add(loadoutSection("Inventory", inventory));
@@ -534,7 +560,7 @@ public final class StudioPanel extends PluginPanel
             notes.setName("loadoutNotes"); notes.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); builder.add(loadoutSection("Notes", notes));
 
             JPanel loadoutOptions = vertical(); loadoutOptions.add(button("Max pouch runes (16k)", () -> { for (JsonElement e : s.getAsJsonArray("rp")) if (!e.isJsonNull()) e.getAsJsonObject().addProperty("q", 16000); markDirty(); renderBuilder(); })); loadoutOptions.add(ignoreAmmo); loadoutOptions.add(button("Add filtered item", () -> editSlot("afi", SetupCodec.setup(draft).getAsJsonObject("afi").size()))); builder.add(disclosure("Loadout options", loadoutOptions));
-            JPanel bankOptions = vertical(); bankOptions.add(filterBank); bankOptions.add(bankLayout); bankOptions.add(bottomToTop); bankOptions.add(row(button("Apply filter", () -> { filterBank.setSelected(true); fieldsToDraft(); markDirty(); syncBankFilter(); }), button("Clear filter", () -> { filterBank.setSelected(false); fieldsToDraft(); markDirty(); syncBankFilter(); }))); bankStatus.setRows(2); bankStatus.setMaximumSize(new Dimension(500, 54)); bankOptions.add(bankStatus); builder.add(disclosure("Bank filtering and layout", bankOptions));
+            JPanel bankOptions = vertical(); bankOptions.add(filterBank); bankOptions.add(bankLayout); bankOptions.add(bottomToTop); bankOptions.add(row(button("Apply filter", () -> setBankFiltering(true)), button("Clear filter", () -> setBankFiltering(false)))); bankStatus.setRows(2); bankStatus.setMaximumSize(new Dimension(500, 54)); bankOptions.add(bankStatus); builder.add(disclosure("Bank filtering and layout", bankOptions));
             JPanel details = vertical(); details.add(text("Section")); details.add(section); details.add(favorite); builder.add(disclosure("Setup details", details));
             JPanel actions = vertical(); actions.add(row(button("Save copy", () -> saveDraft(true)), button("Compare gear", this::compareGear))); actions.add(button("Export setup", () -> { fieldsToDraft(); tabs.setSelectedIndex(3); refreshCode(); })); builder.add(disclosure("Setup actions", actions));
 		}

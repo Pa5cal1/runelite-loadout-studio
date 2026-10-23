@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.6.2-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub.
+**Current version: 0.6.3-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub.
 
 ## Contents
 
@@ -54,7 +54,7 @@ Click the star beside a setup to mark it as a favorite. Enable **Favorites** to 
 
 Use the **Sections** button at the top of Library to create, rename or remove a section. To assign a setup, open it, expand **Setup details**, choose a section and click **Save**.
 
-Click a section heading to expand or collapse it. Setups without a section appear under **Unfiled**. Removing a section moves its setups back to Unfiled.
+Click a section heading to expand or collapse it. Search and Favorites temporarily expand matching sections; clearing those filters restores your previous section state. Setups without a section appear under **Unfiled**. Removing a section moves its setups back to Unfiled.
 
 ### Archiving and Deleting
 
@@ -127,7 +127,7 @@ See the [Wiki request policy](docs/wiki-network-policy.md) for the full caching 
 
 **Bank Tags must be enabled.**
 
-Open a setup, expand **Bank filtering and layout**, enable **Filter Bank** and select a layout:
+Open a setup and use **Filter Bank** / **Clear filter** above the loadout for quick access. To choose a layout, expand **Bank filtering and layout**:
 
 - **Preset** places Equipment on the left and Inventory on the right.
 - **Zigzag** alternates items between two rows. Choose which row starts first.
@@ -139,7 +139,7 @@ The filter includes Equipment, Inventory, Rune Pouch, Quiver and Additional filt
 
 ## Comparing Your Gear
 
-Expand **Setup actions** and choose **Compare gear**. Slots with differences are marked in red.
+Click **Compare** above the loadout, or expand **Setup actions** and choose **Compare gear**. Slots with differences are marked in red.
 
 Right-click a slot to change its matching options:
 
@@ -220,6 +220,13 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.6.3-test
+
+- Keep Bank filtering and gear comparison accessible above the scrolling loadout.
+- Reveal matching setups in collapsed sections while searching or filtering Favorites, and restore the previous section state afterwards.
+- Add direct starting actions to an empty Library and a clear-filters action for empty search results.
+- Reject a delayed Capture gear result if the Builder, profile or open setup changed while it was loading.
 
 ### 0.6.2-test
 

@@ -30,3 +30,12 @@ Open a Wiki recommendation setup: its first listed items should appear immediate
 ## Archive actions (0.6.2)
 
 Archive a disposable setup with the box icon, then enable Archived. Confirm that restore and red trash are distinct and fit on the same row. Restore should return the setup to the active list. Archive again, click trash and choose Cancel: it must remain. Click trash again, confirm Delete permanently and verify it disappears after reopening the plugin. Check that other setups and sections remain. For an open archived setup, the warning must explain discarding its Builder draft, and confirmation must close that draft. Do not use a setup you need for this acceptance test.
+
+## Player workflow review — 0.6.3-test
+
+1. Start with an empty Library: use Find Wiki content, Capture gear and New setup. Check there is no Wiki traffic until an explicit search/page request.
+2. Collapse a section, search for one of its setups, then clear the search. The matching setup is visible during search; the section returns to its previous collapsed state. Repeat with Favorites.
+3. Apply and clear the Bank filter from the fixed Builder header. Confirm the checkbox and saved preference agree. Change Preset/Zigzag in the existing layout disclosure.
+4. Use Compare above the loadout. Confirm actual differences and sprites in RuneLite; these require manual game-client acceptance.
+5. Make a query that matches nothing and use Clear filters to return to the active Library.
+6. Verify Capture gear opens a new draft as usual. Changes made while a delayed capture is pending must be retained.

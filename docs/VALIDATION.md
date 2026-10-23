@@ -141,3 +141,11 @@ Bank filtering now uses the built-in Bank Tags dependency, an in-memory custom t
 - Deleting the matching open archived setup closes its Builder draft, clears its recovery and owned Bank filter, and invalidates pending draft callbacks. The confirmation warns about discarding unsaved changes. Unrelated drafts remain open.
 - Final native Windows Java 11 build: 88 tests passed, zero failures/errors; test, shadowJar and jar succeeded. New tests cover cancellation, active/missing entries, stale deletion, storage failure, matching-editor cleanup and narrow archived rows. Both active and archived previews were visually inspected.
 - Versioned 0.6.2 test artifacts copied to build/libs. Manual confirmation in RuneLite is still required; no game input or existing user setup was operated on.
+
+## Player workflow review — 0.6.3-test — 2026-10-23
+
+- Reviewed the four sidebar routes through offline Swing fixtures. Added fixed-header Bank filter and Compare actions, direct starting actions in an empty Library, and a reset for empty filtered views.
+- Search and Favorites temporarily reveal matching rows in collapsed sections without altering the saved collapse preference.
+- Capture callbacks now require the original profile owner, draft session and edit revision, preventing a delayed response from replacing intervening edits or a newly opened setup.
+- Native Windows Java 11: test, shadowJar and jar passed; 93 tests, zero failures/errors/skipped. Five new workflow regressions cover collapsed search/favorites, empty filters, explicit Wiki access, narrow fixed actions and delayed captures. Visually inspected Library, Builder, Wiki and Export at 220 px; fixed controls also verified at 260 px.
+- Versioned test artifacts copied to build/libs. Offline fixtures are not live RuneLite acceptance: actual sprites, Bank behavior, game-side capture and receiving-plugin imports still require the user. No game input was automated.
