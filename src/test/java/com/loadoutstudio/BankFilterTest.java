@@ -54,6 +54,7 @@ public class BankFilterTest
         public void title(String title) { displayedTitle=title; }
 		public int capacity() { return capacity; }
 		public String activeTag() { return active; }
+        public int[] currentLayout(){return layout==null?null:layout.clone();}
 		public int canonicalize(int id) { return id == 1000 ? 100 : id; }
 		public int variation(int id) { return id == 150 ? 100 : id; }
 		public void register(String tag, IntPredicate matches) { this.matches = matches; }

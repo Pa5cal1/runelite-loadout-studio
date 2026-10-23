@@ -2,7 +2,9 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.6.3-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub.
+**Current version: 0.7.0-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub.
+
+Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering/layouts require RuneLite's built-in **Bank Tags** plugin. Optional imports create independent copies.
 
 ## Contents
 
@@ -44,7 +46,7 @@ You can also create a setup from the [Wiki](#finding-wiki-setups) or [import one
 
 ## Your Setup Library
 
-Click a setup's name to open it. Use the search bar to find setups by name. Long names are shortened in the list; hover over a name to see it in full.
+Click a setup's name to open it. Use the search bar to find setups by name, `item:<name or ID>` or `notes:<text>`. Choose Alphabetical, Recent, Favorites first or Manual sorting. Right-click a setup name to move it up/down within its section; moving selects Manual order. Recent is recorded per character/profile. Long names are shortened in the list; hover over a name to see it in full.
 
 ### Favorites
 
@@ -99,6 +101,20 @@ Write instructions in **Notes** below the items. The notes area grows with the t
 
 **Ctrl+F** focuses the relevant search field. **Ctrl+S** saves the draft.
 
+### Owned Gear Alternatives
+
+Open **My gear alternatives → Check my Bank** while logged in. Open the Bank at least once in the current session first. The plugin reads local Bank, Inventory and Equipment data; Bank placeholders do not count as owned items. Closed-Bank results show the observation time and can be out of date. Other storage is not included.
+
+Missing items can offer Wiki alternatives, a small bundled gear/supply group, or other observed Equipment for the same slot. Each suggestion states its basis. Same-slot choices do not verify combat style, requirements, ammo, spells or boss suitability. The first Wiki choice remains the default; each replacement starts at **Keep original**. Select the replacements you want, then click **Use selected alternatives**. Availability is checked again before applying. Review and Save; **Undo alternatives** is available until another draft edit makes it unsafe. Rune types are never freely substituted. No Wiki request is needed for this operation.
+
+### Upgrading Saved Setups
+
+Save your current draft, then use **Library tools → Upgrade item in setups**. Choose the old and new item using chatbox search, select the active setups to change and confirm the preview. Only exact Item IDs are replaced; amounts, matching rules, Notes and layout positions are retained. Replacement Equipment must use the same slot. Review combat style and requirements yourself. **Undo last upgrade** works while no later library/draft change would be lost.
+
+### Bolt Pouch and Attack Option
+
+Capture gear includes a carried Bolt Pouch and the current attack option when available from the game cache. Existing Bolt Pouch entries can be edited like other slots. **Loadout options** can add four Bolt Pouch slots, capture the current attack option or clear that preference. The saved attack option is checked, never changed in game.
+
 ## Finding Wiki Setups
 
 1. Open **Wiki** and enter an activity, such as Vorkath.
@@ -133,13 +149,19 @@ Open a setup and use **Filter Bank** / **Clear filter** above the loadout for qu
 - **Zigzag** alternates items between two rows. Choose which row starts first.
 - **Imported / custom** keeps an imported layout's positions.
 
+Drag items in your active Bank layout to customise their positions. These changes update the Builder draft; click **Save** to retain them across reopening/restarts. The mode becomes Custom. Choosing Preset/Zigzag explicitly regenerates positions.
+
+A configurable **Toggle Bank filter** hotkey works only while the Bank is open and is unset by default. The worn-items button can offer up to five favorite/recent setup shortcuts; disable **Bank setup shortcuts** in config if desired.
+
 Click **Apply filter** to show the setup's items in an open Bank, or apply it when you next open the Bank. Click **Clear filter** to turn filtering off for the draft. Save the setup to keep these preferences.
 
 The filter includes Equipment, Inventory, Rune Pouch, Quiver and Additional filtered items. The Bank title displays the setup name. If you are also using another setup plugin, keep one setup filter selected at a time.
 
 ## Comparing Your Gear
 
-Click **Compare** above the loadout, or expand **Setup actions** and choose **Compare gear**. Slots with differences are marked in red.
+Gear differences update from local Inventory, Equipment, Rune Pouch, Quiver, Bolt Pouch, Spellbook and attack-option changes. Unchanged snapshots do not rebuild the sidebar; editing Notes keeps the same editor. The fixed status and slot tooltips explain differences. **Compare** also requests a fresh check. Actual event handling still requires manual RuneLite acceptance.
+
+Unordered Inventory matching ignores extra items and requires distinct matches for duplicate required items. Exact and Fuzzy/quantity rules remain per item.
 
 Right-click a slot to change its matching options:
 
@@ -159,6 +181,10 @@ In Library, click **Import setup → From installed plugins**. Select the setups
 Loadout Studio reads supported Inventory Setups, Bank Tags and legacy Bank Tag Layouts data from the current RuneLite profile. It creates independent copies and retains available section names, favorites and layouts. The originals remain in their own plugins.
 
 If an entry is unsupported, export it through its original plugin and use **Paste JSON / Bank Tag** instead.
+
+### Share Selected Setups or a Section
+
+Use **Library tools → Share setups / section**, select individual setups or a section, and confirm. The bundle includes the selected setups and their Notes. Importing this bundle adds independent copies and retains existing setups; it does not replace the whole library. Whole-library backups retain their separate restore flow.
 
 ### From a Code
 
@@ -220,6 +246,15 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.7.0-test
+
+- Offer explicitly selected alternatives from locally observed gear, with source/group/same-slot explanations, availability recheck and guarded Undo.
+- Update gear differences from local changes, fix unordered extra-item behavior and add Bolt Pouch/attack-option support.
+- Save native Bank layout edits back into the active draft as Custom.
+- Add Recent, Favorites-first and Manual ordering, item/Notes searches, bulk item upgrade with preview/Undo, and selected sharing bundles.
+- Add configurable Bank filter hotkey and favorite/recent Bank-menu shortcuts.
+- Keep Inventory Setups and standalone Bank Tag Layouts optional; the only plugin dependency is built-in Bank Tags.
 
 ### 0.6.3-test
 

@@ -53,6 +53,7 @@ final class ItemCatalogue
     }
 
     int size() { return items.size(); }
+    boolean matches(int id,String term) { StudioPanel.ItemInfo item=items.get(id);return item!=null && item.name.toLowerCase(Locale.ROOT).contains(term.toLowerCase(Locale.ROOT)); }
     boolean isEmpty() { return items.isEmpty(); }
     void clear() { items.clear(); }
 }

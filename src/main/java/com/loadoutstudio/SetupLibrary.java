@@ -26,6 +26,7 @@ public final class SetupLibrary
 		public String section;
 		public boolean favorite;
 		public boolean archived;
+		public long lastOpened;
 		public BankLayouts.Mode bankLayout;
 		public boolean zigzagBottomToTop;
 		public JsonObject portable;

@@ -31,20 +31,22 @@ final class SetupComparison
     static Set<String> differences(JsonObject expected,JsonObject actual,boolean ignoreAmmo,IntUnaryOperator variation)
     {
         Set<String> result=new LinkedHashSet<>();JsonObject saved=SetupCodec.setup(expected),current=SetupCodec.setup(actual);
-        for(String key:new String[]{"eq","inv","rp","qv"})
+        for(String key:new String[]{"eq","inv","rp","qv","bp"})
         {
-            int length=key.equals("eq")?14:key.equals("inv")?28:key.equals("rp")?4:1;
+            if(key.equals("bp") && (!saved.has(key)||!saved.get(key).isJsonArray()))continue;
+            int length=key.equals("eq")?14:key.equals("inv")?28:key.equals("rp")||key.equals("bp")?4:1;
             JsonArray wanted=saved.has(key)&&saved.get(key).isJsonArray()?saved.getAsJsonArray(key):new JsonArray();
             JsonArray present=current.has(key)&&current.get(key).isJsonArray()?current.getAsJsonArray(key):new JsonArray();
             if(key.equals("inv") && saved.has("uh") && saved.get("uh").getAsBoolean())
             {
                 int[] owners=new int[length];Arrays.fill(owners,-1);
                 // Maximum matching prevents a fuzzy slot stealing the only match for an exact slot.
-                for(int i=0;i<length;i++)if(!assign(i,wanted,present,owners,new boolean[length],variation))result.add(key+":"+i);
+                for(int i=0;i<length;i++)if(!at(wanted,i).isJsonNull() && !assign(i,wanted,present,owners,new boolean[length],variation))result.add(key+":"+i);
             }
             else for(int i=0;i<length;i++)if(!matches(at(wanted,i),at(present,i),ignoreAmmo&&(key.equals("qv") || key.equals("eq")&&i==13),variation))result.add(key+":"+i);
         }
         if(saved.has("sb") && saved.get("sb").getAsInt()!=4 && current.has("sb") && !saved.get("sb").equals(current.get("sb")))result.add("spellbook");
+        if(saved.has("ao") && !saved.get("ao").isJsonNull() && !saved.get("ao").getAsString().isEmpty() && (!current.has("ao") || !saved.get("ao").equals(current.get("ao"))))result.add("attackOption");
         return result;
     }
     private static boolean assign(int expected,JsonArray wanted,JsonArray present,int[] owners,boolean[] seen,IntUnaryOperator variation)

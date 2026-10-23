@@ -97,3 +97,13 @@ Active rows retain their two compact controls: favorite and archive box. Archive
 ## 0.6.3 player workflow review
 
 The fixed Builder header exposes Compare and the current Bank filter toggle, so routine gearing does not require scrolling past Notes. The layout selector stays in the existing disclosure. Filtered Library results expand matching sections temporarily, preserving manual collapse preferences when filters clear. Empty views distinguish first use from a restrictive filter and offer direct next steps. A captured gear reply must match the original profile owner, draft session and edit revision; late replies cannot overwrite subsequent edits. Offline Swing fixtures exercise these routes without game interaction or Wiki traffic.
+
+## 0.7.0 local gearing and ownership
+
+The native layout adapter observes only its own active tag, validates changed cell IDs and reports Custom positions to the guarded active draft. The user must Save. Local container/selected-varbit events set a dirty flag; one ClientTick consumes it, captures local state and only publishes a changed snapshot. Profile/login epochs reject stale results. The panel refreshes borders/status without rebuilding Notes.
+
+OwnedGear carries an immutable local Bank observation plus carried/worn items, with a timestamp. Unknown Bank state remains unknown, placeholders are excluded, and other storage is outside the observation boundary. Suggestions prefer source alternatives, then bounded bundled families, then an explicit same-Equipment-slot fallback. No option is selected automatically. Rechecking and context/revision validation precede an atomic draft replacement; Undo rejects intervening edits.
+
+Library mutations clone/validate/persist before replacing state. Bulk upgrades have exact-ID scope, preview, slot checks and one bounded Undo guarded by the complete current library. Selected share bundles use a marker separate from whole-library backups, so their import merges independent copies. New lastOpened metadata defaults to zero for old libraries; existing keys/schema remain compatible.
+
+Inventory Setups and standalone Bank Tag Layouts are optional data sources/formats, not linked modules. Built-in RuneLite Bank Tags remains the one declared plugin dependency. No native renderer is duplicated and no new HTTP route is added. RuneLite API changes can still require maintenance.

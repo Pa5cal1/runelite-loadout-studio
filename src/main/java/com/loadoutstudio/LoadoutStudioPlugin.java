@@ -19,6 +19,10 @@ import net.runelite.api.ItemContainer;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.events.ScriptPostFired;
+import net.runelite.api.events.ItemContainerChanged;
+import net.runelite.api.events.VarbitChanged;
+import net.runelite.api.events.ClientTick;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.ScriptID;
 import net.runelite.api.gameval.InventoryID;
@@ -51,6 +55,10 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	@Inject private ClientThread clientThread;
 	@Inject private ClientToolbar toolbar;
 	@Inject private ItemManager itemManager;
+    @Inject private net.runelite.client.input.KeyManager keyManager;
+    @Inject private LoadoutStudioConfig config;
+    private net.runelite.client.util.HotkeyListener filterHotkey;
+    private volatile List<StudioPanel.QuickLink> quickLinks=java.util.Collections.emptyList();
     @Inject private javax.inject.Provider<net.runelite.client.game.chatbox.ChatboxItemSearch> chatboxSearch;
     @Inject private net.runelite.client.game.chatbox.ChatboxPanelManager chatbox;
     private net.runelite.client.game.chatbox.ChatboxInput ownedChatbox;
@@ -61,6 +69,14 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	@Inject private TagManager tagManager;
 	@Inject private LayoutManager layoutManager;
 	private StudioBankFilter bankFilter;
+    private volatile Consumer<JsonArray> layoutObserver;
+    private volatile Consumer<JsonObject> gearObserver;
+    private volatile boolean gearDirty;
+    private volatile JsonObject lastGear;
+    private volatile long gearEpoch;
+    private final java.util.Set<Integer> gearVarps=new java.util.HashSet<>();
+    private final java.util.Map<Integer,Integer> observedBank=new java.util.LinkedHashMap<>();
+    private long bankObservedAt;
 	private final java.util.concurrent.atomic.AtomicLong importRevision = new java.util.concurrent.atomic.AtomicLong();
     private final java.util.concurrent.atomic.AtomicLong bankRevision = new java.util.concurrent.atomic.AtomicLong();
 	private NavigationButton navigation;
@@ -76,12 +92,14 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	@Override protected void startUp()
 	{
 		active = true; wiki = new WikiClient(http, gson, 2000, new WikiCacheFile(this::getPluginDirectory));
+        filterHotkey=new net.runelite.client.util.HotkeyListener(config::filterHotkey){@Override public void hotkeyPressed(){clientThread.invoke(()->{net.runelite.api.widgets.Widget bank=client.getWidget(InterfaceID.Bankmain.ITEMS);if(!active||bank==null||bank.isHidden())return;String owner=recoveryOwner();SwingUtilities.invokeLater(()->{if(active&&panel!=null&&owner.equals(recoveryOwner()))panel.toggleBankFilter();});});}};keyManager.registerKeyListener(filterHotkey);
         importWorker=java.util.concurrent.Executors.newSingleThreadExecutor(r->{Thread t=new Thread(r,"loadout-local-import");t.setDaemon(true);return t;});
 		bankFilter = new StudioBankFilter(new StudioBankFilter.Gateway()
 		{
 			public boolean bankOpen() { net.runelite.api.widgets.Widget w = client.getWidget(InterfaceID.Bankmain.ITEMS); return client.getGameState() == GameState.LOGGED_IN && w != null && !w.isHidden() && w.getChildren() != null && w.getChildren().length > 0; }
 			public int capacity() { net.runelite.api.widgets.Widget w = client.getWidget(InterfaceID.Bankmain.ITEMS); return w == null || w.getChildren() == null ? 0 : w.getChildren().length; }
 			public String activeTag() { return bankTags.getActiveTag(); }
+            public int[] currentLayout() { Layout layout=((BankTagsPlugin)bankTags).getActiveLayout();return layout==null?null:layout.getLayout().clone(); }
 			public int canonicalize(int id) { return itemManager.canonicalize(id); }
 			public int variation(int id) { return SetupVariationMapping.map(id); }
 			public void register(String tag, java.util.function.IntPredicate matches) { tagManager.registerTag(tag, matches::test); }
@@ -100,22 +118,77 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 			if (!active) return;
 			panel = new StudioPanel(this, gson); navigation = NavigationButton.builder().tooltip("Loadout Studio (Test)").icon(icon()).panel(panel).priority(7).build(); toolbar.addNavigation(navigation);
 		});
-		clientThread.invokeLater(this::indexItems);
+		clientThread.invokeLater(()->{indexItems();if(client.getGameState()==GameState.LOGGED_IN)indexGearVarps();});
+		gearDirty=true;
 	}
 	@Override protected void shutDown()
 	{
 		active = false; importRevision.incrementAndGet(); cancelItemInput(); if (wiki != null) wiki.close(); if(importWorker!=null)importWorker.shutdownNow();
+        if(filterHotkey!=null)keyManager.unregisterKeyListener(filterHotkey);filterHotkey=null;quickLinks=java.util.Collections.emptyList();
+        gearObserver=null;layoutObserver=null;lastGear=null;clearBankObservation();
 		bankRevision.incrementAndGet(); StudioBankFilter previousFilter = bankFilter; bankFilter = null; clientThread.invoke(() -> { if (previousFilter != null) previousFilter.clear(); });
 		SwingUtilities.invokeLater(() -> { if (navigation != null) toolbar.removeNavigation(navigation); if (panel != null) panel.dispose(); panel = null; navigation = null; });
 		catalogue.clear(); indexing = false; nextItem = 0;
 	}
 	private static BufferedImage icon() { return StudioBrandIcon.create(); }
+    @Override public void quickLinks(List<StudioPanel.QuickLink> links){quickLinks=java.util.Collections.unmodifiableList(new java.util.ArrayList<>(links));}
+    @Subscribe public void onMenuEntryAdded(net.runelite.api.events.MenuEntryAdded event)
+    {
+        if(!active || !config.bankMenu() || event.getActionParam1()!=InterfaceID.Bankmain.WORNITEMS_BUTTON || event.getType()!=net.runelite.api.MenuAction.CC_OP.getId() || event.getIdentifier()!=1)return;
+        String owner=recoveryOwner();for(StudioPanel.QuickLink link:quickLinks)client.getMenu().createMenuEntry(-1).setOption("Loadout Studio").setTarget(link.name.replace("<","").replace(">","")).setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->SwingUtilities.invokeLater(()->{if(active&&panel!=null&&owner.equals(recoveryOwner()))panel.openSaved(link.id);}));
+    }
 
-	@Subscribe public void onGameStateChanged(GameStateChanged event) { if (event.getGameState() == GameState.LOGGED_IN) indexItems(); else if (event.getGameState() == GameState.LOGIN_SCREEN) clearBankFilter(); }
+    @Override public void observeGear(Consumer<JsonObject> observer) { gearObserver=observer;gearDirty=true; }
+    @Override public void requestGear() { clientThread.invoke(()->{lastGear=null;gearDirty=true;}); }
+    private void indexGearVarps(){gearVarps.clear();for(int bit:GearContainers.trackedVarbits())gearVarps.add(client.getVarbit(bit).getIndex());}
+    @Subscribe public void onItemContainerChanged(ItemContainerChanged event)
+    {
+        if(event.getContainerId()==InventoryID.INV || event.getContainerId()==InventoryID.WORN)gearDirty=true;
+        if(event.getContainerId()==InventoryID.BANK)observeBank();
+    }
+    @Subscribe public void onVarbitChanged(VarbitChanged event)
+    {
+        if(gearVarps.contains(event.getVarpId()))gearDirty=true;
+        if(event.getVarpId()==VarPlayerID.COM_MODE || event.getVarpId()==VarPlayerID.DIZANAS_QUIVER_TEMP_AMMO || event.getVarpId()==VarPlayerID.DIZANAS_QUIVER_TEMP_AMMO_AMOUNT)gearDirty=true;
+        int bit=event.getVarbitId();if(bit==VarbitID.SPELLBOOK || bit==VarbitID.COMBAT_WEAPON_CATEGORY || bit==VarbitID.AUTOCAST_DEFMODE || bit==VarbitID.RUNE_POUCH_TYPE_1 || bit==VarbitID.RUNE_POUCH_TYPE_2 || bit==VarbitID.RUNE_POUCH_TYPE_3 || bit==VarbitID.RUNE_POUCH_TYPE_4 || bit==VarbitID.RUNE_POUCH_QUANTITY_1 || bit==VarbitID.RUNE_POUCH_QUANTITY_2 || bit==VarbitID.RUNE_POUCH_QUANTITY_3 || bit==VarbitID.RUNE_POUCH_QUANTITY_4 || GearContainers.isBoltVarbit(bit))gearDirty=true;
+    }
+    @Subscribe public void onClientTick(ClientTick event)
+    {
+        if(!active || !gearDirty || client.getGameState()!=GameState.LOGGED_IN)return;
+        gearDirty=false;String owner=recoveryOwner();long epoch=gearEpoch;
+        capture(snapshot->{if(!active||!owner.equals(recoveryOwner())||epoch!=gearEpoch)return;if(!snapshot.equals(lastGear)){lastGear=snapshot.deepCopy();if(gearObserver!=null)gearObserver.accept(snapshot);}},error->{});
+    }
+    @Subscribe public void onConfigChanged(ConfigChanged event)
+    {
+        if(!active || bankFilter==null || !"banktags".equals(event.getGroup()) || bankTags.getActiveTag()==null || !event.getKey().equals("layout_"+bankTags.getActiveTag()) || event.getNewValue()==null)return;
+        long revision=bankRevision.get();Consumer<JsonArray> observer=layoutObserver;
+        clientThread.invokeLater(()->{if(!active||revision!=bankRevision.get()||bankFilter==null)return;JsonArray layout=bankFilter.readChangedLayout();if(layout!=null && observer!=null)SwingUtilities.invokeLater(()->{if(active&&revision==bankRevision.get())observer.accept(layout);});});
+    }
+    private void clearBankObservation(){clientThread.invoke(()->{observedBank.clear();bankObservedAt=0;});}
+    private void observeBank()
+    {
+        net.runelite.api.widgets.Widget widget=client.getWidget(InterfaceID.Bankmain.ITEMS);ItemContainer bank=client.getItemContainer(InventoryID.BANK);
+        if(client.getGameState()!=GameState.LOGGED_IN || widget==null || widget.isHidden() || bank==null)return;
+        observedBank.clear();for(Item item:bank.getItems())if(item.getId()>0 && item.getQuantity()>0 && itemManager.getItemComposition(item.getId()).getPlaceholderTemplateId()==-1)observedBank.merge(itemManager.canonicalize(item.getId()),item.getQuantity(),(a,b)->(int)Math.min(Integer.MAX_VALUE,(long)a+b));bankObservedAt=System.currentTimeMillis();
+    }
+    @Override public void availableGear(JsonObject expected,Consumer<OwnedGear> success,Consumer<String> error)
+    {
+        String owner=recoveryOwner();clientThread.invoke(()->{
+            if(!active||!owner.equals(recoveryOwner()))return;if(client.getGameState()!=GameState.LOGGED_IN){SwingUtilities.invokeLater(()->error.accept("Log in and open your Bank to check owned alternatives."));return;}
+            observeBank();java.util.Map<Integer,Integer> amounts=new java.util.LinkedHashMap<>(observedBank);java.util.Map<Integer,StudioPanel.ItemInfo> details=new java.util.LinkedHashMap<>();
+            for(int container:new int[]{InventoryID.INV,InventoryID.WORN}){ItemContainer items=client.getItemContainer(container);if(items!=null)for(Item item:items.getItems())if(item.getId()>0&&item.getQuantity()>0)amounts.merge(itemManager.canonicalize(item.getId()),item.getQuantity(),(a,b)->(int)Math.min(Integer.MAX_VALUE,(long)a+b));}
+            java.util.Set<Integer> ids=new java.util.LinkedHashSet<>(amounts.keySet());for(com.google.gson.JsonElement e:BankLayouts.items(expected))if(SetupCodec.id(e)>0)ids.add(SetupCodec.id(e));
+            for(int id:ids){ItemComposition item=itemManager.getItemComposition(id);ItemStats stats=itemManager.getItemStats(id);details.put(id,new StudioPanel.ItemInfo(id,item.getMembersName(),item.isStackable(),stats!=null&&stats.getEquipment()!=null?stats.getEquipment().getSlot():-1,null));}
+            net.runelite.api.widgets.Widget widget=client.getWidget(InterfaceID.Bankmain.ITEMS);OwnedGear result=new OwnedGear(amounts,details,bankObservedAt,widget!=null&&!widget.isHidden());SwingUtilities.invokeLater(()->{if(active&&owner.equals(recoveryOwner()))success.accept(result);});
+        });
+    }
+
+	@Subscribe public void onGameStateChanged(GameStateChanged event) { if (event.getGameState() == GameState.LOGGED_IN) {indexItems();indexGearVarps();gearDirty=true;} else if (event.getGameState() == GameState.LOGIN_SCREEN) {clearBankFilter();gearEpoch++;lastGear=null;clearBankObservation();String owner=recoveryOwner();SwingUtilities.invokeLater(()->{if(active&&owner.equals(recoveryOwner())&&gearObserver!=null)gearObserver.accept(null);});} }
 	@Subscribe(priority = -1) public void onScriptPreFired(ScriptPreFired event)
 	{
 		if (event.getScriptId() == ScriptID.BANKMAIN_INIT)
 		{
+			observeBank();
 			long revision = bankRevision.get(); clientThread.invokeLater(() -> { if (active && bankFilter != null && revision == bankRevision.get()) try { reportBankStatus(bankFilter.apply()); } catch (RuntimeException ex) { bankFilter.clear(); reportBankStatus(ex.getMessage()); } });
 		}
 	}
@@ -129,17 +202,22 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	private void reportBankStatus(String message) { long revision = bankRevision.get(); SwingUtilities.invokeLater(() -> { if (active && panel != null && revision == bankRevision.get()) panel.bankMessage(message); }); }
 	@Subscribe public void onRuneScapeProfileChanged(RuneScapeProfileChanged event) { reload(); }
 	@Subscribe public void onProfileChanged(ProfileChanged event) { reload(); }
-	private void reload() { importRevision.incrementAndGet(); clearBankFilter(); SwingUtilities.invokeLater(() -> { if (active && panel != null) panel.reloadScope(); }); }
+	private void reload() { importRevision.incrementAndGet(); clearBankFilter();gearEpoch++;lastGear=null;clearBankObservation();gearDirty=true; SwingUtilities.invokeLater(() -> { if (active && panel != null) panel.reloadScope(); }); }
 	@Override public void clearBankFilter()
 	{
 		long revision = bankRevision.incrementAndGet(); clientThread.invoke(() -> { if (bankFilter != null && revision == bankRevision.get()) bankFilter.clear(); });
 	}
 	@Override public void updateBankFilter(JsonObject portable, String scope, Consumer<String> callback)
 	{
+		updateBankFilter(portable,scope,callback,null);
+	}
+    @Override public void updateBankFilter(JsonObject portable,String scope,Consumer<String> callback,Consumer<JsonArray> layoutChanged)
+	{
 		JsonObject snapshot = portable.deepCopy(); long revision = bankRevision.incrementAndGet();
 		clientThread.invoke(() ->
 		{
 			if (!active || bankFilter == null || revision != bankRevision.get() || !java.util.Objects.equals(scope, scope())) return;
+			layoutObserver=layoutChanged;
 			String result; try { result = bankFilter.select(snapshot); } catch (RuntimeException ex) { bankFilter.clear(); result = ex.getMessage(); }
 			String message = result; SwingUtilities.invokeLater(() -> { if (active && revision == bankRevision.get()) callback.accept(message); });
 		});
@@ -214,6 +292,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     @Override public String wikiCacheWarning(){return wiki.cacheWarning();}
     @Override public void localWikiSuggestions(String query,Consumer<List<String>> callback){wiki.suggestLocal(query,titles->SwingUtilities.invokeLater(()->{if(active)callback.accept(titles);}));}
 	@Override public List<StudioPanel.ItemInfo> search(String query) { return catalogue.search(query); }
+    @Override public boolean itemMatches(int id,String query) { return catalogue.matches(id,query); }
 	@Override public StudioPanel.ItemInfo exactItem(String name) { return catalogue.exact(name); }
 	@Override public StudioPanel.ItemInfo defaultItem(String name) { return catalogue.firstExact(name); }
 	@Override public void whenItemsReady(Consumer<String> callback)
@@ -287,7 +366,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 				for (int i = 0; i < (divine ? 4 : 3); i++) { int type = client.getVarbitValue(types[i]), amount = client.getVarbitValue(amounts[i]); if (type > 0 && amount > 0) s.getAsJsonArray("rp").set(i, SetupCodec.item(client.getEnum(982).getIntValue(type), amount)); }
 			}
 			if (quiver) { int ammo = client.getVarpValue(VarPlayerID.DIZANAS_QUIVER_TEMP_AMMO), amount = client.getVarpValue(VarPlayerID.DIZANAS_QUIVER_TEMP_AMMO_AMOUNT); if (ammo > 0 && amount > 0) s.getAsJsonArray("qv").set(0, SetupCodec.item(ammo, amount)); }
-			s.addProperty("sb", client.getVarbitValue(VarbitID.SPELLBOOK)); SetupCodec.rebuildLayout(p);
+			s.addProperty("sb", client.getVarbitValue(VarbitID.SPELLBOOK)); GearContainers.capture(client,s); SetupCodec.rebuildLayout(p);
 			SwingUtilities.invokeLater(() -> { if (active) callback.accept(p); });
 		});
 	}

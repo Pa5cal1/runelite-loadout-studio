@@ -146,6 +146,7 @@ public final class SetupCodec
 			for (Map.Entry<String, JsonElement> entry : extra.getAsJsonObject().entrySet()) validateItem(entry.getValue(), false, complete, ids);
 		}
 		if (s.has("sb") && (integer(s.get("sb")) < 0 || integer(s.get("sb")) > 4)) throw new IllegalArgumentException("Invalid Spellbook.");
+        if(s.has("ao") && !s.get("ao").isJsonNull() && (!s.get("ao").isJsonPrimitive() || !s.get("ao").getAsJsonPrimitive().isString() || s.get("ao").getAsString().length()>80))throw new IllegalArgumentException("Invalid attack option.");
 		if (!p.has("layout") || !p.get("layout").isJsonArray() || p.getAsJsonArray("layout").size() > 8192) throw new IllegalArgumentException("Missing or excessive Bank layout.");
 		List<Integer> layout = new ArrayList<>();
 		for (JsonElement position : p.getAsJsonArray("layout")) { int id = integer(position); if (id == 0 || id < -1) throw new IllegalArgumentException("Invalid Bank layout item ID."); layout.add(id); }

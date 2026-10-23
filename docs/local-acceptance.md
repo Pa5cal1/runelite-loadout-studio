@@ -39,3 +39,16 @@ Archive a disposable setup with the box icon, then enable Archived. Confirm that
 4. Use Compare above the loadout. Confirm actual differences and sprites in RuneLite; these require manual game-client acceptance.
 5. Make a query that matches nothing and use Clear filters to return to the active Library.
 6. Verify Capture gear opens a new draft as usual. Changes made while a delayed capture is pending must be retained.
+
+## Gearing and alternatives — 0.7.0-test
+
+1. Disable/uninstall the two optional hub plugins in a test profile. Create, capture, save, reopen and export in Loadout Studio. Keep built-in Bank Tags enabled.
+2. Open the Bank, load a setup with unowned gear and check My gear alternatives. Verify the observed owned choices, no auto-selection, explicit apply, Save and Undo. Repeat before opening the Bank, after closing it, after withdrawing gear and across profile changes. Zero-quantity placeholders must not count.
+3. Confirm source choices, same-slot-only warnings and no arbitrary rune substitutions. Review requirements, combat style, ammo and spells after choosing a replacement.
+4. Move items in the active native layout, Save, switch setups and restart. Positions must survive; another tag must stay intact. Test Preset/Zigzag regeneration explicitly.
+5. Withdraw/deposit/equip items and change Spellbook, Pouch/Quiver contents and attack style. Confirm automatic differences, tooltip reasons, no Notes focus loss and unordered extra-item behavior.
+6. Exercise Bolt Pouch capture and four slots, including enchanted/dragon bolts, and attack-option capture/ignore/export.
+7. Test Recent/Favorites-first/Manual ordering, right-click move and item:/notes: search.
+8. Upgrade an exact item in selected saved setups, inspect unaffected setups and Undo. Later edits must prevent unsafe Undo.
+9. Share a selected section, import it into a library with existing setups, and confirm independent copies. Verify the old whole-library backup restore flow remains separate.
+10. Configure a Bank-only filter hotkey and use the worn-items menu shortcuts. Confirm no game action is automated and the hotkey does nothing outside the Bank.

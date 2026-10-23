@@ -16,6 +16,7 @@ public final class StudioBankFilter
 		boolean bankOpen();
 		int capacity();
 		String activeTag();
+		default int[] currentLayout() { return null; }
 		int canonicalize(int id);
 		int variation(int id);
 		void register(String tag, IntPredicate matches);
@@ -31,6 +32,20 @@ public final class StudioBankFilter
 	private boolean registered;
 	private boolean waiting;
 	public boolean waiting() { return waiting; }
+	JsonArray readChangedLayout()
+	{
+		if(selected==null || !tag.equals(gateway.activeTag()))return null;
+		int[] cells=gateway.currentLayout();if(cells==null || cells.length>8192)return null;
+		Set<Integer> allowed=new HashSet<>();for(JsonElement item:BankLayouts.items(selected))allowed.add(gateway.canonicalize(SetupCodec.id(item)));
+		JsonArray layout=new JsonArray();for(int id:cells){if(id!=-1 && !allowed.contains(id))return null;layout.add(id);}
+		JsonArray previous=new JsonArray();for(JsonElement e:selected.getAsJsonArray("layout"))previous.add(e.getAsInt()>0?gateway.canonicalize(e.getAsInt()):-1);
+		while(previous.size()>0 && previous.get(previous.size()-1).getAsInt()==-1)previous.remove(previous.size()-1);
+		while(layout.size()>0 && layout.get(layout.size()-1).getAsInt()==-1)layout.remove(layout.size()-1);
+		if(layout.equals(previous))return null;
+		// Missing items must remain available as placeholders after a manual move.
+		for(int id:allowed)if(id>0 && !layout.contains(new com.google.gson.JsonPrimitive(id)))layout.add(id);
+		selected.add("layout",layout.deepCopy());return layout;
+	}
 	StudioBankFilter(Gateway gateway, String tag) { this.gateway = gateway; this.tag = tag; }
 	public String select(JsonObject portable)
 	{
