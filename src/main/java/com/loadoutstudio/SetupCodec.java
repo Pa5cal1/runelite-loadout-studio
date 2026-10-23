@@ -126,9 +126,10 @@ public final class SetupCodec
 		if (p == null || !p.has("setup") || !p.get("setup").isJsonObject()) throw new IllegalArgumentException("Missing setup object.");
 		JsonObject s = setup(p);
 		if (!s.has("name") || !s.get("name").isJsonPrimitive() || !s.get("name").getAsJsonPrimitive().isString()) throw new IllegalArgumentException("Missing setup name.");
+		for (String flag : Arrays.asList("fb", "hd", "uh", "fv")) validateBoolean(s, flag, false);
 		String name = s.get("name").getAsString();
 		if (name.trim().isEmpty() || name.length() > 50) throw new IllegalArgumentException("Setup name must contain 1–50 characters.");
-		if (s.has("notes") && !s.get("notes").isJsonNull() && s.get("notes").getAsString().length() > 10_000) throw new IllegalArgumentException("Notes are too long.");
+		if (s.has("notes") && !s.get("notes").isJsonNull() && (!s.get("notes").isJsonPrimitive() || !s.get("notes").getAsJsonPrimitive().isString() || s.get("notes").getAsString().length() > 10_000)) throw new IllegalArgumentException("Notes must be text with at most 10,000 characters.");
 		Map<String, Integer> limits = new LinkedHashMap<>(); limits.put("inv", 28); limits.put("eq", 14); limits.put("rp", 4); limits.put("qv", 1); limits.put("bp", 28);
 		List<Integer> ids = new ArrayList<>();
 		for (Map.Entry<String, Integer> limit : limits.entrySet())
@@ -153,6 +154,13 @@ public final class SetupCodec
 		if (complete && !layout.containsAll(ids)) throw new IllegalArgumentException("The Bank layout is missing setup items.");
 	}
 
+    static void validateBoolean(JsonObject object, String key, boolean required)
+    {
+        JsonElement value = object.get(key);
+        if (value == null && !required) return;
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean())
+            throw new IllegalArgumentException("Invalid " + key + ": expected true or false.");
+    }
 	private static int integer(JsonElement e)
 	{
 		try { if (e == null || !e.isJsonPrimitive() || !e.getAsJsonPrimitive().isNumber()) throw new ArithmeticException(); return e.getAsBigDecimal().intValueExact(); }
@@ -162,7 +170,7 @@ public final class SetupCodec
 	{
 		if (e == null || e.isJsonNull()) return;
 		if (!e.isJsonObject() || !e.getAsJsonObject().has("id")) throw new IllegalArgumentException("Invalid item.");
-		JsonObject item = e.getAsJsonObject(); int id = integer(item.get("id"));
+		JsonObject item = e.getAsJsonObject(); validateBoolean(item, "f", false); int id = integer(item.get("id"));
 		if (id < 0 || (complete && id == 0)) throw new IllegalArgumentException("Resolve every Item ID before exporting.");
 		if (id > 0) ids.add(id);
 		if (item.has("q"))
@@ -177,7 +185,7 @@ public final class SetupCodec
             for(JsonElement choice:item.getAsJsonArray("choices"))if(!choice.isJsonPrimitive() || !choice.getAsJsonPrimitive().isString() || choice.getAsString().length()>150)throw new IllegalArgumentException("Invalid item alternative.");
         }
 
-		if (item.has("sc") && !Arrays.asList("None", "Standard", "Less_Than", "Greater_Than").contains(item.get("sc").getAsString())) throw new IllegalArgumentException("Invalid Stack comparison.");
+		if (item.has("sc") && (!item.get("sc").isJsonPrimitive() || !item.get("sc").getAsJsonPrimitive().isString() || !Arrays.asList("None", "Standard", "Less_Than", "Greater_Than").contains(item.get("sc").getAsString()))) throw new IllegalArgumentException("Invalid Stack comparison.");
 	}
 
 	public String inventory(JsonObject portable)

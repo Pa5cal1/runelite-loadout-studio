@@ -41,6 +41,8 @@ public interface LoadoutStudioConfig extends Config
     default boolean captureAttackOption(){return true;}
     @ConfigItem(keyName="ignoreAmmoQuantities",name="Ignore Ammo quantities",description="Ignore worn Ammo and Quiver stack sizes when comparing or exporting. Rune Pouch amounts remain checked",section=comparison,position=0)
     default boolean ignoreAmmoQuantities(){return false;}
+    @ConfigItem(keyName="checkAlternativeStock",name="Check replacement stock",description="Check combined Inventory and Equipment amounts before applying owned replacements. Bank observations may be outdated; other storage is not included",section=comparison,position=1)
+    default boolean checkAlternativeStock(){return true;}
     @ConfigItem(keyName="libraryOrder",name="Library order",description="Choose alphabetical, recent, favorite-first or manual library order",section=sidebar,position=0)
     default LibraryOrder libraryOrder(){return LibraryOrder.ALPHABETICAL;}
     @ConfigItem(keyName="showSupportButton",name="Show coffee button",description="Show the optional support link in the sidebar header",section=sidebar,position=1)

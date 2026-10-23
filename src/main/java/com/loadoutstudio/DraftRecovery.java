@@ -17,6 +17,7 @@ final class DraftRecovery
         if(text==null || text.isEmpty())return null;
         if(text.length()>200000)throw new IllegalArgumentException("Draft recovery is too large.");
         JsonObject value=new SetupCodec(gson).parse(text).getAsJsonObject();if(value.get("version").getAsInt()!=1)throw new IllegalArgumentException("Unsupported draft recovery.");
+        for(String flag:new String[]{"favorite","bottom","ignoreAmmo"})SetupCodec.validateBoolean(value,flag,true);
         JsonObject copy=value.getAsJsonObject("portable").deepCopy();JsonObject setup=SetupCodec.setup(copy);
         // A transient empty/long name may occur while typing. Validate the remainder without changing the snapshot.
         setup.addProperty("name","Recovery validation");SetupCodec.validate(copy,false);

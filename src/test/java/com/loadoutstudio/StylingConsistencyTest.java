@@ -54,4 +54,13 @@ public class StylingConsistencyTest
             panel.dispose();
         });
     }
+    @Test public void nativeRuneLiteThemeKeepsNarrowLayoutsUsable() throws Exception
+    {
+        LookAndFeel previous=UIManager.getLookAndFeel();
+        try {
+            SwingUtilities.invokeAndWait(()->assertTrue(net.runelite.client.ui.laf.RuneLiteLAF.setup()));
+            new SidebarLayoutTest().navigationStaysFixedAndSaveRemainsOutsideTheScrollArea();
+            slotSubmenusAndLibraryMenusShareTheSidebarTheme();
+        } finally {SwingUtilities.invokeAndWait(()->{try{UIManager.setLookAndFeel(previous);}catch(UnsupportedLookAndFeelException ex){throw new AssertionError(ex);}});}
+    }
 }

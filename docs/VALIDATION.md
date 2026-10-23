@@ -1,3 +1,13 @@
+# Current validation — 0.7.3-test
+
+- Native Windows Java 11 test, jar and shadowJar passed: 140 tests, zero failures/errors/skipped. Nineteen added tests cover strict boolean/schema handling, favorite add/remove/save/copy/recovery and persistence failure, inline export feedback, portable amount-rule codes, aggregated replacement stock and its explicit config override, and native RuneLite theme layouts.
+- The two defects reproduced during the 0.7.2 review now have permanent regression coverage. Missing optional flags remain accepted; present non-boolean flags are rejected before entering the editor. Stored metadata is checked before Gson can coerce it; recovery flags are checked before restoration.
+- Replacement checks reserve amounts for all Inventory/Equipment slots sharing selected replacement IDs. Totals use long arithmetic, explicit zero reserves at least one item per slot, other storage is excluded, and failure leaves the draft intact. Single-item observation remains required even when combined stock checks are disabled in config.
+- Reviewed 220/260 px offline layouts with RuneLiteLAF, plus local feedback previews. These are fake-host tests without game input or actual live sprites. They do not replace the pending user tests in local-acceptance.md.
+- Versioned local artifacts are copied to build/libs with matching hashes. No Docker runtime is required. No Plugin Hub submission or repository visibility change is performed.
+
+Earlier entries below record development history.
+
 # Local validation — 0.2.0-test — 2026-10-22
 
 - Docker Java 11: `sh gradlew test shadowJar jar --no-daemon --offline` succeeded.

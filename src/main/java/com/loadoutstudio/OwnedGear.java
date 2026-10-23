@@ -51,6 +51,24 @@ final class OwnedGear
             }
         }return result;
     }
+    /** Reserve all Inventory/Equipment slots using a replacement ID, not each choice in isolation. */
+    void requireReplacementStock(JsonObject portable, Map<Proposal,StudioPanel.ItemInfo> selected)
+    {
+        Map<String,StudioPanel.ItemInfo> replacements = new HashMap<>();
+        Map<Integer,StudioPanel.ItemInfo> targets = new LinkedHashMap<>();
+        selected.forEach((proposal,item)->{replacements.put(proposal.container+":"+proposal.index,item);targets.put(item.id,item);});
+        Map<Integer,Long> needed = new LinkedHashMap<>();
+        JsonObject setup=SetupCodec.setup(portable);
+        for(String key:new String[]{"eq","inv"}) {
+            JsonArray slots=setup.getAsJsonArray(key);
+            for(int i=0;i<slots.size();i++) {
+                JsonElement before=slots.get(i);StudioPanel.ItemInfo replacement=replacements.get(key+":"+i);
+                int id=replacement==null?SetupCodec.id(before):replacement.id;
+                if(targets.containsKey(id))needed.merge(id,(long)Math.max(1,SetupCodec.quantity(before)),Long::sum);
+            }
+        }
+        needed.forEach((id,total)->{if(total>count(id))throw new IllegalStateException("Not enough observed "+targets.get(id).name+": need "+total+" across Inventory and Equipment, seen "+count(id)+". Select fewer replacements or adjust quantities. The draft was kept.");});
+    }
     private static List<String> family(String name)
     {
         String normalized=name.toLowerCase(Locale.ROOT);

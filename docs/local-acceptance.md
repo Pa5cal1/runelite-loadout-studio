@@ -1,64 +1,37 @@
-# Local acceptance — 0.6.0-test
+# Testclient acceptance — 0.7.3-test
 
-Status: automated fixtures are separate from live RuneLite acceptance. The client has not been restarted or operated by the coding agent. Only the user should perform game interactions. Use scripts/Launch-Test.bat when ready and follow the README Jagex Account instructions.
+Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 
-| Area | User test | Expected result |
-| --- | --- | --- |
-| Startup | Open/restart the test client without searching | No Wiki HTTP requests or background refresh; Library remains the main view |
-| Persistent cache | Search a boss, open its page, close/reopen client and select the same page | Cached setup choices and original fetch time; no page fetch |
-| Local suggestions | Type a previously cached boss name | Cached suggestions appear without HTTP; Search Wiki finds new titles on demand |
-| Fresh source | Choose Refresh Wiki | Explicit confirmation, bounded request, new fetch time; cached choices survive a failure |
-| Offline | Disconnect network and open an already cached source | Stored page remains usable, even if marked stale |
-| Inventory Setups | Import icon → From installed plugins; select a setup and Save copies | Copy has name, slots, quantities, Notes, flags, available layout, favorite and section; original remains unchanged |
-| Bank Tags | Copy a native tag and a legacy layout | Members and positions retained; missing worn slots/amounts/Spellbook clearly disclosed |
-| Library safety | Copy the same setup twice; select too many or malformed entries | Identical copies skipped; validation failure causes no partial library replacement |
-| Recovery | Edit name, item and Notes without Save; restart and Restore draft | Exact draft reappears only in the matching RuneLite profile/character; Save clears recovery |
-| Profile changes | Switch RuneLite profile/character during import or chatbox editing | Old replies cannot update the new scope; recoveries remain separate |
-| Comparison | Toggle Fuzzy, each stack mode, unordered highlight and Ammo ignore | Differences follow the selected rules; no slot is matched twice |
-| Wiki choices | Open a page with unresolved items or only ranked gear | Guided chatbox/alternative choice; conditions retained; no invented quantities |
-| Quantity | Use Inventory runes 200k, Pouch 16001 and explicit zero | Inventory accepted; Pouch over 16k rejected; zero ignores amount but requires the item |
-| Drag and drop | Move/swap items, drag catalogue entry, try incompatible Equipment/Quiver | Compatible moves only; original draft preserved on invalid drops |
-| Export round-trip | Copy receiving-plugin code through its proper import action | Names and representable data agree; Bank Tag losses are disclosed |
-| Sidebar | Inspect 220/260 px widths, Notes and Rune Pouch labels | Buttons readable; Notes only outer scrolling; counts inside cells |
+Use scripts/Launch-Test.bat to start this test build. For a Jagex Account, follow [Using Jagex Accounts](https://github.com/runelite/runelite/wiki/Using-Jagex-Accounts). No Docker installation is needed. Do not treat an old, already-running client as the updated build.
 
-Record the RuneLite version, scenario and observed result when reporting a failure. Do not include credentials, sessions or the .runelite directory in reports or GitHub uploads.
+Mark each row PASS or FAIL. For a failure, record the row ID, action, expected result, actual result and a screenshot. Stop release preparation for crashes, lost edits or changes to another profile/tag.
 
-## First-choice defaults (0.6.1)
+| ID | Action | Expected result | Result |
+| --- | --- | --- | --- |
+| T01 Startup and cleanup | Start, open the sidebar, disable/re-enable the plugin and restart the client | One sidebar icon, Library starts normally, no repeated errors; an owned filter/input is cleaned up without closing another plugin's input or tag | Pending |
+| T02 Capture and persistence | Capture real gear, rename, add Notes and a section, Save, reopen and restart | Inventory, Equipment, Pouch/Quiver/Bolt Pouch where present, Spellbook and configured attack option are retained | Pending |
+| T03 Favorite regression | Open a saved setup, change its Library star, return to Builder and Save; repeat with star removal, Save copy and unsaved recovery | Latest favorite state survives all paths; unsaved Notes remain intact | Pending |
+| T04 Invalid input | Export a disposable setup, replace its fb boolean with an empty array and try importing; also cancel a valid import review | Clear inline rejection, no broken entry or partial replacement, existing library/draft unchanged | Pending |
+| T05 Slot editing | Right-click items, use Update Slot from Search and quantity entry; inspect the Stack comparison submenu | Search and quantity use the chatbox; Ignore amount, Exactly, At least and At most work; cancel leaves the item unchanged | Pending |
+| T06 Drag and drop | Drag a search result into Inventory, move/swap slots, try suitable Equipment and arrows/bolts in Quiver, then an incompatible drop | Compatible moves work, invalid drops preserve both old slots, sprites appear after loading | Pending |
+| T07 Amounts | Set Inventory runes above 16k, Pouch runes to 16k and then 16001, and a populated slot to zero | Inventory accepts large stacks; Pouch rejects amounts above 16000; explicit zero shows unlimited matching but still requires an item; counts remain inside cells | Pending |
+| T08 Bank layouts | Apply Preset and both Zigzag directions, move cells in the active native layout, Save and restart; switch to an unrelated tag and clear the filter | Correct visible loadout name; Custom positions persist; placeholders/missing items stay represented; unrelated tags are not changed or closed | Pending |
+| T09 Live comparison | Withdraw/deposit/equip items; change Spellbook, Pouch/Quiver and attack option; test Fuzzy and amount rules | Differences update without losing Notes focus; rules have the displayed meaning; no game action is automated | Pending |
+| T10 Owned alternatives | Check before opening Bank, then with a known limited Bank. Select replacements needing more total items than observed, including duplicate slots | Unknown/stale Bank state is explained; Keep original is default; enabled stock check rejects shortages near Builder and keeps the draft; sufficient stock applies after review | Pending |
+| T11 Alternative override and Undo | Turn Check replacement stock off in native Comparison settings, retry a deliberately oversized plan, then restore the default and test Undo | Override permits planning beyond amounts but selected items must still have been observed; Undo works until later draft edits make it unsafe; Save remains explicit | Pending |
+| T12 Portable conversions | Round-trip a real Inventory Setup through its actual import action; test native Bank Tag and legacy layout in both directions | Correct name and representable items/layout; losses of worn slots, quantities, Spellbook and Notes in Bank Tags are disclosed; no JSON is pasted into Add New Setup name | Pending |
+| T13 Copies and library actions | Copy installed plugin data, create/share a section, filter/sort, archive/restore and confirm or cancel permanent deletion of a disposable setup | Originals remain unchanged; names truncate with full tooltips; sections/search work; trash only deletes after confirmation; Cancel is safe | Pending |
+| T14 Wiki cache and errors | Search an activity, choose a preset, revisit after restart, explicitly Refresh, then use a cached source offline | Choices appear, first choices are reviewable starting points, source date/cache status is clear, failures are readable and existing choices survive failed refresh. Typing alone uses local suggestions | Pending |
+| T15 Profiles and recovery | Change profile/character during capture, search, import/chatbox editing and with an unsaved draft | Late callbacks never change another scope; matching recovery restores the correct Notes/items/favorite; saved libraries stay separate | Pending |
+| T16 Independence and presentation | Disable optional Inventory Setups and standalone Bank Tag Layouts while leaving built-in Bank Tags enabled. Inspect 220/260 px and normal display scaling | Own Library/Builder remain usable; native settings apply; buttons, fields, menus, feedback, long titles, Notes and counts remain readable with one outer Notes scrollbar | Pending |
 
-Open a Wiki recommendation setup: its first listed items should appear immediately. In Vorkath, Cheap food should become Manta ray and Cheap prayer should become Prayer potion(4), with original Inventory positions retained. Open an older unresolved saved copy and check that known items are resolved locally; Save should persist these defaults. Replace a slot through chatbox search and reopen it: the chosen positive Item ID must remain unchanged. Missing quantities must still request an amount. No additional Wiki request should occur when opening a saved copy.
+Network checks for zero startup/typing/background HTTP, coalescing, rate limits, cache persistence and cooldown are automated offline. Ordinary UI observation cannot prove zero HTTP; do not mark traffic monitoring complete from the absence of a visible error. The live cache/error behavior in T14 still needs user acceptance.
 
-## Archive actions (0.6.2)
+## After acceptance, before Plugin Hub submission
 
-Archive a disposable setup with the box icon, then enable Archived. Confirm that restore and red trash are distinct and fit on the same row. Restore should return the setup to the active list. Archive again, click trash and choose Cancel: it must remain. Click trash again, confirm Delete permanently and verify it disappears after reopening the plugin. Check that other setups and sections remain. For an open archived setup, the warning must explain discarding its Builder draft, and confirmation must close that draft. Do not use a setup you need for this acceptance test.
-
-## Player workflow review — 0.6.3-test
-
-1. Start with an empty Library: use Find Wiki content, Capture gear and New setup. Check there is no Wiki traffic until an explicit search/page request.
-2. Collapse a section, search for one of its setups, then clear the search. The matching setup is visible during search; the section returns to its previous collapsed state. Repeat with Favorites.
-3. Apply and clear the Bank filter from the fixed Builder header. Confirm the checkbox and saved preference agree. Change Preset/Zigzag in the existing layout disclosure.
-4. Use Compare above the loadout. Confirm actual differences and sprites in RuneLite; these require manual game-client acceptance.
-5. Make a query that matches nothing and use Clear filters to return to the active Library.
-6. Verify Capture gear opens a new draft as usual. Changes made while a delayed capture is pending must be retained.
-
-## Gearing and alternatives — 0.7.0-test
-
-1. Disable/uninstall the two optional hub plugins in a test profile. Create, capture, save, reopen and export in Loadout Studio. Keep built-in Bank Tags enabled.
-2. Open the Bank, load a setup with unowned gear and check My gear alternatives. Verify the observed owned choices, no auto-selection, explicit apply, Save and Undo. Repeat before opening the Bank, after closing it, after withdrawing gear and across profile changes. Zero-quantity placeholders must not count.
-3. Confirm source choices, same-slot-only warnings and no arbitrary rune substitutions. Review requirements, combat style, ammo and spells after choosing a replacement.
-4. Move items in the active native layout, Save, switch setups and restart. Positions must survive; another tag must stay intact. Test Preset/Zigzag regeneration explicitly.
-5. Withdraw/deposit/equip items and change Spellbook, Pouch/Quiver contents and attack style. Confirm automatic differences, tooltip reasons, no Notes focus loss and unordered extra-item behavior.
-6. Exercise Bolt Pouch capture and four slots, including enchanted/dragon bolts, and attack-option capture/ignore/export.
-7. Test Recent/Favorites-first/Manual ordering, right-click move and item:/notes: search.
-8. Upgrade an exact item in selected saved setups, inspect unaffected setups and Undo. Later edits must prevent unsafe Undo.
-9. Share a selected section, import it into a library with existing setups, and confirm independent copies. Verify the old whole-library backup restore flow remains separate.
-10. Configure a Bank-only filter hotkey and use the worn-items menu shortcuts. Confirm no game action is automated and the hotkey does nothing outside the Bank.
-
-## Plugin preferences — 0.7.1-test
-
-Open the native Loadout Studio configuration cog. Confirm the five collapsible groups, existing hotkey/menu values and live Sidebar/Comparison preferences. Change new-loadout defaults, capture/create a new setup and verify them; existing saved and imported setups must retain their own layout/rules. Sort through config, then right-click move a library row and verify Manual persists. Change preferences while editing Notes; text/focus must remain. Use the single fixed Bank toggle and Compare action; Save copy is in Setup details.
-
-## Styling consistency — 0.7.2-test
-
-- At normal sidebar width, compare Library, Builder, Wiki and Export fonts, field backgrounds, spacing and buttons. Resize the sidebar and check that labels remain readable.
-- Right-click an Inventory or Equipment slot and open Stack comparison. Check menu text, disabled actions, hover feedback and item selection through the chatbox. Right-click a saved setup and check its ordering menu.
-- Open import, share and item-upgrade review dialogs; check readable dark form content and native confirmation buttons. Cancel each review and confirm saved setups stay unchanged.
+- Resolve every failing row, rerun the relevant regressions and record the accepted version/commit.
+- Choose final display name/author and include real screenshots only after user verification.
+- Review bundled asset provenance and notices.
+- Choose a controlled public source repository/commit with user authorization; this task does not change visibility.
+- Finalize the prepared Hub manifest with a full reviewed commit and the precise Wiki network warning. Keep the example placeholder until that release commit is selected.
+- Create the actual Plugin Hub pull request separately and pass its checks/review. Local test success is not approval by RuneLite.

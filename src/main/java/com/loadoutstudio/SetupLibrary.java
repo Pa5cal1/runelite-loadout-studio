@@ -43,7 +43,15 @@ public final class SetupLibrary
 	public static SetupLibrary read(String text, Gson gson)
 	{
 		if (text == null || text.isEmpty()) return new SetupLibrary();
-		new SetupCodec(gson).parse(text);
+		com.google.gson.JsonElement raw = new SetupCodec(gson).parse(text);
+        if (raw == null || !raw.isJsonObject()) throw new IllegalArgumentException("Invalid library.");
+        com.google.gson.JsonElement records = raw.getAsJsonObject().get("setups");
+        if (records == null || !records.isJsonArray()) throw new IllegalArgumentException("Invalid saved setups.");
+        for (com.google.gson.JsonElement record : records.getAsJsonArray())
+        {
+            if (!record.isJsonObject()) throw new IllegalArgumentException("Invalid saved setup.");
+            for (String flag : new String[]{"favorite", "archived", "zigzagBottomToTop"}) SetupCodec.validateBoolean(record.getAsJsonObject(), flag, false);
+        }
 		SetupLibrary result = gson.fromJson(text, SetupLibrary.class); if (result == null) throw new IllegalArgumentException("Invalid library."); result.validate(); return result;
 	}
 	public void removeSection(String id) { sections.removeIf(s -> s.id.equals(id)); for (Entry entry : setups) if (id.equals(entry.section)) entry.section = null; }
