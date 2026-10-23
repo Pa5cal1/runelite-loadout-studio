@@ -1,15 +1,40 @@
-.gradle
-build
-.idea/
-.project
-.settings/
-.classpath
-nbactions.xml
-nb-configuration.xml
-nbproject/
-*.class
-test-home/
-*.log
+# Source publication allowlist
+*
+!*/
+!/.gitattributes
+!/.github/workflows/build.yml
+!/.gitignore
+!/AGENTS.md
+!/CLAUDE.md
+!/LICENSE
+!/README.md
+!/build.gradle
+!/docs/ASSETS.md
+!/docs/VALIDATION.md
+!/docs/local-acceptance.md
+!/docs/plugin-hub/README.md
+!/docs/plugin-hub/loadout-studio.example
+!/docs/sidebar-system-design.md
+!/docs/wiki-network-policy.md
+!/gradle/wrapper/gradle-wrapper.jar
+!/gradle/wrapper/gradle-wrapper.properties
+!/gradlew
+!/gradlew.bat
+!/runelite-plugin.properties
+!/scripts/Launch-Test.bat
+!/settings.gradle
+!/src/main/resources/com/loadoutstudio/combat-tutor.png
+!/src/main/resources/com/loadoutstudio/inventory-setups-LICENSE.txt
+!/src/test/resources/logback-test.xml
+!/src/test/resources/wiki/vorkath-strategies.wikitext
+!/src/main/java/com/loadoutstudio/*.java
+!/src/test/java/com/loadoutstudio/*.java
 
-# Never publish RuneLite profiles, sessions or credentials
+# Local runtime and generated data
 .runelite/
+test-home/
+.gradle/
+build/
+.idea/
+*.log
+*.class

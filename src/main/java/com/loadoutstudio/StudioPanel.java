@@ -85,6 +85,12 @@ public final class StudioPanel extends PluginPanel
             for (ItemInfo item : search(name)) if (item.name.equalsIgnoreCase(name.trim())) { if (match != null) return null; match = item; }
             return match;
         }
+        default ItemInfo defaultItem(String name)
+        {
+            ItemInfo exact=exactItem(name);if(exact!=null)return exact;
+            ItemInfo first=null;for(ItemInfo item:search(name))if(item.name.equalsIgnoreCase(name.trim())&&(first==null||item.id<first.id))first=item;
+            return first;
+        }
         default void whenItemsReady(Consumer<String> callback) { callback.accept(null); }
 		String catalogueStatus();
 		void fetchWiki(String url, BiConsumer<String, String> callback);
@@ -165,7 +171,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.6.0-test - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.6.1-test - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel titleBar = new JPanel(new BorderLayout(3, 0)); titleBar.add(title, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
 		JPanel menu = new JPanel(new GridLayout(2, 2, 4, 4));
@@ -422,12 +428,26 @@ public final class StudioPanel extends PluginPanel
 	}
 	void open(SetupLibrary.Entry entry)
 	{
-		if (!discard()) return; host.cancelItemInput(); draft = entry.portable.deepCopy(); editorLayout = entry.bankLayout == null ? BankLayouts.infer(draft) : entry.bankLayout; editorBottom = entry.bankLayout == null ? BankLayouts.inferBottom(draft) : entry.zigzagBottomToTop; editingId = entry.id; editorSection = entry.section; editorFavorite = entry.favorite; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); message("Opened saved setup. Changes are saved only when you choose Save.");
+		if (!discard()) return; host.cancelItemInput(); draft = entry.portable.deepCopy(); editorLayout = entry.bankLayout == null ? BankLayouts.infer(draft) : entry.bankLayout; editorBottom = entry.bankLayout == null ? BankLayouts.inferBottom(draft) : entry.zigzagBottomToTop; editingId = entry.id; editorSection = entry.section; editorFavorite = entry.favorite; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); message("Opened saved setup. Changes are saved only when you choose Save."); resolveDraftDefaults();
 	}
-	void newDraft(JsonObject p)
+	void newDraft(JsonObject p) { newDraft(p,false); }
+    private void newDraft(JsonObject p,boolean defaultsResolved)
 	{
-		if (!discard()) return; host.cancelItemInput(); draft = p.deepCopy(); editorLayout = BankLayouts.infer(draft); editorBottom = BankLayouts.inferBottom(draft); editingId = null; editorSection = null; editorFavorite = false; dirty = true; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); persistRecovery();message("New draft. Review it, then Save to your library.");
+		if (!discard()) return; host.cancelItemInput(); draft = p.deepCopy(); editorLayout = BankLayouts.infer(draft); editorBottom = BankLayouts.inferBottom(draft); editingId = null; editorSection = null; editorFavorite = false; dirty = true; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); persistRecovery();message("New draft. Review it, then Save to your library."); if(!defaultsResolved)resolveDraftDefaults();
 	}
+    private void resolveDraftDefaults()
+    {
+        boolean needed=false;for(String key:new String[]{"eq","inv","rp","qv"})for(JsonElement e:SetupCodec.setup(draft).getAsJsonArray(key))if(SetupCodec.id(e)==0)needed=true;
+        if(!needed)return;String token=session;JsonObject current=draft;
+        host.whenItemsReady(error->{
+            if(disposed||error!=null||!token.equals(session)||current!=draft)return;
+            int resolved=0;for(String key:new String[]{"eq","inv","rp","qv"})for(JsonElement entry:SetupCodec.setup(draft).getAsJsonArray(key))if(SetupCodec.id(entry)==0){
+                JsonObject item=entry.getAsJsonObject();ItemInfo first=host.defaultItem(WikiParser.defaultName(item));
+                if(first!=null){item.addProperty("id",first.id);item.addProperty("label",first.name);itemCache.put(first.id,first);resolved++;}
+            }
+            if(resolved>0){SetupCodec.rebuildLayout(draft);markDirty();renderBuilder();syncBankFilter();message("Applied first choices to "+resolved+" slot(s). Review and Save to keep them.");}
+        });
+    }
 	private void capture()
 	{
 		if (!discard()) return; String capturedScope = scope;
@@ -516,7 +536,7 @@ public final class StudioPanel extends PluginPanel
         if(item.has("choices") && item.get("choices").isJsonArray())
         {
             JComboBox<String> alternatives=new JComboBox<>();alternatives.addItem("Choose an alternative…");for(JsonElement option:item.getAsJsonArray("choices"))alternatives.addItem(option.getAsString());alternatives.setName("wikiAlternatives");guide.add(alternatives);
-            alternatives.addActionListener(e->{if(alternatives.getSelectedIndex()<1)return;String chosen=(String)alternatives.getSelectedItem();ItemInfo exact=host.exactItem(chosen);if(exact==null){message("Choose the exact item/variant using Item Search. Source conditions remain in Notes.");editSlot(key,index);return;}itemCache.put(exact.id,exact);attempt(()->{JsonObject replacement=item.deepCopy();replacement.addProperty("id",exact.id);replacement.addProperty("label",exact.name);validateSlot(key,index,replacement);put(key,index,replacement);changedSlot();});});
+            alternatives.addActionListener(e->{if(alternatives.getSelectedIndex()<1)return;String chosen=(String)alternatives.getSelectedItem();ItemInfo exact=host.defaultItem(chosen);if(exact==null){message("Choose the exact item/variant using Item Search. Source conditions remain in Notes.");editSlot(key,index);return;}itemCache.put(exact.id,exact);attempt(()->{JsonObject replacement=item.deepCopy();replacement.addProperty("id",exact.id);replacement.addProperty("label",exact.name);validateSlot(key,index,replacement);put(key,index,replacement);changedSlot();});});
         }
         guide.add(button(SetupCodec.id(item)==0?"Choose item in chat":"Enter missing quantity",()->{if(SetupCodec.id(item)==0)editSlot(key,index);else editQuantity(key,index);}));builderTools.add(guide);
     }
@@ -847,10 +867,10 @@ public final class StudioPanel extends PluginPanel
             JsonObject preset = original.deepCopy(), setup = SetupCodec.setup(preset); int unresolved = 0;
             for (String key : new String[]{"eq", "inv", "rp", "qv"}) for (JsonElement entry : setup.getAsJsonArray(key)) if (entry != null && !entry.isJsonNull())
             {
-                JsonObject item = entry.getAsJsonObject(); String label = item.get("label").getAsString(); ItemInfo exact = host.exactItem(label);
-                if (exact != null) { item.addProperty("id", exact.id); itemCache.put(exact.id, exact); } else unresolved++;
+                JsonObject item = entry.getAsJsonObject(); String label = WikiParser.defaultName(item); ItemInfo exact = host.defaultItem(label);
+                if (exact != null) { item.addProperty("id", exact.id); item.addProperty("label",exact.name); itemCache.put(exact.id, exact); } else unresolved++;
             }
-            SetupCodec.rebuildLayout(preset); String previousSession = session; newDraft(preset);
+            SetupCodec.rebuildLayout(preset); String previousSession = session; newDraft(preset,true);
             if (!previousSession.equals(session)) message("Wiki draft loaded. " + unresolved + " unresolved slot(s): click '?' to choose an item. Review quantities and Spellbook before export.");
         });
 	}

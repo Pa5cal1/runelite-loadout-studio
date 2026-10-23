@@ -125,3 +125,11 @@ Bank filtering now uses the built-in Bank Tags dependency, an in-memory custom t
 - Live RuneLite acceptance remains pending. No game inputs were automated and no client was started or restarted. See local-acceptance.md for the exact user test matrix.
 
 - Final Java 11 offline build: **81 tests passed, zero failures/errors**; test, shadowJar and jar succeeded. Both 0.6.0-test artifacts copied to build/libs. In-game acceptance is not implied by these checks.
+
+## First listed Wiki items — 0.6.1-test — 2026-10-23
+
+- The user explicitly selected first-item defaults. Ranked recommendations now default to their first source alternative and retain all source conditions in Notes. For a combination, its first component fills the slot; complete combination requirements remain in Notes.
+- Equal-name variants use the first local catalogue result in stable ascending Item ID order. The strict unique-name lookup remains available separately. Explicit positive Item IDs and quantities remain unchanged.
+- Opening an older unresolved saved copy resolves supported names locally after catalogue readiness and requires Save to persist. Per-draft guards reject late callbacks. Bundled Cheap food / Cheap prayer defaults select Manta ray / Prayer potion(4) without template or price requests. Unsupported source expressions remain repairable; unknown amounts remain unknown.
+- Final native Windows Java 11 validation: 84 tests passed, zero failures/errors; test, shadowJar and jar succeeded. Includes recommendation order, duplicate-name ordering, old-copy isolation, slot positions, fixed-ID preservation, unknown quantities and zero HTTP during default resolution. The first sandboxed run blocked an atomic temporary-file rename; the same unmodified cache test passed outside the sandbox.
+- Versioned 0.6.1 artifacts copied to build/libs. Manual RuneLite acceptance of actual item sprites remains pending; no game input was automated.

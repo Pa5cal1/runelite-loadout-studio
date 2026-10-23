@@ -22,3 +22,7 @@ Status: automated fixtures are separate from live RuneLite acceptance. The clien
 | Sidebar | Inspect 220/260 px widths, Notes and Rune Pouch labels | Buttons readable; Notes only outer scrolling; counts inside cells |
 
 Record the RuneLite version, scenario and observed result when reporting a failure. Do not include credentials, sessions or the .runelite directory in reports or GitHub uploads.
+
+## First-choice defaults (0.6.1)
+
+Open a Wiki recommendation setup: its first listed items should appear immediately. In Vorkath, Cheap food should become Manta ray and Cheap prayer should become Prayer potion(4), with original Inventory positions retained. Open an older unresolved saved copy and check that known items are resolved locally; Save should persist these defaults. Replace a slot through chatbox search and reopen it: the chosen positive Item ID must remain unchanged. Missing quantities must still request an amount. No additional Wiki request should occur when opening a saved copy.

@@ -60,6 +60,16 @@ public final class WikiParser
 		return text.replaceAll("(?s)<!--.*?-->", "").replaceAll("\\[\\[([^]|]+)\\|([^]]+)]]", "$2").replaceAll("\\[\\[([^]]+)]]", "$1").replaceAll("<[^>]+>", "").replace("'''", "").replace("''", "").replace("&amp;", "&").replace("&nbsp;", " ").trim();
 	}
 	private static boolean concrete(Node n) { return n.kind.equals("equipment") || n.kind.equals("inventory") || n.kind.equals("rune pouch"); }
+    /** Bundled source order, deliberately independent of live market prices. */
+    static String defaultName(JsonObject item)
+    {
+        if (item.has("choices") && item.get("choices").isJsonArray() && item.getAsJsonArray("choices").size() > 0) return item.getAsJsonArray("choices").get(0).getAsString();
+        String name = item.has("label") ? item.get("label").getAsString() : "";
+        String marker = name.trim().replace('_', ' ').replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+        if (marker.matches("\\{\\{ ?cheap food ?}}")) return "Manta ray";
+        if (marker.matches("\\{\\{ ?cheap prayer ?}}")) return "Prayer potion(4)";
+        return name;
+    }
 	private static JsonElement item(String value, String explicit, boolean quantityRequired)
 	{
 		if (value == null || value.trim().isEmpty() || value.trim().matches("(?i)none|empty|n/a|-")) return JsonNull.INSTANCE;
@@ -161,14 +171,14 @@ public final class WikiParser
         if(result.isEmpty())throw new IllegalArgumentException("No Equipment, Inventory or Recommended equipment templates found. Use the Builder or import a setup.");
 		return result;
 	}
-    /** Ranked gear is an explicit choice draft, never silently promoted to a complete preset. */
+    /** The first listed recommendation is the default; conditions and alternatives remain editable. */
     private List<JsonObject> recommendations(String text,String title,String source)
     {
         List<JsonObject> result=new ArrayList<>();String[] keys={"head","cape","neck","weapon","body","shield","","legs","","hands","feet","","ring","ammo"};
         for(Node table:nodes(text))if(table.kind.equals("recommended equipment"))
         {
             if(result.size()>=100)throw new IllegalArgumentException("Too many recommendation tables.");
-            String style=plain(table.fields.getOrDefault("style","Gear"));if(style.length()>80)style=style.substring(0,80);JsonObject p=SetupCodec.blank(title);JsonObject setup=SetupCodec.setup(p);StringBuilder notes=new StringBuilder("Source: "+source+"\nPreset: Recommended "+style+" (manual choices)\nGear alternatives only: Inventory, quantities and Spellbook must be reviewed. Conditions and combinations from the source are retained below.\n");
+            String style=plain(table.fields.getOrDefault("style","Gear"));if(style.length()>80)style=style.substring(0,80);JsonObject p=SetupCodec.blank(title);JsonObject setup=SetupCodec.setup(p);StringBuilder notes=new StringBuilder("Source: "+source+"\nPreset: Recommended "+style+" (first choices)\nFirst listed items are selected by default. Gear alternatives only: Inventory, quantities and Spellbook must be reviewed. Conditions and combinations from the source are retained below.\n");
             int populated=0;
             for(int i=0;i<keys.length;i++)if(!keys[i].isEmpty())
             {
@@ -177,18 +187,18 @@ public final class WikiParser
                 {
                     String value=table.fields.get(keys[i]+rank);if(value==null || value.isBlank() || value.matches("(?i)none|empty|-"))continue;
                     hints.append(keys[i]).append(" rank ").append(rank).append(": ").append(plain(value)).append('\n');
-                    // Keep '+' combinations manual; never split a combination into interchangeable single items.
-                    if(value.contains("+"))continue;
+                    // The first component represents this slot; keep the full combination in Notes.
+                    boolean combination=value.contains("+");int before=names.size();
                     List<Node> nested=nodes(value);
                     for(Node item:nested)if(item.kind.equals("plink") && nested.stream().noneMatch(parent->parent!=item && parent.start<item.start && parent.end>item.end && (parent.kind.equals("efn") || parent.kind.equals("refn"))))
                     {
-                        String name=plain(item.fields.getOrDefault("1",""));if(!name.isEmpty() && name.length()<150)names.add(name);
+                        String name=plain(item.fields.getOrDefault("1",""));if(!name.isEmpty() && name.length()<150){names.add(name);if(combination)break;}
                     }
-                    if(names.isEmpty() && !value.contains("{{")){for(String name:plain(value).split("\\s+/\\s+"))if(!name.isBlank() && name.length()<150)names.add(name.trim());}
+                    if(names.size()==before && !value.contains("{{")){for(String name:plain(value).split(combination?"\\s*\\+\\s*":"\\s+/\\s+")){if(!name.isBlank() && name.length()<150)names.add(name.trim());if(combination)break;}}
                 }
                 if(hints.length()==0)continue;
                 for(String name:names)if(choices.size()<40)choices.add(name);
-                JsonObject item=SetupCodec.item(0,1);item.addProperty("label","Choose "+keys[i]+" · "+style);item.add("choices",choices);if(i==13)item.add("q",JsonNull.INSTANCE);setup.getAsJsonArray("eq").set(i,item);populated++;notes.append(hints);
+                JsonObject item=SetupCodec.item(0,1);item.addProperty("label",choices.size()>0?choices.get(0).getAsString():"Choose "+keys[i]+" · "+style);item.add("choices",choices);if(i==13)item.add("q",JsonNull.INSTANCE);setup.getAsJsonArray("eq").set(i,item);populated++;notes.append(hints);
             }
             if(populated>0){String detail=notes.toString();setup.addProperty("notes",detail.length()>10000?detail.substring(0,9900)+"\nSee the source page for remaining conditions.":detail);SetupCodec.rebuildLayout(p);result.add(p);}
         }

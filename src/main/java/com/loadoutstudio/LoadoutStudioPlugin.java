@@ -215,6 +215,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     @Override public void localWikiSuggestions(String query,Consumer<List<String>> callback){wiki.suggestLocal(query,titles->SwingUtilities.invokeLater(()->{if(active)callback.accept(titles);}));}
 	@Override public List<StudioPanel.ItemInfo> search(String query) { return catalogue.search(query); }
 	@Override public StudioPanel.ItemInfo exactItem(String name) { return catalogue.exact(name); }
+	@Override public StudioPanel.ItemInfo defaultItem(String name) { return catalogue.firstExact(name); }
 	@Override public void whenItemsReady(Consumer<String> callback)
 	{
 		clientThread.invokeLater(() ->

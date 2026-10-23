@@ -85,3 +85,7 @@ Manual acceptance is tracked in local-acceptance.md; automated fixtures do not e
 ### Sprite completion boundary
 
 An item tooltip can exist before its local sprite has finished rendering. Slots subscribe through AsyncBufferedImage.addTo; painting counts stays independent of image readiness. Source-only ID-zero Wiki choices keep `?` and an explicit exact-ID tooltip. No HTTP image fallback, runtime image download or automatic variant guessing is introduced. Offline regression verifies delayed completion repaints; only user acceptance can verify actual game-cache sprites.
+
+## 0.6.1 first-choice defaults
+
+The user explicitly selected automatic first choices. Recommendation order remains source order; the first component of a combination fills its slot and the complete conditions remain in Notes. Equal-name variants use stable local search order. Existing positive Item IDs and quantities are never replaced by this resolver. Older ID-zero copies resolve after catalogue readiness, with a per-draft guard against late replies; saving remains explicit. The two common cheap-item template defaults are bundled and introduce no new HTTP operations. Unsupported expressions remain visible for manual repair.

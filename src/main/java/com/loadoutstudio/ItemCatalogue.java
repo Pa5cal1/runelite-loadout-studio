@@ -30,6 +30,14 @@ final class ItemCatalogue
         return match;
     }
 
+    /** Same stable order as search results: first exact name, then lowest Item ID. */
+    StudioPanel.ItemInfo firstExact(String name)
+    {
+        StudioPanel.ItemInfo first = null;
+        for (StudioPanel.ItemInfo item : items.values()) if (item.name.equalsIgnoreCase(name.trim()) && (first == null || item.id < first.id)) first = item;
+        return first;
+    }
+
     List<StudioPanel.ItemInfo> search(String query)
     {
         String[] words = query.toLowerCase(Locale.ROOT).trim().split("\\s+");
