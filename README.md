@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.7.1-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub.
+**Current version: 0.7.2-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering/layouts require RuneLite's built-in **Bank Tags** plugin. Optional imports create independent copies.
 
@@ -259,6 +259,10 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.7.2-test
+
+- Keep slot menus, Library ordering menus, item choices and import/share review content consistent with the sidebar fonts and dark controls.
 
 ### 0.7.1-test
 

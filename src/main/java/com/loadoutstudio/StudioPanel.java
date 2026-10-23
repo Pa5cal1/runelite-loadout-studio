@@ -188,7 +188,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.7.1-test - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.7.2-test - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffeeControl=coffee;coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel titleBar = new JPanel(new BorderLayout(3, 0)); titleBar.add(title, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
 		JPanel menu = new JPanel(new GridLayout(2, 2, 4, 4));
@@ -271,6 +271,22 @@ public final class StudioPanel extends PluginPanel
 		toggle.addActionListener(e -> { boolean open = !content.isVisible(); content.setVisible(open); if (open) expandedPanels.add(title); else expandedPanels.remove(title); toggle.setText((open ? "- " : "+ ") + title); for (Container ancestor = p; ancestor != null; ancestor = ancestor.getParent()) { ancestor.invalidate(); if (ancestor == this) break; } p.revalidate(); }); p.add(toggle); p.add(content); return p;
 	}
 	private void updateNavigation() { for (int i = 0; i < navigation.size(); i++) { JButton b = navigation.get(i); boolean active = i == tabs.getSelectedIndex(); b.setForeground(active ? GOLD : TEXT); b.setBackground(active ? new Color(53, 48, 37) : CONTROL); b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 3, 0, 0, active ? GOLD : OUTLINE), BorderFactory.createEmptyBorder(5, 6, 5, 6))); } }
+    private static void themeMenu(javax.swing.JPopupMenu menu)
+    {
+        menu.setBackground(CONTROL);
+        menu.setBorder(BorderFactory.createLineBorder(OUTLINE));
+        for (Component child : menu.getComponents())
+        {
+            child.setFont(BODY_FONT); child.setForeground(TEXT); child.setBackground(CONTROL);
+            if (child instanceof javax.swing.JMenuItem)
+            {
+                javax.swing.JMenuItem item = (javax.swing.JMenuItem) child;
+                item.putClientProperty("html.disable", true);
+                item.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
+            }
+            if (child instanceof javax.swing.JMenu) themeMenu(((javax.swing.JMenu) child).getPopupMenu());
+        }
+    }
 	private static void applyTheme(Component component)
 	{
 		component.setFont(BODY_FONT); component.setForeground(TEXT); component.setBackground(BG);
@@ -302,7 +318,7 @@ public final class StudioPanel extends PluginPanel
         {
             @Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focus)
             {
-                putClientProperty("html.disable",true);return super.getListCellRendererComponent(list,value,index,selected,focus);
+                putClientProperty("html.disable",true);Component rendered=super.getListCellRendererComponent(list,value,index,selected,focus);rendered.setFont(BODY_FONT);return rendered;
             }
         };
     }
@@ -449,7 +465,7 @@ public final class StudioPanel extends PluginPanel
                     () -> attempt(() -> commit(l -> l.find(entry.id).favorite = !entry.favorite)),
                     () -> attempt(() -> commit(l -> l.find(entry.id).archived = !entry.archived)),
                     () -> confirmDeleteArchived(entry.id));
-                String rowOwner=recoveryOwner;javax.swing.JPopupMenu ordering=new javax.swing.JPopupMenu();for(int direction:new int[]{-1,1}){javax.swing.JMenuItem move=new javax.swing.JMenuItem(direction<0?"Move up":"Move down");move.addActionListener(e->{if(rowOwner.equals(recoveryOwner))attempt(()->moveSetup(entry.id,direction));});ordering.add(move);}((JButton)setupRow.getComponent(0)).setComponentPopupMenu(ordering);libraryRows.add(setupRow);
+                String rowOwner=recoveryOwner;javax.swing.JPopupMenu ordering=new javax.swing.JPopupMenu();for(int direction:new int[]{-1,1}){javax.swing.JMenuItem move=new javax.swing.JMenuItem(direction<0?"Move up":"Move down");move.addActionListener(e->{if(rowOwner.equals(recoveryOwner))attempt(()->moveSetup(entry.id,direction));});ordering.add(move);}themeMenu(ordering);((JButton)setupRow.getComponent(0)).setComponentPopupMenu(ordering);libraryRows.add(setupRow);
 			}
 		}
 		if (matching == 0)
@@ -764,7 +780,7 @@ public final class StudioPanel extends PluginPanel
         javax.swing.JMenuItem fuzzy=new javax.swing.JMenuItem("Toggle Fuzzy"); fuzzy.setEnabled(!current.isJsonNull()); fuzzy.addActionListener(e->attempt(()->{ JsonObject item=get(key,index).getAsJsonObject(); item.addProperty("f",!item.has("f") || !item.get("f").getAsBoolean()); changedSlot(); })); menu.add(fuzzy);
         javax.swing.JMenu stack=new javax.swing.JMenu("Stack comparison"); stack.setEnabled(!current.isJsonNull() && !SetupCodec.unlimited(current));
         for(String value:new String[]{"None","Standard","Less_Than","Greater_Than"}) { javax.swing.JMenuItem option=new javax.swing.JMenuItem(value.replace('_',' ')); option.addActionListener(e->attempt(()->{ get(key,index).getAsJsonObject().addProperty("sc",value); changedSlot(); })); stack.add(option); } menu.add(stack);
-        javax.swing.JMenuItem remove=new javax.swing.JMenuItem("Remove Item from Slot"); remove.setEnabled(!current.isJsonNull()); remove.addActionListener(e->{ put(key,index,JsonNull.INSTANCE); changedSlot(); }); menu.add(remove); return menu;
+        javax.swing.JMenuItem remove=new javax.swing.JMenuItem("Remove Item from Slot"); remove.setEnabled(!current.isJsonNull()); remove.addActionListener(e->{ put(key,index,JsonNull.INSTANCE); changedSlot(); }); menu.add(remove); themeMenu(menu); return menu;
     }
     private void changedSlot() { fieldsToDraft(); rebuildDraftLayout(); markDirty(); renderBuilder(); }
     private void editSlot(String key,int index)
@@ -858,7 +874,7 @@ public final class StudioPanel extends PluginPanel
             for(OwnedGear.Proposal proposal:proposals){
                 int id=SetupCodec.id(proposal.before);ItemInfo original=owned.items.get(id);alternativeRows.add(info((proposal.container.equals("eq")?EQUIPMENT[proposal.index]:"Inventory "+(proposal.index+1))+": "+(original==null?"Item "+id:original.name),2));
                 JComboBox<ItemInfo> select=new JComboBox<>();select.setName("ownedChoice:"+proposal.container+":"+proposal.index);select.addItem(new ItemInfo(-1,"Keep original",false,-1,null));for(ItemInfo item:proposal.choices){select.addItem(item);itemCache.put(item.id,item);}
-                select.setRenderer(new javax.swing.DefaultListCellRenderer(){@Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focused){JLabel label=(JLabel)super.getListCellRendererComponent(list,value,index,selected,focused);label.putClientProperty("html.disable",true);label.setText(value==null||((ItemInfo)value).id<1?"Keep original":((ItemInfo)value).name+" ("+owned.count(((ItemInfo)value).id)+" seen)");return label;}});
+                select.setRenderer(new javax.swing.DefaultListCellRenderer(){@Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focused){JLabel label=(JLabel)super.getListCellRendererComponent(list,value,index,selected,focused);label.putClientProperty("html.disable",true);label.setFont(BODY_FONT);label.setText(value==null||((ItemInfo)value).id<1?"Keep original":((ItemInfo)value).name+" ("+owned.count(((ItemInfo)value).id)+" seen)");return label;}});
                 select.putClientProperty("preserveRenderer",true);select.setToolTipText(proposal.reason);alternativeRows.add(select);alternativeRows.add(info(proposal.reason,3));choices.put(proposal,select);
             }
             if(proposals.isEmpty())alternativeRows.add(info("No supported owned alternatives found. Missing gear is not automatically replaced.",3));
@@ -894,7 +910,7 @@ public final class StudioPanel extends PluginPanel
         JList<String> list=new JList<>(entries.stream().map(e->SetupCodec.name(e.portable)).toArray(String[]::new));list.putClientProperty("html.disable",true);list.setCellRenderer(plainNames());list.setVisibleRowCount(8);
         JComboBox<String> groups=new JComboBox<>();groups.addItem("Choose setups individually");for(SetupLibrary.Section section:library.sections)groups.addItem(section.name);groups.setRenderer(plainNames());groups.addActionListener(e->{list.clearSelection();int group=groups.getSelectedIndex()-1;if(group>=0){String id=library.sections.get(group).id;for(int i=0;i<entries.size();i++)if(Objects.equals(entries.get(i).section,id))list.addSelectionInterval(i,i);}});
         JPanel panel=vertical();panel.add(info("Select setups or a section. Only this selection is shared, including its Notes. Import adds independent copies.",4));panel.add(groups);panel.add(new JScrollPane(list));
-        if(JOptionPane.showConfirmDialog(this,panel,"Share selected setups",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return;
+        themeForm(panel);if(JOptionPane.showConfirmDialog(this,panel,"Share selected setups",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return;
         if(!owner.equals(recoveryOwner))return;Set<String> ids=new HashSet<>();for(int i:list.getSelectedIndices())ids.add(entries.get(i).id);attempt(()->{String json=gson.toJson(LibraryTools.bundle(library,ids,gson));getToolkit().getSystemClipboard().setContents(new StringSelection(json),null);message("Selected setup bundle copied.");});
     }
     private void upgradeItems()
@@ -906,7 +922,7 @@ public final class StudioPanel extends PluginPanel
                 List<SetupLibrary.Entry> entries=new ArrayList<>();for(SetupLibrary.Entry entry:library.setups)if(!entry.archived && BankLayouts.items(entry.portable).stream().anyMatch(item->SetupCodec.id(item)==oldId))entries.add(entry);
                 if(entries.isEmpty()){message("No active saved setups contain that exact item.");return;}
                 JList<String> list=new JList<>(entries.stream().map(e->SetupCodec.name(e.portable)).toArray(String[]::new));list.putClientProperty("html.disable",true);list.setCellRenderer(plainNames());list.setVisibleRowCount(8);JPanel preview=vertical();preview.add(info("Replace "+old.name+" with "+replacement.name+" in selected setups only. Review combat style and requirements. Exact Item IDs only.",5));preview.add(new JScrollPane(list));
-                if(JOptionPane.showConfirmDialog(this,preview,"Review item upgrade",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return;
+                themeForm(preview);if(JOptionPane.showConfirmDialog(this,preview,"Review item upgrade",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return;
                 if(!owner.equals(recoveryOwner)||!token.equals(session))return;Set<String> ids=new HashSet<>();for(int i:list.getSelectedIndices())ids.add(entries.get(i).id);attempt(()->replaceLibraryItems(old,replacement,ids));
             }),this::message);
         });},this::message);
@@ -939,7 +955,7 @@ public final class StudioPanel extends PluginPanel
 	}
 	private void importDialog()
 	{
-		JTextArea input = new JTextArea(12, 34); int action = JOptionPane.showConfirmDialog(this, new JScrollPane(input), "Paste Inventory Setup JSON, Bank Tag or library backup", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE); if (action != JOptionPane.OK_OPTION) return;
+		JTextArea input = new JTextArea(12, 34); JScrollPane inputPane = new JScrollPane(input); themeForm(inputPane); int action = JOptionPane.showConfirmDialog(this, inputPane, "Paste Inventory Setup JSON, Bank Tag or library backup", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE); if (action != JOptionPane.OK_OPTION) return;
 		attempt(() ->
 		{
 			String text = input.getText().trim(); JsonElement parsed = text.startsWith("{") ? codec.parse(text) : null;
@@ -951,7 +967,7 @@ public final class StudioPanel extends PluginPanel
 			}
 			List<JsonObject> imported=codec.importText(text);boolean bankImport=!(text.startsWith("{")||text.startsWith("[")) || parsed!=null&&parsed.isJsonObject()&&parsed.getAsJsonObject().has("bankTag");
             JTextArea review=info("Add "+imported.size()+" setup(s)? Existing saved setups are retained.\n"+ConversionReview.imported(imported.get(0),bankImport?"Bank Tag":"Inventory Setup"),9);
-            if(JOptionPane.showConfirmDialog(this,review,"Review import",JOptionPane.OK_CANCEL_OPTION)!=JOptionPane.OK_OPTION)return;
+            themeForm(review);if(JOptionPane.showConfirmDialog(this,review,"Review import",JOptionPane.OK_CANCEL_OPTION)!=JOptionPane.OK_OPTION)return;
 			commit(l -> { for (JsonObject p : imported) l.setups.add(new SetupLibrary.Entry(p)); }); message("Imported " + imported.size() + " setup(s). Open them from Library."); renderLibrary();
 		});
 	}

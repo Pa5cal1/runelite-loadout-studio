@@ -168,3 +168,10 @@ Bank filtering now uses the built-in Bank Tags dependency, an in-memory custom t
 - New-loadout defaults are applied to cloned blank/captured data only. Empty new drafts retain the chosen layout mode/direction even when their cells are identical.
 - Native Windows Java 11 test/shadowJar/jar succeeded: 120 tests, zero failures/errors/skipped. Five new regressions cover default creation, source isolation, live preference refresh, Ammo versus Rune Pouch rules, optional header visibility and removal of duplicate controls. 220 px Library/Builder previews visually inspected; existing width checks also cover 260 px.
 - Versioned test artifacts copied to build/libs and hashes verified. Native RuneLite settings rendering, live preference interaction and old-key retention still require manual user acceptance. No game interaction was automated.
+
+## Styling consistency — 0.7.2-test — 2026-10-23
+
+- Slot context menus (including stack submenus) and Library ordering menus now use the sidebar font, dark control background and consistent menu padding. Disabled actions retain native disabled rendering.
+- Standard and owned-alternative list renderers use the RuneScape body font and keep HTML disabled. Import, share and upgrade review content receives the same form theme; native dialog buttons remain managed by RuneLite.
+- Native Windows Java 11 test/shadowJar/jar succeeded: 121 tests, zero failures/errors/skipped. The new regression checks actual slot/submenu and Library menus. Existing offline layout tests cover 220/260 px; Library, Builder, Wiki, Export and slot-menu previews were visually reviewed.
+- Versioned local artifacts copied and hashes matched. Offline Swing fixtures do not validate live RuneLite look-and-feel, game sprites or real input; manual acceptance remains required.

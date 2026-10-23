@@ -56,3 +56,9 @@ Archive a disposable setup with the box icon, then enable Archived. Confirm that
 ## Plugin preferences — 0.7.1-test
 
 Open the native Loadout Studio configuration cog. Confirm the five collapsible groups, existing hotkey/menu values and live Sidebar/Comparison preferences. Change new-loadout defaults, capture/create a new setup and verify them; existing saved and imported setups must retain their own layout/rules. Sort through config, then right-click move a library row and verify Manual persists. Change preferences while editing Notes; text/focus must remain. Use the single fixed Bank toggle and Compare action; Save copy is in Setup details.
+
+## Styling consistency — 0.7.2-test
+
+- At normal sidebar width, compare Library, Builder, Wiki and Export fonts, field backgrounds, spacing and buttons. Resize the sidebar and check that labels remain readable.
+- Right-click an Inventory or Equipment slot and open Stack comparison. Check menu text, disabled actions, hover feedback and item selection through the chatbox. Right-click a saved setup and check its ordering menu.
+- Open import, share and item-upgrade review dialogs; check readable dark form content and native confirmation buttons. Cancel each review and confirm saved setups stay unchanged.
