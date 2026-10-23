@@ -13,6 +13,8 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 public class OwnedGearPanelTest {
  static class Host extends PanelTest.FakeHost {
+  LoadoutStudioConfig.LibraryOrder order;
+  @Override public void libraryOrder(LoadoutStudioConfig.LibraryOrder value){order=value;}
   Consumer<JsonObject> live;Consumer<JsonArray> layout;OwnedGear owned=OwnedGearTest.gear(1,4);int requests;
   @Override public String read(String scope){return saved;}
   @Override public void observeGear(Consumer<JsonObject> observer){live=observer;}
@@ -46,6 +48,6 @@ public class OwnedGearPanelTest {
   Host host=new Host(){@Override public void save(String scope,String text){throw new IllegalStateException("Storage unavailable");}};SetupLibrary library=new SetupLibrary();SetupLibrary.Entry entry=new SetupLibrary.Entry(OwnedGearTest.setup());library.setups.add(entry);host.saved=library.serialize(RuneLiteAPI.GSON);StudioPanel panel=new StudioPanel(host,RuneLiteAPI.GSON);try{panel.replaceLibraryItems(OwnedGearTest.item(1,"Bandos chestplate",4),OwnedGearTest.item(2,"Fighter torso",4),Collections.singleton(entry.id));fail();}catch(IllegalStateException expected){}assertEquals(1,SetupCodec.id(SetupCodec.setup(SetupLibrary.read(host.saved,RuneLiteAPI.GSON).find(entry.id).portable).getAsJsonArray("eq").get(4)));panel.dispose();
  });}
  @Test public void recentAndManualOrderingPersistInOwnLibrary() throws Exception {SwingUtilities.invokeAndWait(()->{
-  Host host=new Host();SetupLibrary library=new SetupLibrary();SetupLibrary.Entry one=new SetupLibrary.Entry(SetupCodec.blank("Zulrah")),two=new SetupLibrary.Entry(SetupCodec.blank("Vorkath"));library.setups.add(one);library.setups.add(two);host.saved=library.serialize(RuneLiteAPI.GSON);StudioPanel panel=new StudioPanel(host,RuneLiteAPI.GSON);panel.open(one);assertTrue(SetupLibrary.read(host.saved,RuneLiteAPI.GSON).find(one.id).lastOpened>0);panel.moveSetup(two.id,-1);assertEquals(two.id,SetupLibrary.read(host.saved,RuneLiteAPI.GSON).setups.get(0).id);assertEquals("Manual",((JComboBox<?>)find(panel,"librarySort")).getSelectedItem());panel.dispose();
+  Host host=new Host();SetupLibrary library=new SetupLibrary();SetupLibrary.Entry one=new SetupLibrary.Entry(SetupCodec.blank("Zulrah")),two=new SetupLibrary.Entry(SetupCodec.blank("Vorkath"));library.setups.add(one);library.setups.add(two);host.saved=library.serialize(RuneLiteAPI.GSON);StudioPanel panel=new StudioPanel(host,RuneLiteAPI.GSON);panel.open(one);assertTrue(SetupLibrary.read(host.saved,RuneLiteAPI.GSON).find(one.id).lastOpened>0);panel.moveSetup(two.id,-1);assertEquals(two.id,SetupLibrary.read(host.saved,RuneLiteAPI.GSON).setups.get(0).id);assertEquals(LoadoutStudioConfig.LibraryOrder.MANUAL,host.order);assertNull(find(panel,"librarySort"));panel.dispose();
  });}
 }

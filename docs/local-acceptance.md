@@ -52,3 +52,7 @@ Archive a disposable setup with the box icon, then enable Archived. Confirm that
 8. Upgrade an exact item in selected saved setups, inspect unaffected setups and Undo. Later edits must prevent unsafe Undo.
 9. Share a selected section, import it into a library with existing setups, and confirm independent copies. Verify the old whole-library backup restore flow remains separate.
 10. Configure a Bank-only filter hotkey and use the worn-items menu shortcuts. Confirm no game action is automated and the hotkey does nothing outside the Bank.
+
+## Plugin preferences — 0.7.1-test
+
+Open the native Loadout Studio configuration cog. Confirm the five collapsible groups, existing hotkey/menu values and live Sidebar/Comparison preferences. Change new-loadout defaults, capture/create a new setup and verify them; existing saved and imported setups must retain their own layout/rules. Sort through config, then right-click move a library row and verify Manual persists. Change preferences while editing Notes; text/focus must remain. Use the single fixed Bank toggle and Compare action; Save copy is in Setup details.

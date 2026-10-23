@@ -53,7 +53,7 @@ public class PanelTest
 			FakeHost host = new FakeHost(); StudioPanel panel = new StudioPanel(host, RuneLiteAPI.GSON); JsonObject p = SetupCodec.blank("Vorkath"); SetupCodec.setup(p).getAsJsonArray("inv").set(0, SetupCodec.item(100, 1)); p.add("layout", BankLayouts.generate(p, BankLayouts.Mode.ZIGZAG, true)); SetupLibrary.Entry entry = new SetupLibrary.Entry(p); entry.bankLayout = BankLayouts.Mode.ZIGZAG; entry.zigzagBottomToTop = true;
 			panel.open(entry); assertEquals(p.get("layout"), host.selectedBankSetup.get("layout"));
 			findButton(panel, "Clear filter").doClick(); assertFalse(SetupCodec.setup(host.selectedBankSetup).get("fb").getAsBoolean());
-			findButton(panel, "Apply filter").doClick(); assertTrue(SetupCodec.setup(host.selectedBankSetup).get("fb").getAsBoolean());
+			findButton(panel, "Filter Bank").doClick(); assertTrue(SetupCodec.setup(host.selectedBankSetup).get("fb").getAsBoolean());
 			findButton(panel, "Save").doClick(); SetupLibrary saved = SetupLibrary.read(host.saved, RuneLiteAPI.GSON); assertEquals(BankLayouts.Mode.ZIGZAG, saved.setups.get(0).bankLayout); assertTrue(saved.setups.get(0).zigzagBottomToTop); assertEquals(p.get("layout"), saved.setups.get(0).portable.get("layout"));
 			panel.reloadScope(); assertNull(host.selectedBankSetup); assertTrue(host.clears >= 2); panel.dispose();
 		});

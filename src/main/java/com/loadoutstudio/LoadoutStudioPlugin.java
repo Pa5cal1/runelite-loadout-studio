@@ -88,6 +88,8 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	private int nextItem;
 	private final ItemCatalogue catalogue = new ItemCatalogue();
 	@Provides LoadoutStudioConfig provideConfig(ConfigManager manager) { return manager.getConfig(LoadoutStudioConfig.class); }
+    @Override public LoadoutStudioConfig settings(){return config;}
+    @Override public void libraryOrder(LoadoutStudioConfig.LibraryOrder order){configManager.setConfiguration(LoadoutStudioConfig.GROUP,"libraryOrder",order);}
 
 	@Override protected void startUp()
 	{
@@ -160,6 +162,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     }
     @Subscribe public void onConfigChanged(ConfigChanged event)
     {
+        if(active && LoadoutStudioConfig.GROUP.equals(event.getGroup()) && LoadoutStudioConfig.isPreferenceKey(event.getKey())){SwingUtilities.invokeLater(()->{if(active&&panel!=null)panel.preferencesChanged();});return;}
         if(!active || bankFilter==null || !"banktags".equals(event.getGroup()) || bankTags.getActiveTag()==null || !event.getKey().equals("layout_"+bankTags.getActiveTag()) || event.getNewValue()==null)return;
         long revision=bankRevision.get();Consumer<JsonArray> observer=layoutObserver;
         clientThread.invokeLater(()->{if(!active||revision!=bankRevision.get()||bankFilter==null)return;JsonArray layout=bankFilter.readChangedLayout();if(layout!=null && observer!=null)SwingUtilities.invokeLater(()->{if(active&&revision==bankRevision.get())observer.accept(layout);});});

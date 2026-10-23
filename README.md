@@ -2,13 +2,14 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.7.0-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub.
+**Current version: 0.7.1-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering/layouts require RuneLite's built-in **Bank Tags** plugin. Optional imports create independent copies.
 
 ## Contents
 
 - [Getting Started](#getting-started)
+- [Plugin Preferences](#plugin-preferences)
 - [Creating a Setup](#creating-a-setup)
 - [Your Setup Library](#your-setup-library)
 - [Editing Items](#editing-items)
@@ -34,19 +35,31 @@ The sidebar has four tabs:
 - **Wiki** — search for an activity and choose a setup.
 - **Export** — copy a setup in the format you want to use.
 
+## Plugin Preferences
+
+Open the RuneLite plugin list, find Loadout Studio and click its configuration cog. General settings live here rather than in the sidebar:
+
+- **Default loadouts:** initial layout/direction, Bank filtering, Fuzzy, amount rule and attack-option capture. These affect newly created blank/captured setups only. Saved setups, Wiki source choices and imports retain their own values.
+- **Comparison:** ignore worn Ammo/Quiver amounts; Rune Pouch amounts remain checked.
+- **Sidebar:** library order and the optional coffee button.
+- **Hotkeys:** the existing Bank filter hotkey.
+- **Bank:** the existing Bank-menu setup shortcuts.
+
+The sidebar keeps current-setup actions and overrides: Save, Compare, Bank toggle, per-setup layout, items, Notes, section and favorite. It has no global sort dropdown, Ammo preference checkbox or duplicate Compare/Export/Bank-toggle buttons. Existing config keys and saved setup data remain compatible. Restoring an older draft retains its recorded Ammo preference until a global preference change or another setup is opened.
+
 ## Creating a Setup
 
 To save the gear you are wearing, open **Library** and click the camera button, **Capture gear**. This creates a draft from your current Inventory, Equipment, Rune Pouch, Quiver and Spellbook.
 
 To start from scratch, click the plus button, **New setup**.
 
-Give the setup a name in **Builder**, make any changes you need, then click **Save**. To keep the original and save another version, expand **Setup actions** and choose **Save copy**.
+Give the setup a name in **Builder**, make any changes you need, then click **Save**. To keep the original and save another version, expand **Setup details** and choose **Save copy**.
 
 You can also create a setup from the [Wiki](#finding-wiki-setups) or [import one](#importing-and-exporting).
 
 ## Your Setup Library
 
-Click a setup's name to open it. Use the search bar to find setups by name, `item:<name or ID>` or `notes:<text>`. Choose Alphabetical, Recent, Favorites first or Manual sorting. Right-click a setup name to move it up/down within its section; moving selects Manual order. Recent is recorded per character/profile. Long names are shortened in the list; hover over a name to see it in full.
+Click a setup's name to open it. Use the search bar to find setups by name, `item:<name or ID>` or `notes:<text>`. Choose Alphabetical, Recent, Favorites first or Manual sorting in **RuneLite plugin settings → Loadout Studio → Sidebar → Library order**. Right-click a setup name to move it up/down within its section; moving selects Manual order. Recent is recorded per character/profile. Long names are shortened in the list; hover over a name to see it in full.
 
 ### Favorites
 
@@ -153,7 +166,7 @@ Drag items in your active Bank layout to customise their positions. These change
 
 A configurable **Toggle Bank filter** hotkey works only while the Bank is open and is unset by default. The worn-items button can offer up to five favorite/recent setup shortcuts; disable **Bank setup shortcuts** in config if desired.
 
-Click **Apply filter** to show the setup's items in an open Bank, or apply it when you next open the Bank. Click **Clear filter** to turn filtering off for the draft. Save the setup to keep these preferences.
+Use the fixed **Filter Bank** button to show the setup's items now or when you next open the Bank. Click **Clear filter** to turn filtering off for the draft. Save the setup to keep these preferences.
 
 The filter includes Equipment, Inventory, Rune Pouch, Quiver and Additional filtered items. The Bank title displays the setup name. If you are also using another setup plugin, keep one setup filter selected at a time.
 
@@ -168,7 +181,7 @@ Right-click a slot to change its matching options:
 - **Toggle Fuzzy** allows supported related variants, such as different charges or potion doses.
 - **Stack comparison** controls whether the amount is ignored, must match exactly, or is checked against a minimum or maximum.
 
-**Ignore Ammo quantities** is under Loadout options. Imported unordered Inventory matching is also respected. Spellbook differences are checked when the setup specifies one.
+**Ignore Ammo quantities** is under **plugin settings → Comparison**. Imported unordered Inventory matching is also respected. Spellbook differences are checked when the setup specifies one.
 
 Matching rules can differ between receiving plugins, particularly for custom Fuzzy groups.
 
@@ -246,6 +259,14 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.7.1-test
+
+- Move general preferences into five collapsible RuneLite configuration sections.
+- Persist library sorting in config and keep manual row ordering available through right-click.
+- Apply new-loadout defaults only to blank/captured setups, preserving imported and saved values.
+- Remove duplicate sidebar actions and keep the current setup controls available.
+- Apply display/comparison preference changes without rebuilding the Notes editor.
 
 ### 0.7.0-test
 
