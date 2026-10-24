@@ -1,8 +1,8 @@
 # Loadout Studio release readiness
 
-Version: **0.9.1-rc.1**. Review date: **24 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
+Version: **0.9.1-rc.2**. Review date: **24 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
 
-Reviewed candidate source commit: `ad22be0b239592cd2b1a5563838c18789dbd1c4f`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
+Previous reviewed candidate source commit: `ad22be0b239592cd2b1a5563838c18789dbd1c4f`. The prepared manifest is updated to the new reviewed candidate after its source is published.
 
 ## Executive summary
 
@@ -15,7 +15,7 @@ One concrete defect was corrected during the review: useful `Slayer task/…` ar
 | Gate | Evidence | State |
 | --- | --- | --- |
 | Java compatibility | Java 11 compilation and class version 55 | Locally checked |
-| Regression suite | 199 tests, zero failures, errors or skips | Locally passed |
+| Regression suite | 208 tests, zero failures, errors or skips | Locally passed |
 | Account separation | Three-account save/reopen/favorite test, draft recovery and delayed callback guards | Offline passed; live switching pending |
 | Wiki request restraint | Interceptor tests, persisted cache, explicit actions, rolling request budget | Offline passed |
 | Sidebar appearance | Gold theme, 220/260 px layout checks and example-data previews | Offline checked; live scaling pending |
@@ -25,6 +25,10 @@ One concrete defect was corrected during the review: useful `Slayer task/…` ar
 ## Introduction
 
 This review considers three account types and three usage modes. These are scenario-based evaluations, not interviews with or endorsements by streamers. Lake, b0aty, Odablock, gnomemonkey and SoloMission are examples of the requested audience lens; no individual preference is attributed to them.
+
+## Item identity follow-up
+
+See [the item-ID compatibility audit](item-id-compatibility.md). The second candidate adds known duplicate exclusions, Bank-only canonical export IDs and runtime external-export validation. Explicit imports and captures are not rewritten by the exclusion list.
 
 ## Key findings
 
@@ -85,7 +89,7 @@ External I/O and Bank widget/layout changes deserve explicit reviewer attention.
 1. Complete the manual acceptance list below on the exact candidate build.
 2. Keep the current low-request design. Consider cross-process request coordination only if actual usage or Wiki maintainers identify a need; do not add periodic refresh or per-item services.
 3. Review encounter conditions and item requirements on every ironman/HCIM adaptation. Do not describe alternatives as automatic best-in-slot or safe-to-use recommendations.
-4. After acceptance, use a stable **1.0.0** release and a newly pinned source commit for submission. Fixes before acceptance increment the candidate number, such as **0.9.1-rc.2**.
+4. After acceptance, use a stable **1.0.0** release and a newly pinned source commit for submission. Fixes before acceptance increment the candidate number, such as **0.9.1-rc.3**.
 
 ## Manual acceptance before submission
 

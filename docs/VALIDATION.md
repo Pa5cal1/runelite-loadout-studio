@@ -1,4 +1,11 @@
-# Current validation — 0.9.1-rc.1
+# Current validation — 0.9.1-rc.2
+
+- Native Java 11 test/jar/shadowJar: **208 tests, zero failures/errors/skipped**. Nine new checks cover the audited ID range, all positive declared constants, all explicit source-search exclusions, Bank-only canonical export, native Fuzzy base IDs, old temporary Wiki drafts, unknown-ID clipboard blocking and index readiness.
+- [Item identity audit](item-id-compatibility.md): all 83 custom mapping entries match the inspected upstream source. The 1.13.3 API fixture contains 19,996 positive IDs; fuzzy mapping is checked over zero through 34,731. This is snapshot compatibility and serialization evidence, not a proof of every live definition's semantic identity.
+- Bank canonical IDs are read from ItemManager while indexing on the client thread. External exports require a ready named-definition index; native recovery exports remain available. Temporary search exclusions do not rewrite explicit imports/captures. No per-item HTTP request was introduced.
+- Re-test real worn Graceful, notes/placeholders, charged jewelry, known ring variants and both Bank Tag formats in the client before stable release. The independent/native Bank interaction gates from the previous candidate remain open.
+
+# Previous validation — 0.9.1-rc.1
 
 - Native Java 11 test/jar/shadowJar: **199 tests, zero failures/errors/skipped**. New tests exercise three character libraries, favorites and gear identity, delayed Wiki callback rejection after switching character, discovery of Slayer task recommendation pages and the ten-start rolling-minute request budget.
 - Static review considered maxed main, mid-tier ironman, beginner hardcore and streaming/sharing workflows. See [the release-readiness report](release-readiness.md) for findings, limitations, policy sources and required live acceptance. No account/game input was automated.

@@ -237,6 +237,13 @@ public final class SetupCodec
 
 	public String bank(JsonObject p, boolean legacy)
 	{
+        return bank(p,legacy,id->id);
+    }
+    public String bank(JsonObject original,boolean legacy,java.util.function.IntUnaryOperator canonical)
+    {
+        JsonObject p=original.deepCopy();
+        for(JsonElement item:BankLayouts.items(p))if(id(item)>0){int real=canonical.applyAsInt(id(item));if(real<1)throw new IllegalArgumentException("Invalid canonical Bank item.");item.getAsJsonObject().addProperty("id",real);}
+        JsonArray cells=p.getAsJsonArray("layout");if(cells!=null)for(int i=0;i<cells.size();i++)if(integer(cells.get(i))>0){int real=canonical.applyAsInt(integer(cells.get(i)));if(real<1)throw new IllegalArgumentException("Invalid canonical Bank layout item.");cells.set(i,new com.google.gson.JsonPrimitive(real));}
 		JsonObject s = setup(p); String name = name(p).replaceAll("[<>/:,\"\\r\\n]", " ").replaceAll("\\s+", " ").trim();
 		if (name.isEmpty()) throw new IllegalArgumentException("Enter a Bank Tag name.");
 		Map<Integer, Boolean> tags = new LinkedHashMap<>();
@@ -261,7 +268,9 @@ public final class SetupCodec
 	{
 		if (e == null || e.isJsonNull()) return; int id = id(e);
 		if (id <= 0) throw new IllegalArgumentException("Resolve every Item ID before Bank Tag export.");
-		boolean fuzzy = e.getAsJsonObject().has("f") && e.getAsJsonObject().get("f").getAsBoolean(); tags.put(id, tags.getOrDefault(id, false) || fuzzy);
+		boolean fuzzy = e.getAsJsonObject().has("f") && e.getAsJsonObject().get("f").getAsBoolean();
+        if(fuzzy)id=net.runelite.client.game.ItemVariationMapping.map(id);
+        tags.put(id, tags.getOrDefault(id, false) || fuzzy);
 	}
 
 	private JsonObject importBank(String text)

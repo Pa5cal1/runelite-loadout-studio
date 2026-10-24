@@ -267,7 +267,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     @Override public void chooseItem(Consumer<Integer> chosen,Consumer<String> error)
     {
         clientThread.invoke(()->{ if(!active) return; if(client.getGameState()!=GameState.LOGGED_IN) { SwingUtilities.invokeLater(()->error.accept("Log in to use the RuneLite chatbox Item Search.")); return; }
-            net.runelite.client.game.chatbox.ChatboxItemSearch input=chatboxSearch.get(); ownedChatbox=input; input.value("");input.tooltipText("Set slot to").onItemSelected(id->{int selected=ItemCatalogue.selectionId(id,itemManager.getItemComposition(id).getMembersName());SwingUtilities.invokeLater(()->{if(active)chosen.accept(selected);});}).build();diagnostics.completed(StudioDiagnostics.Operation.ITEM_SEARCH,StudioDiagnostics.Outcome.SUCCESS,0);SwingUtilities.invokeLater(()->client.getCanvas().requestFocusInWindow());
+            net.runelite.client.game.chatbox.ChatboxItemSearch input=chatboxSearch.get(); ownedChatbox=input; input.value("");input.tooltipText("Set slot to").onItemSelected(id->{int real=itemManager.canonicalize(id);int selected=ItemCatalogue.selectionId(real,itemManager.getItemComposition(real).getMembersName());if(AutomaticItemExclusions.contains(selected)){SwingUtilities.invokeLater(()->{if(active)error.accept("This is a temporary or duplicate search item. Choose the normal game item instead.");});return;}SwingUtilities.invokeLater(()->{if(active)chosen.accept(selected);});}).build();diagnostics.completed(StudioDiagnostics.Operation.ITEM_SEARCH,StudioDiagnostics.Outcome.SUCCESS,0);SwingUtilities.invokeLater(()->client.getCanvas().requestFocusInWindow());
         });
     }
     @Override public void enterQuantity(String initial,Consumer<String> chosen,Consumer<String> error)
@@ -334,6 +334,8 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     @Override public String wikiCacheWarning(){return wiki.cacheWarning();}
     @Override public void localWikiSuggestions(String query,Consumer<List<String>> callback){wiki.suggestLocal(query,titles->SwingUtilities.invokeLater(()->{if(active)callback.accept(titles);}));}
 	@Override public List<StudioPanel.ItemInfo> search(String query) { return catalogue.search(query); }
+    @Override public int bankItemId(int id){return catalogue.bankId(id);}
+    @Override public String itemExportError(JsonObject portable){return catalogue.exportError(portable);}
     @Override public boolean itemMatches(int id,String query) { return catalogue.matches(id,query); }
 	@Override public StudioPanel.ItemInfo exactItem(String name) { return catalogue.exact(name); }
 	@Override public StudioPanel.ItemInfo defaultItem(String name) { return catalogue.firstExact(name); }
@@ -370,8 +372,9 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 				ItemComposition composition = itemManager.getItemComposition(nextItem);
 				ItemStats stats=itemManager.getItemStats(nextItem);int slot=stats!=null&&stats.getEquipment()!=null?stats.getEquipment().getSlot():-1;
                 catalogue.add(nextItem,composition.getMembersName(),composition.isStackable(),composition.getNote(),composition.getPlaceholderTemplateId(),slot,composition.isGeTradeable(),composition.getInventoryActions()!=null&&java.util.Arrays.stream(composition.getInventoryActions()).anyMatch(java.util.Objects::nonNull));
+                catalogue.bankId(nextItem,itemManager.canonicalize(nextItem));
 			}
-			if (nextItem < client.getItemCount()) return false; indexing = false; return true;
+			if (nextItem < client.getItemCount()) return false; indexing = false;catalogue.indexed();return true;
 		});
 	}
 	@Override public void describe(int id, Consumer<StudioPanel.ItemInfo> callback)

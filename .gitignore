@@ -27,6 +27,8 @@
 !/src/main/resources/com/loadoutstudio/combat-achievements.png
 !/src/main/resources/com/loadoutstudio/inventory-setups-LICENSE.txt
 !/src/test/resources/logback-test.xml
+!/src/test/resources/items/id-compatibility.json
+!/docs/item-id-compatibility.md
 !/src/test/resources/wiki/vorkath-strategies.wikitext
 !/src/main/java/com/loadoutstudio/*.java
 !/src/test/java/com/loadoutstudio/*.java

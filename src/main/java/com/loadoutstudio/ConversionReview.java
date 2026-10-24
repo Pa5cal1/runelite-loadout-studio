@@ -14,7 +14,7 @@ final class ConversionReview
     static String inventory(JsonObject p){return "Inventory Setup: "+count(p,"inv")+" Inventory, "+count(p,"eq")+" Equipment, "+count(p,"rp")+" Rune Pouch items. Slots, quantities, notes and matching flags are retained.";}
     static String bank(JsonObject p)
     {
-        JsonObject s=SetupCodec.setup(p);return "Bank Tag keeps item membership, Fuzzy flags and Bank layout. It cannot retain "+count(p,"eq")+" worn slots, "+count(p,"rp")+" Rune Pouch entries, quantities, Spellbook"+(s.has("notes")&&!s.get("notes").isJsonNull()&&!s.get("notes").getAsString().isEmpty()?", Notes":"")+" or Inventory slot assignments. Converting back needs manual review.";
+        JsonObject s=SetupCodec.setup(p);return "Bank Tag keeps item membership and Bank layout with normal Bank IDs. RuneLite variant groups can differ from Inventory Setups custom Fuzzy groups. It cannot retain "+count(p,"eq")+" worn slots, "+count(p,"rp")+" Rune Pouch entries, quantities, Spellbook"+(s.has("notes")&&!s.get("notes").isJsonNull()&&!s.get("notes").getAsString().isEmpty()?", Notes":"")+" or Inventory slot assignments. Converting back needs manual review.";
     }
     static String imported(JsonObject p,String origin)
     {

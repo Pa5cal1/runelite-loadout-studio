@@ -1,5 +1,7 @@
 # Asset credits
 
+`AutomaticItemExclusions.java` contains exclusion data adapted from Inventory Setups' search filter at revision `16f2c0a319672c2e19738276a17de63aea7216fa`. The existing bundled Inventory Setups BSD-2 notice applies; this is local source data, not a runtime dependency or download. The ID compatibility fixture records the declared constants from RuneLite API 1.13.3 and the inspected custom variation table for offline tests.
+
 The root `icon.png` is an unmodified copy of the bundled OSRS Combat Achievements icon, 18 by 17 pixels, prepared for the Plugin Hub listing. The same Jagex attribution below applies.
 
 The legacy bundled `src/main/resources/com/loadoutstudio/combat-tutor.png` is the OSRS Combat Tutor map icon. Source: [Combat Tutor icon on OSRS Wiki](https://oldschool.runescape.wiki/w/File:Combat_Tutor_icon.png), image URL https://oldschool.runescape.wiki/images/Combat_Tutor_icon.png. RuneScape artwork is copyright Jagex. The project license does not transfer ownership of Jagex artwork. Review artwork permissions before public distribution. The current sidebar and header use Combat Achievements instead.

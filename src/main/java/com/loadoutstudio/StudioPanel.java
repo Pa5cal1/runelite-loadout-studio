@@ -109,6 +109,8 @@ public final class StudioPanel extends PluginPanel
             return first;
         }
         default void whenItemsReady(Consumer<String> callback) { callback.accept(null); }
+        default int bankItemId(int id){return id;}
+        default String itemExportError(JsonObject portable){return null;}
 		String catalogueStatus();
 		void fetchWiki(String url, BiConsumer<String, String> callback);
 		default void fetchWikiPage(String url, boolean preferStrategies, BiConsumer<WikiClient.Page, String> callback)
@@ -202,7 +204,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("LOADOUT"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.9.1-rc.1 - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("LOADOUT"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.9.1-rc.2 - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel wordmark=new JPanel(new GridLayout(2,1,0,0));wordmark.setName("studioWordmark");wordmark.add(title);JLabel subtitle=text("STUDIO");subtitle.setName("studioSubtitle");wordmark.add(subtitle);
         JPanel identity=new JPanel(new BorderLayout(6,0));JLabel mark=new JLabel(new ImageIcon(StudioBrandIcon.create().getScaledInstance(24,24,Image.SCALE_REPLICATE)));mark.setName("studioMark");mark.setForeground(GOLD);mark.setPreferredSize(new Dimension(24,32));identity.add(mark,BorderLayout.WEST);identity.add(wordmark,BorderLayout.CENTER);
@@ -585,18 +587,24 @@ public final class StudioPanel extends PluginPanel
 	{
 		SetupCodec.validate(p,false);if (!discard()) return; host.cancelItemInput(); alternativeRows.removeAll();alternativeUndo=null;ignoreAmmo.setSelected(host.settings().ignoreAmmoQuantities());draft = p.deepCopy(); editorLayout = BankLayouts.infer(draft); editorBottom = BankLayouts.inferBottom(draft); editingId = null; editorSection = null; editorFavorite = false; dirty = true; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); persistRecovery();message("New draft. Review it, then Save to your library."); host.requestGear();scheduleAlternatives();if(!defaultsResolved)resolveDraftDefaults();
 	}
-    private boolean needsDefault(JsonElement item){return SetupCodec.id(item)==0||item!=null&&item.isJsonObject()&&item.getAsJsonObject().has("label")&&ItemCatalogue.legacyRingId(SetupCodec.id(item),item.getAsJsonObject().get("label").getAsString())!=SetupCodec.id(item);}
+    private boolean needsDefault(JsonElement item){
+        if(SetupCodec.id(item)==0)return true;
+        if(item==null||!item.isJsonObject()||!item.getAsJsonObject().has("label"))return false;
+        JsonObject value=item.getAsJsonObject();int id=SetupCodec.id(item);
+        return ItemCatalogue.legacyRingId(id,value.get("label").getAsString())!=id || value.has("choices")&&AutomaticItemExclusions.contains(id);
+    }
     private void resolveDraftDefaults()
     {
         boolean needed=false;for(String key:new String[]{"eq","inv","rp","qv","bp"})for(JsonElement e:SetupCodec.setup(draft).has(key)&&SetupCodec.setup(draft).get(key).isJsonArray()?SetupCodec.setup(draft).getAsJsonArray(key):new JsonArray())if(needsDefault(e))needed=true;
         if(!needed)return;String token=session;JsonObject current=draft;
         host.whenItemsReady(error->{
             if(disposed||error!=null||!token.equals(session)||current!=draft)return;
-            int resolved=0;for(String key:new String[]{"eq","inv","rp","qv","bp"})for(JsonElement entry:SetupCodec.setup(draft).has(key)&&SetupCodec.setup(draft).get(key).isJsonArray()?SetupCodec.setup(draft).getAsJsonArray(key):new JsonArray())if(needsDefault(entry)){
+            int resolved=0,unresolved=0;for(String key:new String[]{"eq","inv","rp","qv","bp"})for(JsonElement entry:SetupCodec.setup(draft).has(key)&&SetupCodec.setup(draft).get(key).isJsonArray()?SetupCodec.setup(draft).getAsJsonArray(key):new JsonArray())if(needsDefault(entry)){
                 JsonObject item=entry.getAsJsonObject();int oldId=SetupCodec.id(item);ItemInfo first=host.defaultItem(WikiParser.defaultName(item));
                 if(first!=null){if(oldId>0)for(int i=0;i<draft.getAsJsonArray("layout").size();i++)if(draft.getAsJsonArray("layout").get(i).getAsInt()==oldId)draft.getAsJsonArray("layout").set(i,new com.google.gson.JsonPrimitive(first.id));item.addProperty("id",first.id);item.addProperty("label",first.name);itemCache.put(first.id,first);resolved++;}
+                else if(oldId>0){for(int i=0;i<draft.getAsJsonArray("layout").size();i++)if(draft.getAsJsonArray("layout").get(i).getAsInt()==oldId)draft.getAsJsonArray("layout").set(i,new com.google.gson.JsonPrimitive(-1));item.addProperty("id",0);unresolved++;}
             }
-            if(resolved>0){rebuildDraftLayout();markDirty();renderBuilder();syncBankFilter();scheduleAlternatives();message("Applied first choices to "+resolved+" slot(s). Review and Save to keep them.");}
+            if(resolved>0||unresolved>0){rebuildDraftLayout();markDirty();renderBuilder();syncBankFilter();scheduleAlternatives();message("Applied first choices to "+resolved+" slot(s). "+unresolved+" temporary item(s) need manual selection. Review and Save to keep changes.");}
         });
     }
 	private void capture()
@@ -1040,7 +1048,8 @@ public final class StudioPanel extends PluginPanel
 	{
 		code.setText(""); if (draft == null) throw new IllegalStateException("Open a setup in the Builder first."); fieldsToDraft(); JsonObject p = draft.deepCopy();conversionNotice.setText(format.getSelectedIndex()==3?"Loadout Studio: slots, quantities, item choices, Notes and layout are retained. Use Library > Import to open this code.":format.getSelectedIndex()==0?ConversionReview.inventory(p):ConversionReview.bank(p));conversionNotice.setRows(format.getSelectedIndex()==0||format.getSelectedIndex()==3?4:8);conversionNotice.setMaximumSize(new Dimension(500,conversionNotice.getRows()*18+8));conversionNotice.setToolTipText(conversionNotice.getText());
 		if (ignoreAmmo.isSelected()) for (String key : new String[]{"eq", "qv"}) { JsonArray items = SetupCodec.setup(p).getAsJsonArray(key); if (items == null) continue; int start = key.equals("eq") ? 13 : 0; for (int i = start; i < items.size(); i++) if (!items.get(i).isJsonNull()) { items.get(i).getAsJsonObject().remove("q"); items.get(i).getAsJsonObject().remove("sc"); } }
-		code.setText(format.getSelectedIndex()==3?codec.studio(p,exportPretty.isSelected(),exportCompress.isSelected()):format.getSelectedIndex()==0?codec.inventory(p,exportPretty.isSelected()):codec.bank(p,format.getSelectedIndex()==2)); code.setCaretPosition(0);
+        if(format.getSelectedIndex()!=3){String invalid=host.itemExportError(p);if(invalid!=null)throw new IllegalArgumentException(invalid);}
+		code.setText(format.getSelectedIndex()==3?codec.studio(p,exportPretty.isSelected(),exportCompress.isSelected()):format.getSelectedIndex()==0?codec.inventory(p,exportPretty.isSelected()):codec.bank(p,format.getSelectedIndex()==2,host::bankItemId)); code.setCaretPosition(0);
 	}
 	private void importDialog()
 	{
