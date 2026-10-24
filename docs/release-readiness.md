@@ -2,6 +2,8 @@
 
 Version: **0.9.1-rc.1**. Review date: **24 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
 
+Reviewed candidate source commit: `ad22be0b239592cd2b1a5563838c18789dbd1c4f`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
+
 ## Executive summary
 
 The candidate supports character-scoped libraries, manual loadout editing, local owned-item alternatives, interoperable exports and on-demand cached Wiki sources. Static inspection and offline tests support moving to the last manual acceptance pass. They do not establish that every RuneLite interaction works in a real client, and they do not constitute RuneLite or Jagex approval.
