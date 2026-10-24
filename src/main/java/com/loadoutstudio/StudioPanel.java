@@ -320,7 +320,9 @@ public final class StudioPanel extends PluginPanel
         if (component instanceof JButton && "supportCoffee".equals(component.getName()))
         {
             component.setFont(StudioTheme.SMALL);
-            ((JButton)component).setBorder(BorderFactory.createEmptyBorder(2, 3, 2, 3));
+            JButton coffee=(JButton)component;coffee.setBorder(BorderFactory.createEmptyBorder(2,3,2,3));
+            int labelWidth=coffee.getFontMetrics(coffee.getFont()).stringWidth(coffee.getText())+coffee.getInsets().left+coffee.getInsets().right+coffee.getIcon().getIconWidth()+coffee.getIconTextGap();
+            coffee.setPreferredSize(new Dimension(Math.max(94,labelWidth+4),28));
         }
 		if(component instanceof JButton && ((JButton)component).getClientProperty("disclosure")!=null){JButton b=(JButton)component;b.setBackground(StudioTheme.SURFACE);b.setForeground(GOLD);b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,1,0,OUTLINE),BorderFactory.createEmptyBorder(6,5,6,5)));}
         if(component instanceof JButton && component.getName()!=null && component.getName().startsWith("wikiPreset:")){JButton b=(JButton)component;b.setBackground(StudioTheme.SELECTED);b.setForeground(GOLD);b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,3,0,0,GOLD),BorderFactory.createEmptyBorder(7,8,7,8)));}

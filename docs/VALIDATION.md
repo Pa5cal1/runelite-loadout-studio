@@ -1,6 +1,7 @@
 # Current validation — 0.9.0-test
 
 - Native Java 11 test/jar/shadowJar: 195 tests, zero failures/errors/skipped. Three additional style checks cover unchanged host UIManager defaults, minimum 4.5:1 contrast for the selected body/muted/accent/error text pairs, and full navigation/support labels fitting alongside icons at 220/260 px.
+- The Linux CI layout check exposed platform-dependent font widths. The permanent support button now derives its preferred width from its measured label, icon and insets rather than a fixed width; the fit assertion is retained.
 - Existing style checks now require the shared StudioTheme font and menu surface. All previous functional regression tests remain included. OSRS sprite sources, 44 px slot geometry, yellow count overlays, data formats, config keys and Bank behavior are unchanged by this visual update.
 - Sidebar/diagnostics previews are offline renders of the actual controls with example data. All main routes, alternate gear, Equipment/Notes and both export representations were visually reviewed. Native settings previews intentionally retain RuneLite styling.
 - This palette is component-local; it does not set global UIManager defaults. The contrast checks are selected design-token checks, not a full accessibility certification or validation of arbitrary user-chosen highlight colors.
