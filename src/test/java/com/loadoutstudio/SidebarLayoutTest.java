@@ -10,7 +10,6 @@ import java.util.function.BiConsumer;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import net.runelite.http.api.RuneLiteAPI;
-import net.runelite.client.ui.FontManager;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -48,7 +47,7 @@ public class SidebarLayoutTest
                 JButton coffee = (JButton)find(panel, "supportCoffee"); assertEquals("Buy a coffee", coffee.getText()); assertNotNull(coffee.getIcon()); assertEquals("https://buymeacoffee.com/pascalvdbe9", coffee.getAccessibleContext().getAccessibleDescription()); coffee.doClick(); assertEquals(1, supportClicks[0]);
                 assertFalse(((JButton)find(panel, "Copy code")).isEnabled()); panel.newDraft(SetupCodec.blank("Vorkath")); assertTrue(((JButton)find(panel, "Copy code")).isEnabled());
 				layout(panel); layout(panel); String[] routes = {"Library", "Builder", "Wiki", "Export"}; Rectangle[] bounds = new Rectangle[4];
-				for (int i = 0; i < 4; i++) { JButton route = (JButton)find(panel, "nav:" + routes[i]); bounds[i] = route.getBounds(); assertTrue(route.getWidth() >= 80); assertTrue(route.getHeight() >= 30); assertEquals(FontManager.getRunescapeFont().getFamily(), route.getFont().getFamily()); }
+				for (int i = 0; i < 4; i++) { JButton route = (JButton)find(panel, "nav:" + routes[i]); bounds[i] = route.getBounds(); assertTrue(route.getWidth() >= 80); assertTrue(route.getHeight() >= 30); assertEquals(StudioTheme.ACTION.getFamily(), route.getFont().getFamily()); }
 				for (int tab = 0; tab < 4; tab++)
 				{
 					((JButton)find(panel, "nav:" + routes[tab])).doClick();

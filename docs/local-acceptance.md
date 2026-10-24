@@ -1,4 +1,4 @@
-# Testclient acceptance — 0.8.5-test
+# Testclient acceptance — 0.9.0-test
 
 Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 
@@ -72,3 +72,7 @@ Confirm Show coffee button no longer exists in plugin settings. Buy a coffee rem
 - With Inventory Setups filtering a selected setup, open ours: automatic filtering must yield with a visible explanation. Choose our Filter Bank/Auto Layout to switch, then return to the other plugin and clear ours. Its tag, saved setups and menu entries must remain intact. Enable Inventory Setups' Require Active Panel for Filtering manually if needed; no foreign settings should change automatically. Test both shared native and standalone Bank paths and manually verify withdrawals.
 - Open Library tools > Diagnostics / report problem. Review before Copy; opening the GitHub form must not attach/send the report. Reset must clear counters. Disabling Record local diagnostics must clear and stop collection, with features still usable. Restart should start a new session. Normal invalid input must be classified as validation, not an unexpected bug.
 - Check all new native settings and the always-visible coffee control. Compare the documentation previews with the real client; previews do not prove native behavior.
+
+## Distinct sidebar style
+
+Check the slate/turquoise theme at normal and increased display scaling, 220/260 px sidebar widths, every route and the report dialog. Navigation labels and the permanent support button must fit with their icons. Verify keyboard focus, long-title ellipsis, popup/dropdown selection, checkboxes and selected highlights. Item sprites/counts and slot positions must retain their previous behavior. RuneLite native settings and other plugins should keep their original style. Test Save, Wiki selection, drag/drop and Copy once in the real client after the visual update.

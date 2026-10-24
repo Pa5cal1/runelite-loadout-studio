@@ -6,7 +6,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import net.runelite.client.ui.FontManager;
 import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -26,8 +25,8 @@ public class StylingConsistencyTest
     {
         for (Component child : menu.getComponents())
         {
-            assertEquals(FontManager.getRunescapeFont(), child.getFont());
-            assertEquals(new Color(29,29,29), child.getBackground());
+            assertEquals(StudioTheme.BODY, child.getFont());
+            assertEquals(StudioTheme.CONTROL, child.getBackground());
             if (child instanceof JMenu) checkMenu(((JMenu) child).getPopupMenu());
         }
     }

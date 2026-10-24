@@ -15,12 +15,12 @@ final class SidebarIcon implements Icon
     public void paintIcon(Component component, Graphics graphics, int x, int y)
     {
         Graphics2D g = (Graphics2D)graphics.create(); g.translate(x, y);
-        g.setColor(kind == Kind.NEW ? new Color(85, 180, 91) : component.getForeground());
+        g.setColor(kind == Kind.NEW ? StudioTheme.ACCENT : component.getForeground());
         switch (kind)
         {
             case COFFEE:
                 g.drawRoundRect(3, 6, 9, 7, 2, 2); g.drawArc(11, 7, 4, 5, -90, 180); g.drawLine(2, 15, 13, 15);
-                g.setColor(new Color(225, 166, 58)); g.drawLine(5, 1, 5, 3); g.drawLine(9, 2, 9, 4); break;
+                g.setColor(StudioTheme.FAVORITE); g.drawLine(5, 1, 5, 3); g.drawLine(9, 2, 9, 4); break;
             case NEW: g.fillRect(7, 2, 2, 12); g.fillRect(2, 7, 12, 2); break;
             case CAPTURE:
                 g.drawRoundRect(1, 5, 13, 9, 2, 2); g.drawRect(4, 2, 6, 3); g.drawOval(5, 7, 5, 5); break;

@@ -11,7 +11,7 @@ import net.runelite.client.util.AsyncBufferedImage;
 /** Counts are an overlay inside the cell, not a second layout row above its icon. */
 final class LoadoutSlotButton extends JButton
 {
-    @Override public javax.swing.JToolTip createToolTip(){javax.swing.JToolTip tip=super.createToolTip();tip.putClientProperty("html.disable",true);return tip;}
+    @Override public javax.swing.JToolTip createToolTip(){javax.swing.JToolTip tip=super.createToolTip();tip.putClientProperty("html.disable",true);return StudioTheme.tooltip(tip);}
     private String amount = "";
     java.util.function.Function<Boolean,javax.swing.JPopupMenu> menuFactory;
     @Override protected void processMouseEvent(java.awt.event.MouseEvent event){if(menuFactory!=null&&(event.isPopupTrigger()||javax.swing.SwingUtilities.isRightMouseButton(event)))setComponentPopupMenu(menuFactory.apply(event.isShiftDown()));super.processMouseEvent(event);}

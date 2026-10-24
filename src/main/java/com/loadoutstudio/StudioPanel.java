@@ -127,8 +127,8 @@ public final class StudioPanel extends PluginPanel
 		public ItemInfo(int id, String name, boolean stackable, int slot, Icon icon) { this.id = id; this.name = name == null ? "Item " + id : name; this.stackable = stackable; this.slot = slot; this.icon = icon; }
 		@Override public String toString() { return name + "  [" + id + "]"; }
 	}
-	private static final Color GOLD = new Color(225, 166, 58), BG = new Color(37, 37, 37), CONTROL = new Color(29, 29, 29), OUTLINE = new Color(64, 64, 64), TEXT = new Color(224, 224, 224), MUTED = new Color(172, 172, 172), SLOT = new Color(29, 29, 29), RED = new Color(195, 92, 72);
-	private static final Font BODY_FONT = FontManager.getRunescapeFont(), ACTION_FONT = FontManager.getRunescapeBoldFont();
+	private static final Color GOLD=StudioTheme.ACCENT,BG=StudioTheme.BACKGROUND,CONTROL=StudioTheme.CONTROL,OUTLINE=StudioTheme.BORDER,TEXT=StudioTheme.TEXT,MUTED=StudioTheme.MUTED,SLOT=StudioTheme.CONTROL,RED=StudioTheme.ERROR;
+	private static final Font BODY_FONT=StudioTheme.BODY,ACTION_FONT=StudioTheme.ACTION;
 	private JTextField wikiQuery;
 	private final List<JButton> navigation = new ArrayList<>();
 	private final Host host;
@@ -139,7 +139,7 @@ public final class StudioPanel extends PluginPanel
 	private final JTabbedPane tabs = new JTabbedPane();
 	private final JPanel libraryRows = vertical(), builder = vertical(), builderTools = vertical();
 	private final Set<String> expandedPanels = new HashSet<>();
-	private final JTextField search = new JTextField(), setupName = new JTextField(){@Override public javax.swing.JToolTip createToolTip(){javax.swing.JToolTip tip=super.createToolTip();tip.putClientProperty("html.disable",true);return tip;}};
+	private final JTextField search = new JTextField(), setupName = new JTextField(){@Override public javax.swing.JToolTip createToolTip(){javax.swing.JToolTip tip=super.createToolTip();tip.putClientProperty("html.disable",true);return StudioTheme.tooltip(tip);}};
 	private final JCheckBox favorites = new JCheckBox("Favorites"), archived = new JCheckBox("Archived"), favorite = new JCheckBox("Favorite"), ignoreAmmo = new JCheckBox("Ignore Ammo quantities");
 	private final JComboBox<String> spellbook = new JComboBox<>(new String[]{"Standard", "Ancient", "Lunar", "Arceuus", "None"});
 	private final JCheckBox filterBank = new JCheckBox("Filter Bank"), bottomToTop = new JCheckBox("Zigzag: bottom row first");
@@ -200,13 +200,15 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.8.5-test - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("LOADOUT"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.9.0-test - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
-        JPanel titleBar = new JPanel(new BorderLayout(3, 0)); titleBar.add(title, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
+        JPanel wordmark=new JPanel(new GridLayout(2,1,0,0));wordmark.setName("studioWordmark");wordmark.add(title);JLabel subtitle=text("STUDIO");subtitle.setName("studioSubtitle");wordmark.add(subtitle);
+        JPanel identity=new JPanel(new BorderLayout(6,0));JLabel mark=new JLabel(StudioTheme.route(1));mark.setName("studioMark");mark.setForeground(GOLD);mark.setPreferredSize(new Dimension(18,32));identity.add(mark,BorderLayout.WEST);identity.add(wordmark,BorderLayout.CENTER);
+        JPanel titleBar = new JPanel(new BorderLayout(4, 0));titleBar.setBorder(BorderFactory.createEmptyBorder(1,2,8,0));titleBar.add(identity, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
 		JPanel menu = new JPanel(new GridLayout(2, 2, 4, 4));
 		for (int i = 0; i < tabs.getTabCount(); i++)
 		{
-			final int index = i; JButton route = button(tabs.getTitleAt(i), () -> tabs.setSelectedIndex(index)); route.setName("nav:" + tabs.getTitleAt(i)); route.setPreferredSize(new Dimension(100, 34)); navigation.add(route); menu.add(route);
+			final int index = i; JButton route = button(tabs.getTitleAt(i), () -> tabs.setSelectedIndex(index)); route.setName("nav:" + tabs.getTitleAt(i));route.setIcon(StudioTheme.route(i));route.setIconTextGap(6);route.setPreferredSize(new Dimension(100, 36)); navigation.add(route); menu.add(route);
 		}
 		heading.add(menu); add(heading, BorderLayout.NORTH); tabs.addChangeListener(e -> { updateNavigation(); if (tabs.getSelectedIndex() == 0) search.requestFocusInWindow(); if (tabs.getSelectedIndex() == 2 && wikiQuery != null) wikiQuery.requestFocusInWindow(); if (tabs.getSelectedIndex() == 3 && draft != null) refreshCode(); });
 		status.setName("studioStatus"); status.setRows(2); status.setEditable(false); status.setLineWrap(true); status.setWrapStyleWord(true); status.setBorder(BorderFactory.createEmptyBorder(6, 2, 2, 2)); add(status, BorderLayout.SOUTH);
@@ -278,13 +280,7 @@ public final class StudioPanel extends PluginPanel
 	@Override public Dimension getMinimumSize(){return new Dimension(0,0);}
     private static JPanel vertical() { return new Column(); }
 	private static JLabel text(String text) { JLabel label = new JLabel(text); label.putClientProperty("html.disable", true); label.setAlignmentX(Component.LEFT_ALIGNMENT); label.setFont(BODY_FONT); label.setForeground(TEXT); return label; }
-	private static void themeForm(Component component)
-	{
-		if (component instanceof JButton && "itemSlot".equals(component.getName())) return;
-		if (component instanceof JLabel) { component.setFont(BODY_FONT); }
-		else if (!(component instanceof Container) || component instanceof javax.swing.text.JTextComponent || component instanceof javax.swing.AbstractButton || component instanceof JComboBox || component instanceof JList) applyTheme(component);
-		else { component.setBackground(BG); for (Component child : ((Container) component).getComponents()) themeForm(child); }
-	}
+	private static void themeForm(Component component){applyTheme(component);}
 	private static JTextArea info(String value, int rows) { JTextArea area = new JTextArea(value, rows, 18); area.setEditable(false); area.setLineWrap(true); area.setWrapStyleWord(true); area.setMaximumSize(new Dimension(500, rows * 18 + 8)); return area; }
 	private static JPanel card(String title, Component... children) { JPanel p = vertical(); p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE), BorderFactory.createEmptyBorder(7, 7, 7, 7))); JLabel label = text(title); label.setName("sectionTitle"); label.setForeground(GOLD); p.add(label); for (Component child : children) p.add(child); return p; }
 	private JPanel disclosure(String title, Component content)
@@ -293,7 +289,7 @@ public final class StudioPanel extends PluginPanel
 		toggle.setName("disclosure:"+title);toggle.setHorizontalAlignment(JButton.LEFT);toggle.putClientProperty("disclosure",true);
 		toggle.addActionListener(e -> { boolean open = !content.isVisible(); content.setVisible(open); if (open) expandedPanels.add(title); else expandedPanels.remove(title); toggle.setText((open ? "- " : "+ ") + title); for (Container ancestor = p; ancestor != null; ancestor = ancestor.getParent()) { ancestor.invalidate(); if (ancestor == this) break; } p.revalidate(); }); p.add(toggle); p.add(content); return p;
 	}
-	private void updateNavigation() { for (int i = 0; i < navigation.size(); i++) { JButton b = navigation.get(i); boolean active = i == tabs.getSelectedIndex(); b.setForeground(active ? GOLD : TEXT); b.setBackground(active ? new Color(53, 48, 37) : CONTROL); b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 3, 0, 0, active ? GOLD : OUTLINE), BorderFactory.createEmptyBorder(5, 6, 5, 6))); } }
+	private void updateNavigation() { for (int i = 0; i < navigation.size(); i++) { JButton b = navigation.get(i); boolean active = i == tabs.getSelectedIndex(); b.setForeground(active ? GOLD : TEXT); b.setBackground(active ? StudioTheme.SELECTED : CONTROL); b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, active ? GOLD : OUTLINE), BorderFactory.createEmptyBorder(5, 6, 5, 6))); } }
     private static void themeMenu(javax.swing.JPopupMenu menu)
     {
         menu.setBackground(CONTROL);
@@ -312,8 +308,9 @@ public final class StudioPanel extends PluginPanel
     }
 	private static void applyTheme(Component component)
 	{
+		if(component instanceof JButton&&"itemSlot".equals(component.getName()))return;
 		component.setFont(BODY_FONT); component.setForeground(TEXT); component.setBackground(BG);
-		if ("exportCode".equals(component.getName())) { component.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11)); component.setBackground(CONTROL); }
+		if ("exportCode".equals(component.getName())) { component.setFont(StudioTheme.CODE); component.setBackground(CONTROL); }
 		if (component instanceof javax.swing.AbstractButton) { javax.swing.AbstractButton b = (javax.swing.AbstractButton) component; b.setBackground(CONTROL); if (!(b instanceof JCheckBox)) { b.setFont(ACTION_FONT); b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE), BorderFactory.createEmptyBorder(5, 6, 5, 6))); b.setFocusPainted(true); } }
         if (component instanceof JButton && component.getName() != null && component.getName().startsWith("library"))
         {
@@ -322,20 +319,31 @@ public final class StudioPanel extends PluginPanel
         }
         if (component instanceof JButton && "supportCoffee".equals(component.getName()))
         {
-            component.setFont(FontManager.getRunescapeSmallFont());
+            component.setFont(StudioTheme.SMALL);
             ((JButton)component).setBorder(BorderFactory.createEmptyBorder(2, 3, 2, 3));
         }
-		if(component instanceof JButton && ((JButton)component).getClientProperty("disclosure")!=null){JButton b=(JButton)component;b.setBackground(new Color(44,44,44));b.setForeground(GOLD);b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,1,0,OUTLINE),BorderFactory.createEmptyBorder(6,5,6,5)));}
-        if(component instanceof JButton && component.getName()!=null && component.getName().startsWith("wikiPreset:")){JButton b=(JButton)component;b.setBackground(new Color(48,44,34));b.setForeground(GOLD);b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,3,0,0,GOLD),BorderFactory.createEmptyBorder(7,8,7,8)));}
-        if(component instanceof JButton && component.getName()!=null && component.getName().startsWith("setupToggle:")){JButton b=(JButton)component;boolean selected=Boolean.TRUE.equals(b.getClientProperty("selected"));b.setBackground(selected?new Color(58,51,33):CONTROL);b.setForeground(selected?GOLD:TEXT);b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE),BorderFactory.createEmptyBorder(3,3,3,3)));}
+		if(component instanceof JButton && ((JButton)component).getClientProperty("disclosure")!=null){JButton b=(JButton)component;b.setBackground(StudioTheme.SURFACE);b.setForeground(GOLD);b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,1,0,OUTLINE),BorderFactory.createEmptyBorder(6,5,6,5)));}
+        if(component instanceof JButton && component.getName()!=null && component.getName().startsWith("wikiPreset:")){JButton b=(JButton)component;b.setBackground(StudioTheme.SELECTED);b.setForeground(GOLD);b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,3,0,0,GOLD),BorderFactory.createEmptyBorder(7,8,7,8)));}
+        if(component instanceof JButton && component.getName()!=null && component.getName().startsWith("setupToggle:")){JButton b=(JButton)component;boolean selected=Boolean.TRUE.equals(b.getClientProperty("selected"));b.setBackground(selected?StudioTheme.SELECTED:CONTROL);b.setForeground(selected?GOLD:TEXT);b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE),BorderFactory.createEmptyBorder(3,3,3,3)));}
+        if(component instanceof JCheckBox){JCheckBox b=(JCheckBox)component;b.setIcon(StudioTheme.check(false));b.setSelectedIcon(StudioTheme.check(true));b.setDisabledIcon(StudioTheme.check(false));b.setDisabledSelectedIcon(StudioTheme.check(true));b.setBackground(BG);}
         if (component instanceof JTextField || component instanceof JComboBox || component instanceof JList) component.setBackground(CONTROL);
 		if (component instanceof JTextField) ((JTextField) component).setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE), BorderFactory.createEmptyBorder(4, 5, 4, 5)));
 		if (component instanceof JScrollPane) ((JScrollPane) component).setBorder(BorderFactory.createLineBorder(OUTLINE));
 		if(component instanceof JComboBox && !Boolean.TRUE.equals(((JComboBox<?>)component).getClientProperty("preserveRenderer")))((JComboBox<?>)component).setRenderer(plainNames());
-        if (component instanceof JList) { ((JList<?>)component).setCellRenderer(plainNames());((JList<?>) component).setSelectionBackground(new Color(62, 53, 35)); ((JList<?>) component).setSelectionForeground(GOLD); }
+        if (component instanceof JList) { ((JList<?>)component).setCellRenderer(plainNames());((JList<?>) component).setSelectionBackground(StudioTheme.SELECTED); ((JList<?>) component).setSelectionForeground(GOLD); }
 		if (component instanceof JTextArea) { JTextArea a = (JTextArea) component; a.setForeground(a.isEditable() ? TEXT : MUTED); a.setBackground(a.isEditable() ? CONTROL : BG); }
 		if ("exportCode".equals(component.getName())) component.setBackground(CONTROL);
 		if (component instanceof JLabel && "sectionTitle".equals(component.getName())) { component.setForeground(GOLD); component.setFont(ACTION_FONT); }
+        if(component instanceof JLabel&&"studioTitle".equals(component.getName())){component.setFont(new Font(Font.SANS_SERIF,Font.BOLD,13));component.setForeground(TEXT);}
+        if(component instanceof JLabel&&"studioMark".equals(component.getName()))component.setForeground(GOLD);
+        if(component instanceof JLabel&&"studioSubtitle".equals(component.getName())){component.setFont(new Font(Font.SANS_SERIF,Font.BOLD,10));component.setForeground(GOLD);}
+        if(component instanceof JLabel&&"loadoutSectionTitle".equals(component.getName())){component.setFont(StudioTheme.SECTION);component.setForeground(GOLD);}
+        if(component instanceof JLabel&&"gearReadiness".equals(component.getName())){((JLabel)component).setOpaque(true);component.setBackground(StudioTheme.SURFACE);((JLabel)component).setBorder(BorderFactory.createEmptyBorder(5,6,5,6));}
+        if(component instanceof JButton&&component.getName()!=null&&component.getName().startsWith("libraryGroup:")){JButton b=(JButton)component;b.setHorizontalAlignment(JButton.LEFT);b.setBackground(BG);b.setForeground(MUTED);b.setFont(StudioTheme.SECTION);b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,1,0,OUTLINE),BorderFactory.createEmptyBorder(8,4,6,4)));}
+        if(component instanceof JPanel&&component.getName()!=null&&component.getName().startsWith("libraryRow:")){component.setBackground(StudioTheme.SURFACE);((JPanel)component).setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,2,0,0,GOLD),BorderFactory.createEmptyBorder(2,4,2,0)));}
+        if(component instanceof JButton&&component.getName()!=null&&component.getName().startsWith("libraryOpen:")){((JButton)component).setBorder(BorderFactory.createEmptyBorder(2,4,2,3));component.setBackground(StudioTheme.SURFACE);}
+        if(component instanceof JButton&&("Save".equals(((JButton)component).getText())||"Copy code".equals(((JButton)component).getText()))){component.setBackground(StudioTheme.SELECTED);component.setForeground(GOLD);}
+        if(component instanceof JTextArea&&"studioStatus".equals(component.getName())){component.setFont(StudioTheme.SMALL);((JTextArea)component).setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(1,0,0,0,OUTLINE),BorderFactory.createEmptyBorder(7,2,0,2)));}
 		if (component instanceof Container) for (Component child : ((Container) component).getComponents()) applyTheme(child);
 	}
     private static javax.swing.DefaultListCellRenderer plainNames()
@@ -344,7 +352,7 @@ public final class StudioPanel extends PluginPanel
         {
             @Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focus)
             {
-                putClientProperty("html.disable",true);Component rendered=super.getListCellRendererComponent(list,value,index,selected,focus);rendered.setFont(BODY_FONT);return rendered;
+                putClientProperty("html.disable",true);Component rendered=super.getListCellRendererComponent(list,value,index,selected,focus);rendered.setFont(BODY_FONT);rendered.setBackground(selected?StudioTheme.SELECTED:CONTROL);rendered.setForeground(selected?GOLD:TEXT);return rendered;
             }
         };
     }
@@ -489,7 +497,7 @@ public final class StudioPanel extends PluginPanel
 			String groupId = group.id == null ? "" : group.id;
 			boolean filtering = !query.isEmpty() || favorites.isSelected();
 			boolean folded = collapsed.contains(groupId) && !filtering;
-			JButton heading = button((folded ? "+ " : "- ") + group.name + " (" + records.size() + ")", () -> { if (!collapsed.add(groupId)) collapsed.remove(groupId); renderLibrary(); }); heading.setForeground(GOLD); heading.setAlignmentX(LEFT_ALIGNMENT); heading.setEnabled(!filtering); if (filtering) heading.setToolTipText("Matching sections stay expanded while filtering."); libraryRows.add(heading);
+			JButton heading = button((folded ? "+ " : "- ") + group.name + " (" + records.size() + ")", () -> { if (!collapsed.add(groupId)) collapsed.remove(groupId); renderLibrary(); }); heading.setName("libraryGroup:"+groupId);heading.setForeground(GOLD); heading.setAlignmentX(LEFT_ALIGNMENT); heading.setEnabled(!filtering); if (filtering) heading.setToolTipText("Matching sections stay expanded while filtering."); libraryRows.add(heading);
 			if (folded) continue;
 			for (SetupLibrary.Entry entry : records)
 			{
@@ -695,8 +703,8 @@ public final class StudioPanel extends PluginPanel
     }
     private static JPanel loadoutSection(String title, Component content)
     {
-        JPanel section = new JPanel(new BorderLayout(0, 6)) { @Override public Dimension getMaximumSize() { return new Dimension(500,getPreferredSize().height); } }; section.setName("loadoutSection:" + title); section.setBorder(BorderFactory.createEmptyBorder(12, 0, 8, 0));
-        JLabel label = text(title); label.setHorizontalAlignment(JLabel.CENTER); label.setForeground(MUTED); section.add(label, BorderLayout.NORTH);
+        JPanel section = new JPanel(new BorderLayout(0, 6)) { @Override public Dimension getMaximumSize() { return new Dimension(500,getPreferredSize().height); } }; section.setName("loadoutSection:" + title); section.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(1,0,0,0,OUTLINE),BorderFactory.createEmptyBorder(10,4,8,4)));
+        JLabel label = text(title.toUpperCase(java.util.Locale.ROOT));label.setName("loadoutSectionTitle");label.setFont(StudioTheme.SECTION);label.setHorizontalAlignment(JLabel.LEFT);label.setForeground(GOLD); section.add(label, BorderLayout.NORTH);
         JPanel centered = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 0, 0)); centered.add(content); section.add(centered, BorderLayout.CENTER); return section;
     }
 	private int firstEmpty() { JsonArray inv = SetupCodec.setup(draft).getAsJsonArray("inv"); for (int i = 0; i < 28; i++) if (inv.get(i).isJsonNull()) return i; return -1; }
@@ -936,7 +944,7 @@ public final class StudioPanel extends PluginPanel
             for(OwnedGear.Proposal proposal:proposals){
                 int id=SetupCodec.id(proposal.before);ItemInfo original=owned.items.get(id);String missingName=proposal.before.getAsJsonObject().has("label")?proposal.before.getAsJsonObject().get("label").getAsString():original==null?itemCache.containsKey(id)?itemCache.get(id).name:"Item "+id:original.name;JLabel missing=text((proposal.container.equals("eq")?EQUIPMENT[proposal.index]:"Inventory "+(proposal.index+1))+": "+missingName);missing.setMinimumSize(new Dimension(0,18));missing.setToolTipText(missing.getText()+" · "+proposal.reason);alternativeRows.add(missing);
                 JComboBox<ItemInfo> select=new JComboBox<>();select.setName("ownedChoice:"+proposal.container+":"+proposal.index);select.addItem(new ItemInfo(-1,"Keep original",false,-1,null));for(ItemInfo item:proposal.choices.subList(0,Math.min(Math.max(1,Math.min(5,host.settings().maxAlternatives())),proposal.choices.size()))){select.addItem(item);itemCache.put(item.id,item);}
-                select.setRenderer(new javax.swing.DefaultListCellRenderer(){@Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focused){JLabel label=(JLabel)super.getListCellRendererComponent(list,value,index,selected,focused);label.putClientProperty("html.disable",true);label.setFont(BODY_FONT);label.setText(value==null||((ItemInfo)value).id<1?"Keep original":((ItemInfo)value).name+" ("+owned.count(((ItemInfo)value).id)+" seen)");return label;}});
+                select.setRenderer(new javax.swing.DefaultListCellRenderer(){@Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focused){JLabel label=(JLabel)super.getListCellRendererComponent(list,value,index,selected,focused);label.putClientProperty("html.disable",true);label.setFont(BODY_FONT);label.setBackground(selected?StudioTheme.SELECTED:CONTROL);label.setForeground(selected?GOLD:TEXT);label.setText(value==null||((ItemInfo)value).id<1?"Keep original":((ItemInfo)value).name+" ("+owned.count(((ItemInfo)value).id)+" seen)");return label;}});
                 select.putClientProperty("preserveRenderer",true);select.setToolTipText(proposal.reason);alternativeRows.add(select);choices.put(proposal,select);
             }
             if(proposals.isEmpty())alternativeRows.add(info("No supported owned alternatives found. Missing gear is not automatically replaced.",3));

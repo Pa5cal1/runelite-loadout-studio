@@ -48,7 +48,7 @@ final class LibrarySetupRow extends JPanel
             setHorizontalAlignment(LEFT); setMargin(new Insets(2, 5, 2, 3));
             setPreferredSize(new Dimension(120, 30)); setMinimumSize(new Dimension(0, 30));
         }
-        @Override public JToolTip createToolTip(){JToolTip tip=super.createToolTip();tip.putClientProperty("html.disable",true);return tip;}
+        @Override public JToolTip createToolTip(){JToolTip tip=super.createToolTip();tip.putClientProperty("html.disable",true);return StudioTheme.tooltip(tip);}
         @Override public void setBounds(int x, int y, int width, int height)
         {
             super.setBounds(x, y, width, height);
@@ -75,7 +75,7 @@ final class LibrarySetupRow extends JPanel
             public void paintIcon(Component c, Graphics graphics, int x, int y)
             {
                 Graphics2D g = (Graphics2D)graphics.create(); g.translate(x, y);
-                g.setColor(selected ? new Color(225, 166, 58) : c.getForeground());
+                g.setColor(selected ? StudioTheme.FAVORITE : c.getForeground());
                 if (kind == 0)
                 {
                     Path2D star = new Path2D.Double();
@@ -88,7 +88,7 @@ final class LibrarySetupRow extends JPanel
                 }
                 else if (kind == 3)
                 {
-                    g.setColor(new Color(218, 117, 117)); g.drawLine(2, 4, 13, 4); g.drawRect(6, 1, 4, 2); g.drawRect(4, 5, 8, 9); g.drawLine(7, 7, 7, 12); g.drawLine(9, 7, 9, 12);
+                    g.setColor(StudioTheme.ERROR); g.drawLine(2, 4, 13, 4); g.drawRect(6, 1, 4, 2); g.drawRect(4, 5, 8, 9); g.drawLine(7, 7, 7, 12); g.drawLine(9, 7, 9, 12);
                 }
                 else
                 {

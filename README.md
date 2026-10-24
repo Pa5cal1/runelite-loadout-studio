@@ -2,13 +2,13 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.8.5-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.9.0-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. When it is active, Loadout Studio can use its native layout service; otherwise it uses an independent view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
 ## Screenshots
 
-Offline renders of the actual sidebar using RuneLite styling and example loadouts. These are UI previews, not captures of a logged-in client or proof of live Bank behavior.
+Offline renders of the actual sidebar using Loadout Studio's own slate/turquoise theme and example loadouts. These are UI previews, not captures of a logged-in client or proof of live Bank behavior.
 
 ![Library, Builder, Wiki and Export previews](docs/screenshots/overview.png)
 
@@ -50,6 +50,12 @@ The sidebar has four tabs:
 - **Builder** — view and edit the selected loadout.
 - **Wiki** — search for an activity and choose a setup.
 - **Export** — copy a setup in the format you want to use.
+
+## Visual Design
+
+Loadout Studio uses its own dark slate surfaces, turquoise accents, sans-serif typography, wordmark, navigation icons and compact setup cards. Primary actions, expandable sections and Wiki setup choices have distinct treatments. OSRS item sprites, yellow stack counts and the familiar slot geometry remain intact.
+
+The theme is applied only to this plugin's sidebar, controls and support views. RuneLite's native configuration window and in-game Bank menus retain the host's styling; other plugins' UI defaults are not changed.
 
 ## Plugin Preferences
 
@@ -303,6 +309,13 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.9.0-test
+
+- Give Loadout Studio a distinct slate/turquoise visual identity, sans-serif text, two-line wordmark and icon navigation.
+- Restyle setup cards, section headings, Wiki choices, primary actions, checkboxes, menus and tooltips consistently within this plugin.
+- Preserve item artwork, count rendering, slot dimensions, saved data and native RuneLite settings styling. No global UI defaults are changed.
+- Refresh the sidebar and diagnostics screenshot gallery; verify contrast and narrow navigation labels.
 
 ### 0.8.5-test
 
