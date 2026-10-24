@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.8.1-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.8.2-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. When it is active, Loadout Studio can use its native layout service; otherwise it uses an independent view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
@@ -94,7 +94,7 @@ Expand **Find items** to search the local item list by English name or Item ID. 
 
 ### Dragging Items
 
-Drag an item from Find items into a slot to add it to your setup. Drag between slots to move or swap items. Equipment, Rune Pouch and Quiver slots check that the item fits. Rune stacks moved to the Pouch are capped at 16k, keeping the remainder in Inventory. An occupied target is preserved too; free an Inventory slot if needed. The drag uses the item sprite.
+Drag an item from Find items into a slot to add it to your setup. Drag between slots to move or swap items. Equipment, Rune Pouch and Quiver slots check that the item fits. Rune stacks moved to the Pouch are capped at 16k; excess is omitted from the planned setup and the source Inventory slot is cleared. A different rune already in the destination swaps into that freed slot, even when Inventory was full. This edits the setup only. The drag uses the item sprite.
 
 These edits change the loadout you are building. Withdraw and equip your gear through the usual RuneLite controls.
 
@@ -269,6 +269,10 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.8.2-test
+
+- Cap oversized Inventory-to-Pouch transfers at 16k without keeping excess in the setup Inventory. A different displaced rune swaps into the freed source slot.
 
 ### 0.8.1-test
 

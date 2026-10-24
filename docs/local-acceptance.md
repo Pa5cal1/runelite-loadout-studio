@@ -1,4 +1,4 @@
-# Testclient acceptance — 0.8.1-test
+# Testclient acceptance — 0.8.2-test
 
 Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 
@@ -41,7 +41,7 @@ Network checks for zero startup/typing/background HTTP, coalescing, rate limits,
 - Open Vorkath, Duke and Fractured Archive; activity suggestions omit table/miniquest entries and automatically prefer Strategies with main-page fallback. Cache reuse/save is automatic; there is no Use cache control. Verify source names are meaningful.
 - Inspect Ultor ring tooltip ID 28307, including an older saved Wiki setup. Known obsolete IDs are corrected in a draft and kept only after Save; Custom positions should survive. Unknown expressions still allow known items to filter.
 - Click a question-mark slot or Update Slot from Search and type immediately without clicking the game area first. Quantity entry should be empty.
-- Check the item sprite while dragging on Windows; test Inventory runes/arrows to Pouch/Quiver. A 16001 rune stack puts 16000 in the Pouch and retains one in Inventory; an occupied target must be preserved or the transfer rejected intact.
+- Check the item sprite while dragging on Windows; test Inventory runes/arrows to Pouch/Quiver. A 16001 rune stack puts 16000 in the Pouch with no remainder in Inventory. A different rune already in the target swaps into the freed source Inventory slot; test a full Inventory too. An occupied target with the same rune must not create another Inventory stack.
 - Verify automatic compact alternatives show at most the configured number in source/family order, keep Notes caret/text, respect manual collapse, and never auto-apply a replacement.
 - Exercise all five setup icons, including highlighting off and a custom color, and verify the saved attack option is visible. Headers, ordinary actions and Wiki choices must be distinct.
 - Save, then Shift-right-click and review an ALL-slots update; test search and live-container sources and Undo. Duplicate saves/imports must use numbered names instead of being skipped.

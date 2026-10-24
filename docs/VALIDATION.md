@@ -1,4 +1,11 @@
-# Current validation — 0.8.1-test
+# Current validation — 0.8.2-test
+
+- Native Java 11 test/jar/shadowJar: 167 tests, zero failures/errors/skipped.
+- Inventory-to-Pouch drops still cap at 16000, but excess no longer creates an Inventory remainder. A different displaced rune swaps into the freed source slot, including with full Inventory. An oversized same-rune transfer clears the source without producing another stack.
+- Regression coverage includes 16001, Integer.MAX_VALUE, occupied destinations, full Inventory, invalid items, normal swaps and stale drags. This changes setup planning only; no live game input is performed.
+- Manually test the changed transfer in the test client before accepting this build. The client is not automatically restarted.
+
+# Previous validation — 0.8.1-test
 
 - Native Java 11 test/jar/shadowJar: 166 tests, zero failures/errors/skipped. Six new regressions cover concrete loadouts retaining ranked recommendations, tab and table-column isolation, Bank-order-independent source ordering, excluding unlisted family gear, preserving the concrete selection, and conditions/Inventory/Pouch retention.
 - An additional local-only probe parsed the complete user-supplied Aquanites source successfully: two variants, seven ordered melee body choices and five ranged body choices, without HTTP. This probe is not part of the shipped source or production JAR.

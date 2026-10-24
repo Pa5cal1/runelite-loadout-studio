@@ -192,7 +192,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.8.1-test - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.8.2-test - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffeeControl=coffee;coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel titleBar = new JPanel(new BorderLayout(3, 0)); titleBar.add(title, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
 		JPanel menu = new JPanel(new GridLayout(2, 2, 4, 4));
@@ -783,19 +783,15 @@ public final class StudioPanel extends PluginPanel
             if (parts[0].equals("loadout-item")) { addCatalogueItem(Integer.parseInt(parts[2]), key, index); return true; }
             String from = parts[2]; int old = Integer.parseInt(parts[3]); if (from.equals(key) && old == index) return false;
             JsonElement a = dropItem(key,get(from,old)), b = get(key,index).deepCopy();
-            JsonElement remainder=JsonNull.INSTANCE;
-            if(key.equals("rp")&&SetupCodec.quantity(get(from,old))>16000){
-                long remaining=(long)SetupCodec.quantity(get(from,old))-16000;
-                if(!b.isJsonNull()&&SetupCodec.id(b)==SetupCodec.id(a))remaining+=SetupCodec.quantity(b);
-                else if(!b.isJsonNull()) {if(!from.equals("inv"))throw new IllegalArgumentException("Use an Inventory rune stack for this transfer.");int empty=firstEmpty();if(empty<0)throw new IllegalArgumentException("Free one Inventory slot for the old Rune Pouch item first.");put("inv",empty,b);}
-                if(remaining>Integer.MAX_VALUE)throw new IllegalArgumentException("Combined rune stack exceeds the supported amount.");JsonObject rest=get(from,old).getAsJsonObject().deepCopy();rest.addProperty("q",remaining);remainder=rest;
-            }
+            // Setup planning: cap the incoming stack and drop its excess rather than
+            // creating a remainder slot. A different displaced rune still swaps back.
+            if(from.equals("inv")&&key.equals("rp")&&SetupCodec.quantity(get(from,old))>16000&&SetupCodec.id(b)==SetupCodec.id(a))b=JsonNull.INSTANCE;
             if (from.equals("afi") && key.equals("afi"))
             {
                 List<JsonElement> items = new ArrayList<>(); for (Map.Entry<String, JsonElement> entry : SetupCodec.setup(draft).getAsJsonObject("afi").entrySet()) items.add(entry.getValue()); while (items.size() <= Math.max(old, index)) items.add(JsonNull.INSTANCE); items.set(old, b); items.set(index, a);
                 JsonObject extras = new JsonObject(); for (JsonElement item : items) if (!item.isJsonNull()) extras.add(String.valueOf(SetupCodec.id(item)), item); SetupCodec.setup(draft).add("afi", extras);
             }
-            else { checkExtraDuplicate(key, index, a); checkExtraDuplicate(from, old, b); fieldsToDraft(); put(from,old,remainder.isJsonNull()?b:remainder);put(key,index,a); }
+            else { checkExtraDuplicate(key, index, a); checkExtraDuplicate(from, old, b); fieldsToDraft(); put(from,old,b);put(key,index,a); }
             rebuildDraftLayout();markDirty();renderBuilder();scheduleAlternatives();message("Moved item. Choose Save to keep your changes."); return true;
         }
         catch (RuntimeException ex) { failure(failureMessage(ex)); return false; }
