@@ -1,4 +1,4 @@
-# Testclient acceptance — 0.8.0-test
+# Testclient acceptance — 0.8.1-test
 
 Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 
@@ -49,3 +49,7 @@ Network checks for zero startup/typing/background HTTP, coalescing, rate limits,
 - Open From installed plugins with long names and resize the client. Sidebar controls must fit without requesting a larger window. Recheck the reported in-game visual distortion; no canvas resize or graphics-setting change is made by this plugin.
 
 User feedback confirmed many 0.7.3 behaviors, including startup, persistence, favorites, invalid-import feedback, basic editing, comparison, native layouts and portable data import. Changed 0.8.0 paths above still need fresh acceptance; prior confirmations are not claimed as live tests of this build.
+
+## Aquanites ranked alternatives
+
+Open a fresh Wiki draft from the cached Aquanites source, not an older saved copy without choices. Melee Slash/Stab body choices follow Oathplate, Torva, Bandos, Blood Moon, Fighter torso, Sunfire and Proselyte; only observed items appear, capped by settings. Ranged uses its separate Masori/Crystal/Karil/blessed/black-dhide list. Confirm unlisted same-slot gear is absent, original Inventory is retained, and source conditions remain in Notes. No extra requests should be made just to determine alternatives.

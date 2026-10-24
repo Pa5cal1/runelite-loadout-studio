@@ -1,4 +1,11 @@
-# Current validation — 0.8.0-test
+# Current validation — 0.8.1-test
+
+- Native Java 11 test/jar/shadowJar: 166 tests, zero failures/errors/skipped. Six new regressions cover concrete loadouts retaining ranked recommendations, tab and table-column isolation, Bank-order-independent source ordering, excluding unlisted family gear, preserving the concrete selection, and conditions/Inventory/Pouch retention.
+- An additional local-only probe parsed the complete user-supplied Aquanites source successfully: two variants, seven ordered melee body choices and five ranged body choices, without HTTP. This probe is not part of the shipped source or production JAR.
+- Source recommendations take precedence over bundled family fallbacks. Only observed and slot-compatible choices are offered; user application and existing stock checks remain explicit. Conditions stay in Notes and are not automatically evaluated.
+- Reopen Aquanites from the existing cached source to test both variants. Older saved setups are not silently rewritten; open a fresh Wiki draft and Save a copy to acquire the recommendation lists. Confirm actual Bank observations and item IDs in the test client.
+
+# Previous validation — 0.8.0-test
 
 - Native Windows Java 11 test, jar and shadowJar passed: **160 tests, zero failures/errors/skipped**. The twenty additional regression tests cover live ring identity selection and legacy draft repair, nested template/dose resolution, meaningful variants, activity suggestions, automatic persistent cache refresh/fallback, local ordered alternatives, Notes preservation, numbered copies, partial/fuzzy Bank mapping, standalone Bank geometry, setup controls, blank quantity input, drag sprites and occupied Pouch transfers.
 - Offline previews at 220/260 px were inspected for Library, Builder, Wiki, Export and compact alternatives. Main previews use RuneLiteLAF with a fake host. Disclosure headings, ordinary actions and Wiki presets differ visibly. They are not live game tests.

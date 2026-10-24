@@ -36,8 +36,8 @@ final class OwnedGear
                     // Equal-name variants may have different IDs; offer the one actually observed.
                     for(StudioPanel.ItemInfo owned:items.values())if(owned.name.equalsIgnoreCase(choice.getAsString()) && count(owned.id)>0 && owned.id!=id && (!key.equals("eq") || owned.slot==i))candidates.put(owned.id,owned);
                 }
-                String reason="Wiki alternative; review source conditions";
-                if(candidates.isEmpty()){
+                String reason="Wiki recommendation order (most to least effective); review source conditions";
+                if(candidates.isEmpty() && (!expected.has("choices") || expected.getAsJsonArray("choices").size()==0)){
                     StudioPanel.ItemInfo missing=items.get(id);String name=expected.has("label")?expected.get("label").getAsString():missing==null?"":missing.name;
                     List<String> family=family(name);
                     for(String ranked:family)for(StudioPanel.ItemInfo owned:items.values())if(count(owned.id)>0 && owned.id!=id && ranked.equals(owned.name.toLowerCase(Locale.ROOT)) && (!key.equals("eq") || owned.slot==i))candidates.put(owned.id,owned);

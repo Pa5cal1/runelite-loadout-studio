@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.8.0-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.8.1-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. When it is active, Loadout Studio can use its native layout service; otherwise it uses an independent view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
@@ -120,7 +120,9 @@ Write instructions in **Notes** below the items. The notes area grows with the t
 
 Owned alternatives are determined locally after opening a setup and after Bank/gear changes. There is no Check my Bank step by default. Open **My gear alternatives** to review the compact list; compatible owned choices expand once per setup when enabled in settings. Open the Bank at least once in the current session first. The plugin reads local Bank, Inventory and Equipment data; Bank placeholders do not count as owned items. Closed-Bank results show the observation time and can be out of date. Other storage is not included.
 
-Missing items offer ordered Wiki alternatives or a small compatible bundled gear/supply family, such as Torva platebody, Bandos chestplate and Fighter torso. Arbitrary items for the same slot are not suggested. At most three choices are shown by default, configurable from one to five. Requirements and source conditions still need review. The first Wiki choice remains the default; each replacement starts at **Keep original**. Select the replacements you want, then click **Use selected alternatives**. Availability is checked again before applying. By default, **Check replacement stock** also reserves combined amounts across Inventory and Equipment, including unchanged slots using a replacement item. A shortage keeps the draft unchanged and appears near the Builder actions. Explicit zero still requires at least one observed item per slot. Pouch contents and other storage are not counted in this check. Disable this check in **plugin settings → Comparison** if you want to plan beyond observed amounts; each selected replacement must still be observed. Review and Save; **Undo alternatives** is available until another draft edit makes it unsafe. Rune types are never freely substituted. No Wiki request is needed for this operation.
+Concrete Equipment/Inventory setups also keep the adjacent Recommended equipment table for their own tab or table column. Its items are offered in Wiki order from most to least effective, restricted to locally observed items. Melee and Ranged choices stay separate. If a source list exists, items outside it are not suggested; footnotes and combination conditions remain in Notes. The selected concrete gear and Inventory are preserved. No additional Wiki request is needed.
+
+Missing items without a source list offer a small compatible bundled gear/supply family, such as Torva platebody, Bandos chestplate and Fighter torso. Arbitrary items for the same slot are not suggested. At most three choices are shown by default, configurable from one to five. Requirements and source conditions still need review. The first Wiki choice remains the default; each replacement starts at **Keep original**. Select the replacements you want, then click **Use selected alternatives**. Availability is checked again before applying. By default, **Check replacement stock** also reserves combined amounts across Inventory and Equipment, including unchanged slots using a replacement item. A shortage keeps the draft unchanged and appears near the Builder actions. Explicit zero still requires at least one observed item per slot. Pouch contents and other storage are not counted in this check. Disable this check in **plugin settings → Comparison** if you want to plan beyond observed amounts; each selected replacement must still be observed. Review and Save; **Undo alternatives** is available until another draft edit makes it unsafe. Rune types are never freely substituted. No Wiki request is needed for this operation.
 
 ### Setup controls
 
@@ -267,6 +269,12 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.8.1-test
+
+- Attach source-ordered Recommended equipment rows to concrete loadouts instead of skipping them when Equipment/Inventory templates already exist.
+- Keep each tab/table column isolated, preserve the selected concrete gear and source conditions, and suggest only observed items from that source list.
+- Add six regression tests based on the Aquanites source structure. No additional network requests.
 
 ### 0.8.0-test
 

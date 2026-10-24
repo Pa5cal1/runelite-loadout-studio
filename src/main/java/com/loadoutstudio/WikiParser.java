@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Reads concrete Wiki templates. Ranked recommendation alternatives are not silently guessed. */
+/** Reads concrete Wiki templates and their locally scoped, source-ordered recommendations. */
 public final class WikiParser
 {
 	static final class Node
@@ -63,7 +63,10 @@ public final class WikiParser
     /** Bundled source order, deliberately independent of live market prices. */
     static String defaultName(JsonObject item)
     {
-        if (item.has("choices") && item.get("choices").isJsonArray() && item.getAsJsonArray("choices").size() > 0) return item.getAsJsonArray("choices").get(0).getAsString();
+        if (item.has("choices") && item.get("choices").isJsonArray() && item.getAsJsonArray("choices").size() > 0) {
+            String chosen=item.has("label")?item.get("label").getAsString():"";
+            return chosen.isBlank()?item.getAsJsonArray("choices").get(0).getAsString():chosen;
+        }
         String name = item.has("label") ? item.get("label").getAsString() : "";
         String marker = name.trim().replace('_', ' ').replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
         if (marker.matches("\\{\\{ ?cheap food ?}}")) return "Manta ray";
@@ -114,7 +117,19 @@ public final class WikiParser
 			}
 			else if (node.kind.equals("rune pouch")) for (int i = 0; i < 4; i++) s.getAsJsonArray("rp").set(i, item(node.fields.get(String.valueOf(i + 1)), null, true));
 		}
-		SetupCodec.rebuildLayout(p); return p;
+		// Concrete loadouts retain their selected gear and Inventory. The adjacent table
+        // supplies alternatives, never a separate variant's or a global same-slot list.
+        for(JsonObject ranked:recommendations(nodes,title,source)) {
+            JsonArray alternatives=SetupCodec.setup(ranked).getAsJsonArray("eq");
+            for(int i=0;i<alternatives.size();i++) {
+                JsonElement current=s.getAsJsonArray("eq").get(i), row=alternatives.get(i);
+                if(!current.isJsonNull()&&!row.isJsonNull())current.getAsJsonObject().add("choices",row.getAsJsonObject().getAsJsonArray("choices").deepCopy());
+            }
+            String conditions=SetupCodec.setup(ranked).get("notes").getAsString().lines().skip(3).collect(java.util.stream.Collectors.joining("\n"));
+            String notes=s.get("notes").getAsString()+"\nWiki recommendation order (most to least effective); conditions:\n"+conditions;
+            s.addProperty("notes",notes.length()>10000?notes.substring(0,9900)+"\nSee the source page for remaining conditions.":notes);
+        }
+        SetupCodec.rebuildLayout(p); return p;
 	}
 	private static String equipmentField(Node node, String key)
 	{
@@ -164,7 +179,7 @@ public final class WikiParser
 				for (int col = 0; col < cells.size(); col++)
 				{
 					String cell = cells.get(col); if (!cell.contains("{{") && !plain(cell).isEmpty() && plain(cell).length() < 80) headers.putIfAbsent(col, plain(cell));
-					for (Node node : nodes(cell)) if (concrete(node))
+					for (Node node : nodes(cell)) if (concrete(node) || node.kind.equals("recommended equipment"))
 					{
 						List<List<Node>> groups = columns.computeIfAbsent(col, k -> new ArrayList<>()); if (groups.isEmpty() || groups.get(groups.size() - 1).stream().anyMatch(n -> n.kind.equals(node.kind))) groups.add(new ArrayList<>()); groups.get(groups.size() - 1).add(node);
 					}
@@ -176,7 +191,7 @@ public final class WikiParser
 			}
 			search = end;
 		}
-		List<Node> free = new ArrayList<>(); for (Node node : nodes(text)) if (concrete(node) && used.stream().noneMatch(range -> range[0] <= node.start && node.start < range[1])) free.add(node);
+		List<Node> free = new ArrayList<>(); for (Node node : nodes(text)) if ((concrete(node) || node.kind.equals("recommended equipment")) && used.stream().noneMatch(range -> range[0] <= node.start && node.start < range[1])) free.add(node);
 		List<Node> group = new ArrayList<>(); String variant = "";
 		for (Node node : free)
 		{
@@ -190,7 +205,7 @@ public final class WikiParser
 		}
 		if (group.stream().anyMatch(n -> n.kind.equals("inventory") || n.kind.equals("equipment"))) result.add(fill(title, namedVariant(variant,text,text.length(),tierName(result.size())), source, group));
 		if (result.size() > 100) throw new IllegalArgumentException("Too many presets on this page.");
-		if(result.isEmpty())result.addAll(recommendations(text,title,source));
+		if(result.isEmpty())result.addAll(recommendations(nodes(text),title,source));
         if(result.isEmpty())throw new IllegalArgumentException("No Equipment, Inventory or Recommended equipment templates found. Use the Builder or import a setup.");
 		for(JsonObject preset:result) {
             String variantName=variant(preset);String name=title+" ("+variantName+")";
@@ -201,10 +216,10 @@ public final class WikiParser
     private static void setupName(JsonObject preset,String name){SetupCodec.setup(preset).addProperty("name",name);}
     private static String tierName(int index){return index==0?"Max gear":index==1?"High-tier gear":index==2?"Mid-game gear":index==3?"Budget gear":"Gear option "+(index+1);}
     /** The first listed recommendation is the default; conditions and alternatives remain editable. */
-    private List<JsonObject> recommendations(String text,String title,String source)
+    private static List<JsonObject> recommendations(List<Node> tables,String title,String source)
     {
         List<JsonObject> result=new ArrayList<>();String[] keys={"head","cape","neck","weapon","body","shield","","legs","","hands","feet","","ring","ammo"};
-        for(Node table:nodes(text))if(table.kind.equals("recommended equipment"))
+        for(Node table:tables)if(table.kind.equals("recommended equipment"))
         {
             if(result.size()>=100)throw new IllegalArgumentException("Too many recommendation tables.");
             String style=plain(table.fields.getOrDefault("style","Gear"));if(style.length()>80)style=style.substring(0,80);JsonObject p=SetupCodec.blank(title);JsonObject setup=SetupCodec.setup(p);StringBuilder notes=new StringBuilder("Source: "+source+"\nPreset: Recommended "+style+" (first choices)\nFirst listed items are selected by default. Gear alternatives only: Inventory, quantities and Spellbook must be reviewed. Conditions and combinations from the source are retained below.\n");
