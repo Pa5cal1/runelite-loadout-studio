@@ -127,3 +127,7 @@ The primary path remains Library/Wiki → Builder → review local gear differen
 The alternatives heading prefers a stored item label over a generic numeric ID when the missing item is absent from the Bank observation. General settings stay in RuneLite configuration. Sections, actions and Wiki preset cards remain visually distinct. Source conditions and equipment combinations still require player review; the plugin does not evaluate combat optimality or withdraw/equip items automatically.
 
 The README gallery intentionally uses offline, labeled UI previews with example data. It demonstrates sidebar presentation, not live Bank correctness. The in-game resize report, Windows drag visuals, native chat focus and independent Bank transitions remain pending player confirmation.
+
+## Export formatting in 0.8.4
+
+Export has two in-panel representation controls. Pretty Print applies to Inventory Setup JSON and native Loadout Studio JSON. GZIP/Base64 compression applies only to native JSON because receiving external plugins do not decode it. Loadout Studio's compressed transport has a versioned prefix, bounded encoded and expanded sizes, strict UTF-8 decoding and the existing schema/nesting validation. Native JSON includes a version marker and preserves labels/choices; external Inventory Setups output removes that marker and editor metadata. Preview and Copy pass through the same export path; checkbox changes do not modify saved loadouts. Bank Tag text remains CSV in both supported dialects.

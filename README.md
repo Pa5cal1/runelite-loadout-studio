@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.8.3-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.8.4-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. When it is active, Loadout Studio can use its native layout service; otherwise it uses an independent view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
@@ -12,7 +12,7 @@ Offline renders of the actual sidebar using RuneLite styling and example loadout
 
 ![Library, Builder, Wiki and Export previews](docs/screenshots/overview.png)
 
-[Library](docs/screenshots/library.png) · [Builder](docs/screenshots/builder.png) · [Equipment and Notes](docs/screenshots/builder-details.png) · [Owned alternatives](docs/screenshots/alternatives.png) · [Wiki choices](docs/screenshots/wiki.png) · [Export](docs/screenshots/export.png)
+[Library](docs/screenshots/library.png) · [Builder](docs/screenshots/builder.png) · [Equipment and Notes](docs/screenshots/builder-details.png) · [Owned alternatives](docs/screenshots/alternatives.png) · [Wiki choices](docs/screenshots/wiki.png) · [Export](docs/screenshots/export.png) · [Compressed export](docs/screenshots/export-compressed.png)
 
 ## Contents
 
@@ -205,6 +205,10 @@ Matching rules can differ between receiving plugins, particularly for custom Fuz
 
 ## Importing and Exporting
 
+**Pretty Print** indents Inventory Setup JSON or Loadout Studio JSON for reading. **Compress** uses GZIP + Base64 and is available only with **Loadout Studio JSON**. Compressed codes start with `loadoutstudio:gz1:` and can be pasted into **Library → Import** in Loadout Studio. Pretty Print is disabled while compression is active. Preview and Copy code use the same selected representation.
+
+Inventory Setups expects plain JSON, and Bank Tags expects its native CSV text. Those external-plugin exports are never GZIP-wrapped; unsupported checkboxes are disabled. The normal compact Inventory Setup output stays the default. Native Loadout Studio JSON preserves item labels and source choices as well as slots, quantities, Notes and layout. Exports still require resolved items and required quantities.
+
 ### From Other Plugins
 
 In Library, click **Import setup → From installed plugins**. Select the setups you want, review them, then choose **Save copies**. **Open copy** opens one as an editable draft.
@@ -277,6 +281,13 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.8.4-test
+
+- Add Compress and Pretty Print controls to Export, with explicit format compatibility.
+- Add native Loadout Studio JSON and versioned GZIP/Base64 codes that round-trip through Import; preserve external-plugin output formats.
+- Bound expanded imports to 2 MB and reject malformed compression, unsupported versions and invalid UTF-8 before schema checks.
+- Verify Copy code against the visible preview for each format and update the screenshot gallery.
 
 ### 0.8.3-test
 

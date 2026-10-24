@@ -1,4 +1,12 @@
-# Current validation — 0.8.3-test
+# Current validation — 0.8.4-test
+
+- Native Java 11 test/jar/shadowJar: 179 tests, zero failures/errors/skipped. Nine new tests cover pretty/plain JSON equality, native compressed round-trip with Unicode/labels/choices/layout, native marker removal in Inventory Setups exports, corrupt/truncated payloads and future versions, schema/depth checks, decompressed limits/UTF-8, preview-copy equality, external tag preservation and narrow control alignment.
+- Import compatibility was checked against [Inventory Setups importSetup](https://github.com/dillydill123/inventory-setups/blob/master/src/main/java/inventorysetups/InventorySetupsPlugin.java) (plain Gson JSON) and [RuneLite Bank Tags importTag](https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/banktags/tabs/TabInterface.java) (CSV iterator). Neither decodes GZIP. Compression is deliberately limited to Loadout Studio JSON; Pretty Print is offered only for JSON formats.
+- [Watchdog's ImportExportDialog](https://github.com/adamk33n3r/runelite-watchdog/blob/3360e0a60335ef8eceeef6cd9de58d222e9dc450/src/main/java/com/adamk33n3r/runelite/watchdog/ui/ImportExportDialog.java) was inspected for its GZIP + Base64 behavior and disabled Pretty Print control while compressed. Loadout Studio implements its own small versioned text transport with explicit input/expanded size checks; it does not import Watchdog alerts.
+- Copy uses a fake-host clipboard seam in automated tests to confirm its exact text equals the preview. No game input or actual clipboard changes are needed for those tests. Current Export screenshots were regenerated with example data, including a compressed native preview.
+- Manually test Copy/Import in the test client for native codes, plain/pretty Inventory Setup JSON, and both Bank Tag formats. Verify disabling compression restores readable JSON and changing format never produces an incompatible external code.
+
+# Previous validation — 0.8.3-test
 
 - Native Java 11 test/jar/shadowJar: 170 tests, zero failures/errors/skipped. Three added regressions cover custom-position preservation and Undo, preserving an old item still used in another slot, and missing-item names absent from the local Bank observation.
 - Seven documentation PNGs render the actual sidebar with RuneLiteLAF and example data: Library, Builder, Equipment/Notes, alternatives, Wiki, Export and overview. Screens were visually inspected. A separate local-only renderer uses prepared sprite inputs; it is not shipped or counted among the 170 tests.

@@ -1,4 +1,4 @@
-# Testclient acceptance — 0.8.3-test
+# Testclient acceptance — 0.8.4-test
 
 Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 
@@ -57,3 +57,7 @@ Open a fresh Wiki draft from the cached Aquanites source, not an older saved cop
 ## Custom alternatives after the workflow review
 
 In a custom Bank layout, replace a missing item with an observed alternative. If no other slot still requires the old item, the replacement should occupy the old custom positions; Undo restores the original layout. If another slot still requires the old item, its positions remain and the new item is added. Save/reopen to check persistence. A missing item should have its known name above the alternatives selector, even when absent from the Bank observation.
+
+## Export formatting and native compressed codes
+
+In Export, select Inventory Setup JSON and toggle Pretty Print: only whitespace changes, and Copy must equal the preview. Compress is disabled for this target. Select Loadout Studio JSON and enable Compress: Pretty Print is disabled, a loadoutstudio:gz1: code appears and can be pasted back into this plugin's Import. Check names, Unicode Notes, source choices, quantities and custom positions. Disable Compress to restore JSON. With either Bank Tag target both options are disabled and the code must retain the normal banktags or banktaglayoutsplugin prefix. Malformed/truncated/oversized compressed imports must leave the saved library unchanged.

@@ -95,7 +95,7 @@ public final class SetupCodec
 	public List<JsonObject> importText(String text)
 	{
 		if (text == null || text.length() > MAX_TEXT || text.trim().isEmpty()) throw new IllegalArgumentException("Paste setup JSON or Bank Tag text.");
-		String trimmed = text.trim();
+		String trimmed = SetupExportText.unpack(text);
 		List<JsonObject> result = new ArrayList<>();
 		if (trimmed.startsWith("{") || trimmed.startsWith("["))
 		{
@@ -106,6 +106,7 @@ public final class SetupCodec
 			{
 				if (result.size() >= 100) throw new IllegalArgumentException("Import at most 100 setups at once.");
 				JsonObject p = entry.getAsJsonObject().deepCopy();
+                if(p.has("loadoutStudio") && integer(p.get("loadoutStudio"))!=1)throw new IllegalArgumentException("Unsupported Loadout Studio setup version.");
 				validate(p, true);
 				JsonObject s = setup(p);
 				if (!s.has("rp") || s.get("rp").isJsonNull()) s.add("rp", empty(4));
@@ -192,6 +193,7 @@ public final class SetupCodec
 	{
 		validate(portable, true);
 		JsonObject copy = portable.deepCopy(), s = setup(copy);
+        copy.remove("loadoutStudio");
 		for (String key : Arrays.asList("inv", "eq", "rp", "qv", "bp")) if (s.has(key) && s.get(key).isJsonArray())
 		{
 			for (JsonElement item : s.getAsJsonArray(key)) { if (unlimited(item)) item.getAsJsonObject().addProperty("sc", "None"); cleanItem(item); }
@@ -204,6 +206,15 @@ public final class SetupCodec
 		}
 		return gson.toJson(copy);
 	}
+    public String inventory(JsonObject portable,boolean pretty) {
+        String json=inventory(portable);
+        return pretty?gson.newBuilder().setPrettyPrinting().create().toJson(parse(json)):json;
+    }
+    public String studio(JsonObject portable,boolean pretty,boolean compressed) {
+        validate(portable,true);JsonObject copy=portable.deepCopy();copy.addProperty("loadoutStudio",1);
+        String json=(pretty&&!compressed?gson.newBuilder().setPrettyPrinting().create():gson).toJson(copy);
+        return compressed?SetupExportText.compress(json):json;
+    }
 	private static void cleanItem(JsonElement e) { if (e != null && e.isJsonObject()) { e.getAsJsonObject().remove("label"); e.getAsJsonObject().remove("choices"); if (quantity(e) == 1) e.getAsJsonObject().remove("q"); } }
 
 	public static void rebuildLayout(JsonObject p)

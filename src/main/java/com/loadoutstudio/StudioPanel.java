@@ -84,6 +84,7 @@ public final class StudioPanel extends PluginPanel
         default void chooseItem(Consumer<Integer> chosen, Consumer<String> error) { error.accept("Use the running RuneLite client for chatbox Item Search."); }
         default void enterQuantity(String initial, Consumer<String> chosen, Consumer<String> error) { error.accept("Use the running RuneLite client for chatbox quantity input."); }
         default void cancelItemInput() { }
+        default void copyText(String value){java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(value),null);}
 		String read(String scope);
 		void save(String scope, String text);
 		void capture(Consumer<JsonObject> success, Consumer<String> error);
@@ -140,7 +141,7 @@ public final class StudioPanel extends PluginPanel
 	private final JTextArea bankStatus = new JTextArea(3, 18);
 	private BankLayouts.Mode editorLayout = BankLayouts.Mode.PRESET;
 	private boolean editorBottom;
-	private final JComboBox<String> section = new JComboBox<>(), format = new JComboBox<>(new String[]{"Inventory Setup JSON", "Bank Tag (RuneLite)", "Bank Tag Layouts"});
+	private final JComboBox<String> section = new JComboBox<>(), format = new JComboBox<>(new String[]{"Inventory Setup JSON", "Bank Tag (RuneLite)", "Bank Tag Layouts", "Loadout Studio JSON"});
 	private final JTextArea notes = new GrowingNotesArea(), code = new JTextArea(9, 18), status = new JTextArea(3, 18);
 	private JButton exportCopy, exportPreview;
 	private final JLabel scopeLabel = text(""), draftLabel = text("No setup open");
@@ -169,6 +170,8 @@ public final class StudioPanel extends PluginPanel
     private JsonObject recovery;
     private final JPanel recoveryControls=vertical(), existingControls=vertical();
     private final JTextArea conversionNotice=info("",3);
+    private final JCheckBox exportCompress=new JCheckBox("Compress"),exportPretty=new JCheckBox("Pretty Print");
+    private final JTextArea exportOptionHint=new CompactStatusArea("");
     private String editingId, scope, session = UUID.randomUUID().toString();
 	private String editorSection;
 	private boolean editorFavorite;
@@ -192,7 +195,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.8.3-test - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.8.4-test - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffeeControl=coffee;coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel titleBar = new JPanel(new BorderLayout(3, 0)); titleBar.add(title, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
 		JPanel menu = new JPanel(new GridLayout(2, 2, 4, 4));
@@ -990,25 +993,35 @@ public final class StudioPanel extends PluginPanel
     }
 	private JPanel exportTab()
 	{
-		JPanel p = new JPanel(new BorderLayout(0, 8)), controls = vertical(); controls.add(text("Export the open setup")); controls.add(format);conversionNotice.setName("conversionNotice");controls.add(conversionNotice); exportPreview = button("Show code", this::refreshCode); exportCopy = button("Copy code", () -> attempt(() -> { refreshCodeOrThrow(); getToolkit().getSystemClipboard().setContents(new StringSelection(code.getText()), null); message("Copied " + format.getSelectedItem() + "."); })); controls.add(row(exportPreview, exportCopy));exportFeedback.setName("exportFeedback");exportFeedback.setVisible(false);controls.add(exportFeedback);
+		JPanel p = new JPanel(new BorderLayout(0, 8)), controls = vertical(); controls.add(text("Export the open setup")); controls.add(format);conversionNotice.setName("conversionNotice");controls.add(conversionNotice); format.setName("exportFormat");exportCompress.setName("exportCompress");exportPretty.setName("exportPrettyPrint");controls.add(row(exportCompress,exportPretty));exportOptionHint.setName("exportOptionHint");controls.add(exportOptionHint);updateExportOptions(); exportPreview = button("Show code", this::refreshCode); exportCopy = button("Copy code", () -> attempt(() -> { refreshCodeOrThrow(); host.copyText(code.getText()); message("Copied " + format.getSelectedItem() + "."); })); controls.add(row(exportPreview, exportCopy));exportFeedback.setName("exportFeedback");exportFeedback.setVisible(false);controls.add(exportFeedback);
 		code.setName("exportCode"); code.setEditable(false); code.setLineWrap(false); p.add(controls, BorderLayout.NORTH); p.add(new JScrollPane(code), BorderLayout.CENTER);
 		p.add(disclosure("Import instructions", info("Inventory Setups: import icon > Import setup > Enter setup data. Bank Tags: right-click the Bank + tab > Import tag tab. Bank Tags do not store Equipment slots, quantities, Spellbook or Notes.", 7)), BorderLayout.SOUTH);
-		format.addActionListener(e -> { code.setText(""); if (draft != null) refreshCode(); });
+		format.addActionListener(e -> { updateExportOptions();code.setText(""); if (draft != null) refreshCode(); });
+        exportCompress.addActionListener(e->{updateExportOptions();code.setText("");if(draft!=null)refreshCode();});
+        exportPretty.addActionListener(e->{code.setText("");if(draft!=null)refreshCode();});
 		spellbook.addActionListener(e -> { if (!rendering) { fieldsToDraft(); markDirty(); } }); ignoreAmmo.addActionListener(e -> markDirty()); favorite.addActionListener(e -> { if (!rendering) { editorFavorite = favorite.isSelected(); markDirty(); } }); section.addActionListener(e -> { if (!rendering && section.getSelectedIndex() >= 0 && section.getSelectedIndex() < sectionIds.size()) { editorSection = sectionIds.get(section.getSelectedIndex()); markDirty(); } }); notes.getDocument().addDocumentListener(new DocumentListener() { private void update() { if(!rendering) { fieldsToDraft();markDirty();for(Container ancestor=notes.getParent();ancestor!=null;ancestor=ancestor.getParent()){ancestor.invalidate();if(ancestor==StudioPanel.this)break;}builder.revalidate(); } } public void insertUpdate(DocumentEvent e) {update();} public void removeUpdate(DocumentEvent e) {update();} public void changedUpdate(DocumentEvent e) { } }); return p;
 	}
+    private void updateExportOptions() {
+        int selected=format.getSelectedIndex();boolean studio=selected==3,json=selected==0||studio;
+        exportCompress.setEnabled(studio);exportPretty.setEnabled(json&&!(studio&&exportCompress.isSelected()));
+        exportCompress.setToolTipText(studio?"GZIP + Base64, importable by Loadout Studio only":"Inventory Setups and Bank Tags do not accept GZIP. Select Loadout Studio JSON to compress.");
+        exportPretty.setToolTipText(json?"Indent JSON for easier reading; disabled while compressed":"Bank Tags uses CSV; Pretty Print does not apply.");
+        exportOptionHint.setText(studio?(exportCompress.isSelected()?"Compressed code: import into Loadout Studio only.":"Loadout Studio JSON retains item choices and layout."):selected==0?"Plain JSON for Inventory Setups. Compress requires Loadout Studio JSON.":"Bank Tags uses CSV. JSON formatting and GZIP do not apply.");
+        exportOptionHint.setRows(3);exportOptionHint.setMaximumSize(new Dimension(500,62));
+    }
 	private void refreshCode() { attempt(this::refreshCodeOrThrow); }
 	private void refreshCodeOrThrow()
 	{
-		code.setText(""); if (draft == null) throw new IllegalStateException("Open a setup in the Builder first."); fieldsToDraft(); JsonObject p = draft.deepCopy();conversionNotice.setText(format.getSelectedIndex()==0?ConversionReview.inventory(p):ConversionReview.bank(p));conversionNotice.setRows(format.getSelectedIndex()==0?4:8);conversionNotice.setMaximumSize(new Dimension(500,conversionNotice.getRows()*18+8));conversionNotice.setToolTipText(conversionNotice.getText());
+		code.setText(""); if (draft == null) throw new IllegalStateException("Open a setup in the Builder first."); fieldsToDraft(); JsonObject p = draft.deepCopy();conversionNotice.setText(format.getSelectedIndex()==3?"Loadout Studio: slots, quantities, item choices, Notes and layout are retained. Use Library > Import to open this code.":format.getSelectedIndex()==0?ConversionReview.inventory(p):ConversionReview.bank(p));conversionNotice.setRows(format.getSelectedIndex()==0||format.getSelectedIndex()==3?4:8);conversionNotice.setMaximumSize(new Dimension(500,conversionNotice.getRows()*18+8));conversionNotice.setToolTipText(conversionNotice.getText());
 		if (ignoreAmmo.isSelected()) for (String key : new String[]{"eq", "qv"}) { JsonArray items = SetupCodec.setup(p).getAsJsonArray(key); if (items == null) continue; int start = key.equals("eq") ? 13 : 0; for (int i = start; i < items.size(); i++) if (!items.get(i).isJsonNull()) { items.get(i).getAsJsonObject().remove("q"); items.get(i).getAsJsonObject().remove("sc"); } }
-		code.setText(format.getSelectedIndex() == 0 ? codec.inventory(p) : codec.bank(p, format.getSelectedIndex() == 2)); code.setCaretPosition(0);
+		code.setText(format.getSelectedIndex()==3?codec.studio(p,exportPretty.isSelected(),exportCompress.isSelected()):format.getSelectedIndex()==0?codec.inventory(p,exportPretty.isSelected()):codec.bank(p,format.getSelectedIndex()==2)); code.setCaretPosition(0);
 	}
 	private void importDialog()
 	{
-		JTextArea input = new JTextArea(12, 34); JScrollPane inputPane = new JScrollPane(input); themeForm(inputPane); int action = JOptionPane.showConfirmDialog(this, inputPane, "Paste Inventory Setup JSON, Bank Tag or library backup", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE); if (action != JOptionPane.OK_OPTION) return;
+		JTextArea input = new JTextArea(12, 34); JScrollPane inputPane = new JScrollPane(input); themeForm(inputPane); int action = JOptionPane.showConfirmDialog(this, inputPane, "Import setup", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE); if (action != JOptionPane.OK_OPTION) return;
 		attempt(() ->
 		{
-			String text = input.getText().trim(); JsonElement parsed = text.startsWith("{") ? codec.parse(text) : null;
+			String text = SetupExportText.unpack(input.getText()); JsonElement parsed = text.startsWith("{") ? codec.parse(text) : null;
 			if (parsed != null && parsed.isJsonObject() && parsed.getAsJsonObject().has("sections") && parsed.getAsJsonObject().has("setups"))
 			{
 				if(parsed.getAsJsonObject().has("libraryBundle")){SetupLibrary incoming=SetupLibrary.read(text,gson);if(JOptionPane.showConfirmDialog(this,"Add "+incoming.setups.size()+" shared setup copies? Existing setups stay intact.","Import shared bundle",JOptionPane.OK_CANCEL_OPTION)!=JOptionPane.OK_OPTION)return;commit(next->LibraryTools.merge(next,incoming,gson));message("Shared setups added as independent copies.");return;}
@@ -1016,7 +1029,7 @@ public final class StudioPanel extends PluginPanel
 				host.save(scope, restored.serialize(gson)); reloadScope(); message("Library backup restored."); return;
 			}
 			List<JsonObject> imported=codec.importText(text);boolean bankImport=!(text.startsWith("{")||text.startsWith("[")) || parsed!=null&&parsed.isJsonObject()&&parsed.getAsJsonObject().has("bankTag");
-            JTextArea review=info("Add "+imported.size()+" setup(s)? Existing saved setups are retained.\n"+ConversionReview.imported(imported.get(0),bankImport?"Bank Tag":"Inventory Setup"),9);
+            JTextArea review=info("Add "+imported.size()+" setup(s)? Existing saved setups are retained.\n"+ConversionReview.imported(imported.get(0),bankImport?"Bank Tag":parsed!=null&&parsed.isJsonObject()&&parsed.getAsJsonObject().has("loadoutStudio")?"Loadout Studio":"Inventory Setup"),9);
             themeForm(review);if(JOptionPane.showConfirmDialog(this,review,"Review import",JOptionPane.OK_CANCEL_OPTION)!=JOptionPane.OK_OPTION)return;
 			commit(l -> { for (JsonObject p : imported){JsonObject copy=p.deepCopy();SetupCodec.setup(copy).addProperty("name",l.uniqueName(SetupCodec.name(copy)));l.setups.add(new SetupLibrary.Entry(copy));} }); message("Imported " + imported.size() + " setup(s). Open them from Library."); renderLibrary();
 		});
