@@ -14,6 +14,8 @@ GearContainers bundles the bolt-type-to-Item-ID mapping from Inventory Setups Bo
 
 ## Documentation screenshots
 
-The eight PNGs in docs/screenshots are offline renders of the actual Loadout Studio Swing sidebar with RuneLiteLAF and explicit example data. They are labeled UI previews, not live game screenshots. They contain no player-specific state.
+Nine PNGs in docs/screenshots are offline renders of the actual Loadout Studio Swing sidebar with RuneLiteLAF and explicit example data. The diagnostics view uses example counters and the same actual sidebar support controls. Three additional settings previews are generated from the current config declarations and default values; they reconstruct the documentation view rather than capturing the native ConfigPanel. They are labeled UI previews, not live game screenshots. They contain no player-specific state.
 
 Item artwork is copyright Jagex. The small sprite inputs were obtained once for documentation preparation from RuneLite's static item-icon service, for example https://static.runelite.net/cache/item/icon/12931.png. They were reused locally to render the previews. Individual input sprites and the local renderer are not bundled into the plugin. Runtime sprites continue to use RuneLite ItemManager; these screenshots add no Wiki or image requests to the plugin. The project license does not transfer ownership of RuneScape artwork.
+
+Settings previews use RuneLite fonts, styling and the section-arrow resource from the RuneLite client. See the [RuneLite source and license](https://github.com/runelite/runelite). No additional runtime image request is introduced.

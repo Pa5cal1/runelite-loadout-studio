@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a problem with Loadout Studio
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem and review everything before submitting. A technical report can be copied from Library tools > Diagnostics / report problem. Do not attach raw client logs or private data.
+  - type: input
+    id: plugin_version
+    attributes:
+      label: Loadout Studio version
+      placeholder: 0.8.5-test
+    validations:
+      required: true
+  - type: input
+    id: runelite_version
+    attributes:
+      label: RuneLite version
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Feature
+      options:
+        - Library and saving
+        - Builder and item editing
+        - Wiki and cache
+        - Owned gear alternatives
+        - Bank filtering or layout
+        - Import or export
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Describe the clicks and settings needed to reproduce the problem. Mention whether another Bank filter was active, without including setup contents.
+    validations:
+      required: true
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Reviewed technical report (optional)
+      description: Paste only the reviewed Loadout Studio report, not raw client logs. Opening this form does not attach or send a report automatically.
+      render: text

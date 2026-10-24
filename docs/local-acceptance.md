@@ -1,4 +1,4 @@
-# Testclient acceptance — 0.8.4-test
+# Testclient acceptance — 0.8.5-test
 
 Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 
@@ -61,3 +61,14 @@ In a custom Bank layout, replace a missing item with an observed alternative. If
 ## Export formatting and native compressed codes
 
 In Export, select Inventory Setup JSON and toggle Pretty Print: only whitespace changes, and Copy must equal the preview. Compress is disabled for this target. Select Loadout Studio JSON and enable Compress: Pretty Print is disabled, a loadoutstudio:gz1: code appears and can be pasted back into this plugin's Import. Check names, Unicode Notes, source choices, quantities and custom positions. Disable Compress to restore JSON. With either Bank Tag target both options are disabled and the code must retain the normal banktags or banktaglayoutsplugin prefix. Malformed/truncated/oversized compressed imports must leave the saved library unchanged.
+
+## Permanent support control
+
+Confirm Show coffee button no longer exists in plugin settings. Buy a coffee remains visible after changing Sidebar preferences and after restarting, including when it was previously hidden. No browser opens until the button is clicked.
+
+## Local diagnostics and Bank context menu
+
+- Right-click Show worn items and confirm Loadout Studio has its own submenu alongside Inventory Setups. Choose Preset and both Zigzag directions, review the opened sidebar and Save/reopen. Old menu actions from another draft/profile must do nothing.
+- With Inventory Setups filtering a selected setup, open ours: automatic filtering must yield with a visible explanation. Choose our Filter Bank/Auto Layout to switch, then return to the other plugin and clear ours. Its tag, saved setups and menu entries must remain intact. Enable Inventory Setups' Require Active Panel for Filtering manually if needed; no foreign settings should change automatically. Test both shared native and standalone Bank paths and manually verify withdrawals.
+- Open Library tools > Diagnostics / report problem. Review before Copy; opening the GitHub form must not attach/send the report. Reset must clear counters. Disabling Record local diagnostics must clear and stop collection, with features still usable. Restart should start a new session. Normal invalid input must be classified as validation, not an unexpected bug.
+- Check all new native settings and the always-visible coffee control. Compare the documentation previews with the real client; previews do not prove native behavior.

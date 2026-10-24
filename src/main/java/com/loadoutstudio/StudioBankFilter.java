@@ -16,6 +16,9 @@ public final class StudioBankFilter
 		boolean bankOpen();
 		int capacity();
 		String activeTag();
+        default String competingTag(){return activeTag();}
+        default boolean respectOtherFilters(){return false;}
+        default void pauseOwnedView(){}
 		default int[] currentLayout() { return null; }
 		int canonicalize(int id);
 		int variation(int id);
@@ -48,19 +51,26 @@ public final class StudioBankFilter
 		selected.add("layout",layout.deepCopy());return layout;
 	}
 	StudioBankFilter(Gateway gateway, String tag) { this.gateway = gateway; this.tag = tag; }
-	public String select(JsonObject portable)
+	public String select(JsonObject portable){return select(portable,false);}
+    public String select(JsonObject portable,boolean explicit)
 	{
 		clear();
 		if (portable == null || !SetupCodec.setup(portable).has("fb") || !SetupCodec.setup(portable).get("fb").getAsBoolean()) return "Bank filter off.";
 		SetupCodec.validate(portable, false);
 		if (BankLayouts.items(portable).isEmpty()) return "Add items before filtering the Bank.";
 		if(BankLayouts.items(portable).stream().noneMatch(item->SetupCodec.id(item)>0))return "No resolved items yet. Choose an item to start Bank filtering.";
-		selected = portable.deepCopy(); return apply();
+		selected = portable.deepCopy(); return apply(explicit);
 	}
-	public String apply()
+	public String apply(){return apply(false);}
+    public String apply(boolean explicit)
 	{
 		if (selected == null) return "Bank filter off.";
 		if (!gateway.bankOpen()) { waiting = true; return "Bank filter ready. Open your Bank to apply it."; }
+        String competing=gateway.competingTag();
+        if(!explicit&&gateway.respectOtherFilters()&&competing!=null&&!competing.isEmpty()&&!tag.equals(competing)){
+            if(registered){gateway.unregister(tag);registered=false;}gateway.pauseOwnedView();waiting=true;
+            return "Another Bank filter is active. Use Show worn items > Loadout Studio > Filter Bank to switch.";
+        }
 		Set<Integer> exact = new HashSet<>(), fuzzy = new HashSet<>();
 		for (JsonElement e : BankLayouts.items(selected))
 		{

@@ -42,6 +42,14 @@ public interface LoadoutStudioConfig extends Config
     default boolean emptyQuantityInput(){return true;}
     @ConfigItem(keyName="showAttackOption",name="Show attack option",description="Show the saved attack option under the loadout title",section=sidebar,position=2)
     default boolean showAttackOption(){return true;}
+    @ConfigSection(name="Support",description="Local session diagnostics; nothing is uploaded automatically",position=7,closedByDefault=true)
+    String support="support";
+    @ConfigItem(keyName="localDiagnostics",name="Record local diagnostics",description="Keep bounded technical counters in memory only. Disabling clears the session; reports are reviewed and copied manually",section=support,position=0)
+    default boolean localDiagnostics(){return true;}
+    @ConfigItem(keyName="bankLayoutMenu",name="Bank layout menu",description="Add Loadout Studio layout actions to Show worn items; changes only this plugin's current draft",section=bank,position=4)
+    default boolean bankLayoutMenu(){return true;}
+    @ConfigItem(keyName="respectOtherBankFilters",name="Respect other Bank filters",description="Yield to another active Bank Tag. Choose our Filter Bank or Auto layout action to take over. For Inventory Setups also enable its Require Active Panel for Filtering option",section=bank,position=5)
+    default boolean respectOtherBankFilters(){return true;}
     enum LibraryOrder {
         ALPHABETICAL("Alphabetical"),RECENT("Recent"),FAVORITES("Favorites first"),MANUAL("Manual");
         private final String label;LibraryOrder(String label){this.label=label;}public String toString(){return label;}
@@ -69,12 +77,10 @@ public interface LoadoutStudioConfig extends Config
     default boolean checkAlternativeStock(){return true;}
     @ConfigItem(keyName="libraryOrder",name="Library order",description="Choose alphabetical, recent, favorite-first or manual library order",section=sidebar,position=0)
     default LibraryOrder libraryOrder(){return LibraryOrder.ALPHABETICAL;}
-    @ConfigItem(keyName="showSupportButton",name="Show coffee button",description="Show the optional support link in the sidebar header",section=sidebar,position=1)
-    default boolean showSupportButton(){return true;}
     @ConfigItem(keyName="filterHotkey",name="Toggle Bank filter",description="Toggle the active Loadout Studio filter while the Bank is open",section=hotkeys,position=0)
     default Keybind filterHotkey(){return Keybind.NOT_SET;}
     @ConfigItem(keyName="bankMenu",name="Bank setup shortcuts",description="Show up to five favorite or recent setups on the Bank worn-items button",section=bank,position=0)
     default boolean bankMenu(){return true;}
 
-    static boolean isPreferenceKey(String key){return java.util.Arrays.asList("libraryOrder","showSupportButton","ignoreAmmoQuantities","autoAlternatives","autoShowAlternatives","maxAlternatives","showAttackOption").contains(key);}
+    static boolean isPreferenceKey(String key){return java.util.Arrays.asList("localDiagnostics","libraryOrder","ignoreAmmoQuantities","autoAlternatives","autoShowAlternatives","maxAlternatives","showAttackOption").contains(key);}
 }

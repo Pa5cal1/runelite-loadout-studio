@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.8.4-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.8.5-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. When it is active, Loadout Studio can use its native layout service; otherwise it uses an independent view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
@@ -12,7 +12,14 @@ Offline renders of the actual sidebar using RuneLite styling and example loadout
 
 ![Library, Builder, Wiki and Export previews](docs/screenshots/overview.png)
 
-[Library](docs/screenshots/library.png) · [Builder](docs/screenshots/builder.png) · [Equipment and Notes](docs/screenshots/builder-details.png) · [Owned alternatives](docs/screenshots/alternatives.png) · [Wiki choices](docs/screenshots/wiki.png) · [Export](docs/screenshots/export.png) · [Compressed export](docs/screenshots/export-compressed.png)
+[Library](docs/screenshots/library.png) · [Builder](docs/screenshots/builder.png) · [Equipment and Notes](docs/screenshots/builder-details.png) · [Owned alternatives](docs/screenshots/alternatives.png) · [Wiki choices](docs/screenshots/wiki.png) · [Export](docs/screenshots/export.png) · [Compressed export](docs/screenshots/export-compressed.png) · [Diagnostics](docs/screenshots/diagnostics.png)
+
+Settings previews below are generated from the current configuration definitions and default values using RuneLite styling. They are documentation previews, not captures of a running native configuration window.
+
+<table>
+<tr><th>Overview</th><th>Defaults and comparison</th><th>Bank, Wiki and editing</th></tr>
+<tr><td><img src="docs/screenshots/settings.png" width="240" alt="Settings sections overview"></td><td><img src="docs/screenshots/settings-defaults.png" width="240" alt="Default loadouts, comparison and sidebar settings"></td><td><img src="docs/screenshots/settings-bank-wiki.png" width="240" alt="Hotkey, Bank, Wiki and editing settings"></td></tr>
+</table>
 
 ## Contents
 
@@ -27,6 +34,7 @@ Offline renders of the actual sidebar using RuneLite styling and example loadout
 - [Importing and Exporting](#importing-and-exporting)
 - [Saved Setups and Backups](#saved-setups-and-backups)
 - [Support and Suggestions](#support-and-suggestions)
+- [Diagnostics and Reporting](#diagnostics-and-reporting)
 - [Development](#development)
 - [Changelog](#changelog)
 
@@ -49,11 +57,12 @@ Open the RuneLite plugin list, find Loadout Studio and click its configuration c
 
 - **Default loadouts:** initial layout/direction, Bank filtering, Fuzzy, amount rule, highlighting/color, missing-only matching and attack-option capture. These affect newly created blank/captured setups only. Saved setups, Wiki source choices and imports retain their own values.
 - **Comparison:** ignore worn Ammo/Quiver amounts and check combined replacement stock. Rune Pouch matching remains independent.
-- **Sidebar:** library order, automatic compact alternatives and their maximum count, saved attack-option display and the optional coffee button.
+- **Sidebar:** library order and saved attack-option display. The Buy a coffee button always remains visible in the sidebar header; there is no visibility setting.
 - **Hotkeys:** the existing Bank filter hotkey.
-- **Bank:** the existing Bank-menu setup shortcuts.
+- **Bank:** setup shortcuts, the separate Bank layout menu, respect for another active Bank filter, automatic owned alternatives, their maximum count and automatic expansion.
 - **Wiki:** days before a source is refreshed on the next user open (seven by default).
 - **Editing:** empty initial quantity input.
+- **Support:** bounded local diagnostics; disabling recording clears the current session.
 
 The sidebar keeps current-setup actions and overrides: Save, Compare, Bank toggle, per-setup layout, items, Notes, section and favorite. It has no global sort dropdown, Ammo preference checkbox or duplicate Compare/Export/Bank-toggle buttons. Existing config keys and saved setup data remain compatible. Restoring an older draft retains its recorded Ammo preference until a global preference change or another setup is opened.
 
@@ -172,6 +181,11 @@ See the [Wiki request policy](docs/wiki-network-policy.md) for the full caching 
 
 ## Bank Filtering and Layouts
 
+Right-click **Show worn items → Loadout Studio → Auto Layout** for **Preset**, **Zigzag (top first)** or **Zigzag (bottom first)**. These actions open this sidebar and update only the current draft; choose Save to retain the layout. The same submenu has **Filter Bank**, **Clear filter** and optional saved-setup shortcuts. Other plugins' menu entries are kept.
+
+**Respect other Bank filters** is enabled by default. An automatic selection or refresh yields to another active Bank Tag; use our explicit Filter Bank or Auto Layout action, or re-enable the filter in Builder, to switch deliberately. The setting does not disable or reconfigure Inventory Setups. When using both plugins, enable Inventory Setups' **Require Active Panel for Filtering** option, or close its selected setup if it keeps reapplying its own filter. The plugins share a Bank view; live handover still needs testing. Bank layout actions have a separate setting from saved-setup shortcuts.
+
+
 Built-in **Bank Tags is optional**. With it disabled, Loadout Studio filters and positions real items in the ordinary Bank independently. This path does not duplicate physical stacks or include Potion Storage; confirm manual withdrawals and service transitions in the test client.
 
 Open a setup and use **Filter Bank** / **Clear filter** above the loadout for quick access. To choose a layout, expand **Bank filtering and layout**:
@@ -253,6 +267,14 @@ Have a suggestion or found a bug? Open an [issue](https://github.com/Pa5cal1/run
 
 If you would like to support development, you can [buy me a coffee](https://buymeacoffee.com/pascalvdbe9). Donations are optional.
 
+## Diagnostics and Reporting
+
+Open **Library tools → Diagnostics / report problem** to review the current technical report. **Copy report** copies exactly the visible text. **Open GitHub issue** opens a blank report form; you choose whether to paste the report and submit it. Repository access is required while testing. No report is attached or sent automatically.
+
+Local diagnostics are enabled by default under **Support → Record local diagnostics**. They keep fixed operation/outcome counters, total/max durations and at most 24 recent technical outcomes in memory. Counts describe calls in the current plugin session, not unique users. Wiki cache hits and actual HTTP operations have separate counters. Invalid input and expected states are distinct from unexpected exceptions.
+
+Reports include plugin/RuneLite versions, OS family and Java specification version. They exclude setup contents, item IDs, player names, searches, URLs, raw exception messages and file paths. Unexpected faults may retain only bounded frames from this plugin's own classes. No disk persistence or telemetry endpoint is added; reset manually, disable recording, or restart the plugin/client to clear the counters. This does not capture every client error or native crash.
+
 ## Development
 
 <details>
@@ -281,6 +303,13 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.8.5-test
+
+- Keep Buy a coffee visible and remove its visibility preference. A previously stored hidden choice is ignored; other preferences are retained.
+- Add settings previews for the section overview, loadout/comparison/sidebar defaults, and Bank/Wiki/editing/support options.
+- Add session-only local diagnostics, bounded technical reports, copy/reset controls and a manual GitHub issue form. No automatic upload.
+- Add a distinct Show worn items submenu for Preset/Zigzag, explicit filtering and saved setups. Automatically yield to another active Bank Tag by default.
 
 ### 0.8.4-test
 

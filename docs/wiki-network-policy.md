@@ -1,4 +1,4 @@
-# Wiki request policy — 0.8.4-test
+# Wiki request policy — 0.8.5-test
 
 Requests start only after explicit Search/Enter, page selection, URL entry or reload. Startup, opening saved loadouts, typing and background time do not fetch Wiki content. Typing may read local cached suggestions on a worker; it never performs HTTP. Item sprites come from RuneLite ItemManager; no Wiki image service is called.
 
@@ -10,7 +10,7 @@ Search responses are fresh for six hours. Page sources are normally fresh for se
 
 Page resolution may require several bounded API calls. The same public Wiki cache can be reused across characters; it contains public source responses and user-entered Wiki search queries, never gear, account data or credentials. Write failures are visible and leave normal in-session usage available.
 
-HTTP 429/503, Retry-After and API errors trigger a cooldown (at least sixty seconds, up to 24 hours when requested). Queued work is failed visibly; there is no automatic retry. Requests advertise LoadoutStudio/0.8.4 and the source repository, set maxlag=5 and cache hints, use 25-second timeouts, bound response sizes and cancel on shutdown.
+HTTP 429/503, Retry-After and API errors trigger a cooldown (at least sixty seconds, up to 24 hours when requested). Queued work is failed visibly; there is no automatic retry. Requests advertise LoadoutStudio/0.8.5 and the source repository, set maxlag=5 and cache hints, use 25-second timeouts, bound response sizes and cancel on shutdown.
 
 These limits are conservative project choices, not published OSRS quotas. Wikimedia quotas must not be presented as OSRS Wiki quotas. The supplied Reddit thread is community discussion; it does not establish a general ban on user-triggered Wiki use or verify a particular plugin shutdown.
 
@@ -31,3 +31,5 @@ First-choice item resolution is entirely local. Bundled first-listed defaults fo
 Owned Bank alternatives, item identity ranking, dose aliases and sidebar sprites remain local. Activity suggestions merge Strategies aliases and omit technical subpages; the page resolver still prefers Strategies with a main-page fallback. No per-item ID, market-price or image HTTP request is introduced.
 
 Concrete loadouts retain their adjacent ranked recommendation tables from the same cached source. This adds no HTTP calls; variant separation, source ordering and availability filtering are local.
+
+Local diagnostics count HTTP/cache outcomes without storing their URLs, queries or page content in the report. They add no request or telemetry endpoint. Opening the issue form is a separate explicit browser action, without a report payload.

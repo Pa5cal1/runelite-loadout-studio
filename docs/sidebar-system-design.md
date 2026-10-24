@@ -131,3 +131,15 @@ The README gallery intentionally uses offline, labeled UI previews with example 
 ## Export formatting in 0.8.4
 
 Export has two in-panel representation controls. Pretty Print applies to Inventory Setup JSON and native Loadout Studio JSON. GZIP/Base64 compression applies only to native JSON because receiving external plugins do not decode it. Loadout Studio's compressed transport has a versioned prefix, bounded encoded and expanded sizes, strict UTF-8 decoding and the existing schema/nesting validation. Native JSON includes a version marker and preserves labels/choices; external Inventory Setups output removes that marker and editor metadata. Preview and Copy pass through the same export path; checkbox changes do not modify saved loadouts. Bank Tag text remains CSV in both supported dialects.
+
+## Support control and settings previews in 0.8.5
+
+Buy a coffee is a permanent header control. The visibility config item and its runtime check are removed at the user's request; existing stored hidden values are ignored without rewriting other preferences. The URL is still opened only on user action.
+
+Three settings documentation images derive their names, ordering, sections and defaults from LoadoutStudioConfig. They use RuneLite styling but are explicitly labeled offline settings previews; the renderer does not create a client, read configuration files or interact with the game. They do not constitute live acceptance of the configuration window.
+
+## Local diagnostics and Bank ownership in 0.8.5
+
+StudioDiagnostics keeps fixed enum-based counters/durations and a 24-entry ring in memory. UI action boundaries, Wiki requests/cache and Bank operations record typed outcomes; validation and expected states are separated from unexpected faults. Reports deliberately omit messages and dynamic payloads; only bounded own-package stack frames are retained for unexpected exceptions. Reports are reviewed and copied manually. Opening the static GitHub issue-form URL sends no report; no remote telemetry or persistent diagnostics store is implemented. Support config can stop and clear recording.
+
+Show worn items gets a distinct Loadout Studio submenu. Layout/filter actions carry the profile owner and draft session token, are checked on the EDT, open our navigation panel and modify only our draft. Automatic filtering yields to a competing active Bank Tag when respectOtherBankFilters is true; explicit player actions can switch the view. Pausing releases our independent view/predicate without closing the other tag. Other plugin menus and configuration remain untouched. This is cooperative ownership, not a global lock against another plugin's later writes; Inventory Setups' own active-panel requirement is documented for players to set manually.

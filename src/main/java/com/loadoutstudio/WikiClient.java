@@ -33,7 +33,7 @@ public final class WikiClient
     private long nextRequest, cooldown;
     private boolean busy;
     private volatile boolean closed;
-    private static final String USER_AGENT="LoadoutStudio/0.8.4 (https://github.com/Pa5cal1/runelite-loadout-studio; RuneLite)";
+    private static final String USER_AGENT="LoadoutStudio/0.8.5 (https://github.com/Pa5cal1/runelite-loadout-studio; RuneLite)";
     interface Store
     {
         String load() throws IOException;
@@ -125,7 +125,7 @@ public final class WikiClient
             }
             trimCache();
         }
-        catch(IOException|RuntimeException ex) { cacheWarning="Local Wiki cache could not be read; saved loadouts are unaffected.";cache.clear(); }
+        catch(IOException|RuntimeException ex) { diagnostics.completed(StudioDiagnostics.Operation.WIKI_CACHE_IO,StudioDiagnostics.Outcome.IO_FAILURE,0);cacheWarning="Local Wiki cache could not be read; saved loadouts are unaffected.";cache.clear(); }
     }
     private static boolean allowedUrl(String url)
     {
@@ -156,9 +156,11 @@ public final class WikiClient
             }
             store.save(data.toString());cacheWarning="";
         }
-        catch(IOException|RuntimeException ex){cacheWarning="Wiki cache could not be saved to disk; this session still works.";}
+        catch(IOException|RuntimeException ex){diagnostics.completed(StudioDiagnostics.Operation.WIKI_CACHE_IO,StudioDiagnostics.Outcome.IO_FAILURE,0);cacheWarning="Wiki cache could not be saved to disk; this session still works.";}
     }
     public String cacheWarning() { return cacheWarning; }
+    private StudioDiagnostics diagnostics=new StudioDiagnostics();
+    void diagnostics(StudioDiagnostics diagnostics){this.diagnostics=diagnostics;}
     private void requestJson(String url,int limit,long ttl,boolean refresh,BiConsumer<Reply,String> callback)
     {
         onWorker(()->
@@ -166,9 +168,9 @@ public final class WikiClient
             loadCache();CacheEntry saved=cache.get(url);long now=System.currentTimeMillis();
             int days=Math.max(0,Math.min(30,refreshDays.getAsInt()));
             if(saved!=null && days>0 && url.contains("prop=revisions")){saved=new CacheEntry(saved.text,saved.fetched,saved.fetched+days*24*60*60*1000L);cache.put(url,saved);}
-            if(!refresh && saved!=null && (now<saved.until || url.contains("prop=revisions")&&days==0)){callback.accept(new Reply(saved,true),null);return;}
-            if(now<cooldown){if(!refresh && saved!=null)callback.accept(new Reply(saved,true),null);else callback.accept(null,"Wiki requests are paused. Use cached/saved setups or try later.");return;}
-            Job existing=jobs.get(url);if(existing!=null){existing.callbacks.add(callback);return;}
+            if(!refresh && saved!=null && (now<saved.until || url.contains("prop=revisions")&&days==0)){diagnostics.completed(StudioDiagnostics.Operation.WIKI_CACHE_HIT,StudioDiagnostics.Outcome.SUCCESS,0);callback.accept(new Reply(saved,true),null);return;}
+            if(now<cooldown){if(!refresh && saved!=null){diagnostics.completed(StudioDiagnostics.Operation.WIKI_CACHE_FALLBACK,StudioDiagnostics.Outcome.SUCCESS,0);callback.accept(new Reply(saved,true),null);}else callback.accept(null,"Wiki requests are paused. Use cached/saved setups or try later.");return;}
+            Job existing=jobs.get(url);if(existing!=null){diagnostics.completed(StudioDiagnostics.Operation.WIKI_COALESCED,StudioDiagnostics.Outcome.SUCCESS,0);existing.callbacks.add(callback);return;}
             if(jobs.size()>=12){callback.accept(null,"Too many pending Wiki requests. Wait for the current search.");return;}
             Job job=new Job(url,limit,ttl,refresh);job.callbacks.add(callback);jobs.put(url,job);queue.add(job);schedule();
         });
@@ -182,11 +184,11 @@ public final class WikiClient
     }
     private void send()
     {
-        final Job job;synchronized(this){if(closed || queue.isEmpty()){busy=false;return;}job=queue.removeFirst();}
+        final long started=System.nanoTime();final Job job;synchronized(this){if(closed || queue.isEmpty()){busy=false;return;}job=queue.removeFirst();}
         Call call=http.newCall(new Request.Builder().url(job.url).header("User-Agent",USER_AGENT).header("Cache-Control",job.refresh?"no-cache":"max-age=3600").build());
         synchronized(this){if(closed)return;pending.add(call);call.enqueue(new Callback()
         {
-            public void onFailure(Call c,IOException e){pending.remove(c);onWorker(()->finish(job,null,"Wiki request failed. No automatic retry was made.",false));}
+            public void onFailure(Call c,IOException e){pending.remove(c);onWorker(()->{diagnostics.completed(StudioDiagnostics.Operation.WIKI_HTTP,StudioDiagnostics.Outcome.SERVICE_FAILURE,started);finish(job,null,"Wiki request failed. No automatic retry was made.",false);});}
             public void onResponse(Call c,Response response)
             {
                 String text=null,error=null,retry=null;boolean paused=false;
@@ -203,7 +205,7 @@ public final class WikiClient
                 catch(IOException|RuntimeException ex){error=ex.getMessage();text=null;}
                 finally{pending.remove(c);}
                 final String result=text,failure=error,after=retry;final boolean pause=paused;
-                onWorker(()->{if(pause)pause(after);finish(job,result,failure,pause);});
+                onWorker(()->{diagnostics.completed(StudioDiagnostics.Operation.WIKI_HTTP,failure==null?StudioDiagnostics.Outcome.SUCCESS:StudioDiagnostics.Outcome.SERVICE_FAILURE,started);if(pause)pause(after);finish(job,result,failure,pause);});
             }
         });}
     }
@@ -224,6 +226,7 @@ public final class WikiClient
     private void deliver(Job job,String text,String error)
     {
         CacheEntry entry=cache.get(job.url);Reply reply=entry!=null && (text!=null || !job.refresh)?new Reply(entry,text==null):null;
+        if(reply!=null&&text==null)diagnostics.completed(StudioDiagnostics.Operation.WIKI_CACHE_FALLBACK,StudioDiagnostics.Outcome.SUCCESS,0);
         for(BiConsumer<Reply,String> callback:job.callbacks)if(!closed)callback.accept(reply,reply==null?error:null);
     }
 	static java.util.List<String> searchTitles(String text, com.google.gson.Gson gson)

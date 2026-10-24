@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
 public class PluginPreferencesTest
 {
     static class Settings implements LoadoutStudioConfig {
-        boolean ignore,coffee=true;
+        boolean ignore;
         public DefaultLayout defaultLayout(){return DefaultLayout.ZIGZAG;}
         public boolean defaultZigzagBottom(){return true;}
         public boolean defaultFilterBank(){return false;}
@@ -17,7 +17,6 @@ public class PluginPreferencesTest
         public StackRule defaultStackRule(){return StackRule.MINIMUM;}
         public boolean captureAttackOption(){return false;}
         public boolean ignoreAmmoQuantities(){return ignore;}
-        public boolean showSupportButton(){return coffee;}
     }
     static class Host extends PanelTest.FakeHost {final Settings settings=new Settings();public LoadoutStudioConfig settings(){return settings;}}
     @Test public void defaultsApplyToCapturedCopyWithoutChangingSource()
@@ -40,6 +39,6 @@ public class PluginPreferencesTest
     }
     @Test public void sidebarOmitsGeneralSettingsAndRedundantActions() throws Exception
     {
-        SwingUtilities.invokeAndWait(()->{Host host=new Host();StudioPanel panel=new StudioPanel(host,RuneLiteAPI.GSON);panel.open(new SetupLibrary.Entry(SetupCodec.blank("Clean")));assertNull(OwnedGearPanelTest.find(panel,"librarySort"));assertNull(OwnedGearPanelTest.find(panel,"Ignore Ammo quantities"));assertNull(OwnedGearPanelTest.find(panel,"Apply filter"));assertNull(OwnedGearPanelTest.find(panel,"Compare gear"));assertNull(OwnedGearPanelTest.find(panel,"Export setup"));assertNotNull(OwnedGearPanelTest.find(panel,"quickCompareGear"));assertNotNull(OwnedGearPanelTest.find(panel,"Save copy"));host.settings.coffee=false;panel.preferencesChanged();assertFalse(OwnedGearPanelTest.find(panel,"supportCoffee").isVisible());panel.dispose();});
+        SwingUtilities.invokeAndWait(()->{Host host=new Host();StudioPanel panel=new StudioPanel(host,RuneLiteAPI.GSON);panel.open(new SetupLibrary.Entry(SetupCodec.blank("Clean")));assertNull(OwnedGearPanelTest.find(panel,"librarySort"));assertNull(OwnedGearPanelTest.find(panel,"Ignore Ammo quantities"));assertNull(OwnedGearPanelTest.find(panel,"Apply filter"));assertNull(OwnedGearPanelTest.find(panel,"Compare gear"));assertNull(OwnedGearPanelTest.find(panel,"Export setup"));assertNotNull(OwnedGearPanelTest.find(panel,"quickCompareGear"));assertNotNull(OwnedGearPanelTest.find(panel,"Save copy"));panel.preferencesChanged();assertTrue(OwnedGearPanelTest.find(panel,"supportCoffee").isVisible());panel.dispose();});
     }
 }

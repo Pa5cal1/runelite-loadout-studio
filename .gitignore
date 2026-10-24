@@ -48,3 +48,8 @@ build/
 !/docs/screenshots/wiki.png
 !/docs/screenshots/export.png
 !/docs/screenshots/export-compressed.png
+!/docs/screenshots/settings.png
+!/docs/screenshots/settings-defaults.png
+!/docs/screenshots/settings-bank-wiki.png
+!/.github/ISSUE_TEMPLATE/bug_report.yml
+!/docs/screenshots/diagnostics.png
