@@ -61,7 +61,7 @@ public class WikiPagePanelTest
 			tabs[0].setSelectedIndex(2); ((JTextField) find(panel[0], "wikiSearch")).setText("vorkath"); ((JButton) find(panel[0], "Search Wiki")).doClick();
 			((JList<?>) find(panel[0], "wikiSuggestions")).setSelectedIndex(0);
 		});
-		assertEquals(WikiClient.articleUrl("Vorkath/Strategies"), host.firstPage.get(3, TimeUnit.SECONDS));
+		assertEquals(WikiClient.articleUrl("Vorkath"), host.firstPage.get(3, TimeUnit.SECONDS));
 		SwingUtilities.invokeAndWait(() ->
 		{
 			assertEquals("Selection automatically fetches exactly once", 1, host.urls.size()); host.replies.get(0).accept(fixture, null);
@@ -72,7 +72,7 @@ public class WikiPagePanelTest
 			host.replies.get(1).accept(null, "Old page failure"); assertFalse(((JTextArea) find(panel[0], "wikiPageStatus")).getText().contains("Old page failure"));
 			host.replies.get(2).accept(fixture, null);
 			((JButton) find(panel[0], "wikiPreset:Melee")).doClick(); assertEquals(1, tabs[0].getSelectedIndex());
-			assertEquals("Vorkath", SetupCodec.name(host.selectedBankSetup));
+			assertEquals("Vorkath (Melee)", SetupCodec.name(host.selectedBankSetup));
 			assertEquals("Torva platebody", SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("eq").get(4).getAsJsonObject().get("label").getAsString());
 			assertEquals(22978, SetupCodec.id(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("eq").get(3)));
             assertEquals(26384, SetupCodec.id(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("eq").get(4)));
@@ -101,8 +101,8 @@ public class WikiPagePanelTest
 			for (Component c : panel[0].getComponents()) if (c instanceof JTabbedPane) ((JTabbedPane) c).setSelectedIndex(2);
 			((JTextField) find(panel[0], "wikiSearch")).setText("fractured archive"); ((JButton) find(panel[0], "Search Wiki")).doClick(); ((JList<?>) find(panel[0], "wikiSuggestions")).setSelectedIndex(0);
 		});
-		assertEquals(WikiClient.articleUrl("Fractured archive strategies"), fetched.get(3, TimeUnit.SECONDS));
-		SwingUtilities.invokeAndWait(() -> { ((JButton) find(panel[0], "wikiPreset:Wiki preset 1")).doClick(); assertEquals("The Fractured Archive", SetupCodec.name(host.selectedBankSetup)); panel[0].dispose(); });
+		assertEquals(WikiClient.articleUrl("Fractured archive"), fetched.get(3, TimeUnit.SECONDS));
+		SwingUtilities.invokeAndWait(() -> { ((JButton) find(panel[0], "wikiPreset:Max gear")).doClick(); assertEquals("The Fractured Archive (Max gear)", SetupCodec.name(host.selectedBankSetup)); panel[0].dispose(); });
 	}
 
     @Test public void wikiChoiceWaitsForCatalogueAndIgnoresLateResultAfterAnotherDraft() throws Exception
@@ -120,11 +120,11 @@ public class WikiPagePanelTest
             StudioPanel panel = new StudioPanel(host, RuneLiteAPI.GSON);
             for (Component c : panel.getComponents()) if (c instanceof JTabbedPane) ((JTabbedPane)c).setSelectedIndex(2);
             JTextField url = (JTextField)find(panel, "wikiPageUrl"); url.setText(WikiClient.articleUrl("Vorkath/Strategies")); url.postActionEvent();
-            ((JButton)find(panel, "wikiPreset:Wiki preset 1")).doClick();
+            ((JButton)find(panel, "wikiPreset:Max gear")).doClick();
             assertEquals(1, ready.size()); assertNull(host.selectedBankSetup);
-            ready.get(0).accept(null); assertEquals("Vorkath", SetupCodec.name(host.selectedBankSetup));
+            ready.get(0).accept(null); assertEquals("Vorkath (Max gear)", SetupCodec.name(host.selectedBankSetup));
             ((JButton)find(panel, "Save")).doClick();
-            ((JButton)find(panel, "wikiPreset:Wiki preset 1")).doClick();
+            ((JButton)find(panel, "wikiPreset:Max gear")).doClick();
             panel.newDraft(SetupCodec.blank("Another draft"));
             ready.get(1).accept(null);
             assertEquals("Another draft", SetupCodec.name(host.selectedBankSetup)); panel.dispose();

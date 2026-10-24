@@ -68,6 +68,7 @@ public final class StudioPanel extends PluginPanel
         default void quickLinks(List<QuickLink> links) { }
         default void observeGear(Consumer<JsonObject> observer) { }
         default void requestGear() { }
+        default void observeBank(Runnable observer) { }
         default boolean itemMatches(int id,String query) { for(ItemInfo item:search(query))if(item.id==id)return true;return false; }
         default void availableGear(JsonObject expected,Consumer<OwnedGear> success,Consumer<String> error) { success.accept(new OwnedGear(java.util.Collections.emptyMap(),java.util.Collections.emptyMap(),0,false)); }
         default void updateBankFilter(JsonObject p,String scope,Consumer<String> status,Consumer<JsonArray> layout){updateBankFilter(p,scope,status);}
@@ -146,6 +147,7 @@ public final class StudioPanel extends PluginPanel
     private final JLabel gearReadiness=text("Gear not checked");
     private JsonObject liveActual,alternativeUndo;
     private final JPanel alternativeRows=vertical();
+    private JPanel alternativesContent;private String autoShownAlternativeSession;
     private LoadoutStudioConfig.LibraryOrder libraryOrder=LoadoutStudioConfig.LibraryOrder.ALPHABETICAL;
     private JButton coffeeControl;
     private String upgradeBefore,upgradeAfter;
@@ -154,6 +156,7 @@ public final class StudioPanel extends PluginPanel
     private final JTextField catalogueQuery = new JTextField();
     private final DefaultListModel<ItemInfo> catalogueModel = new DefaultListModel<>();
     private final JList<ItemInfo> catalogueList = new JList<>(catalogueModel);
+    private final Timer alternativeTimer = new Timer(200,e->refreshAlternatives());
     private final Timer catalogueTimer = new Timer(180, e -> refreshCatalogue());
     private final JLabel catalogueCount = text("Search English item names or IDs");
     private String renderedSession;
@@ -179,7 +182,7 @@ public final class StudioPanel extends PluginPanel
 
 	public StudioPanel(Host host, Gson gson)
 	{
-		super(false); this.host = host; this.gson = gson; codec = new SetupCodec(gson);builderFeedback.setVisible(false);
+		super(false); this.host = host; this.gson = gson; codec = new SetupCodec(gson);alternativeTimer.setRepeats(false);builderFeedback.setVisible(false);
 		setLayout(new BorderLayout(0, 6)); setBackground(BG); setBorder(BorderFactory.createEmptyBorder(8, 6, 8, 6)); setPreferredSize(new Dimension(240, 900));
 		tabs.setFocusable(false); tabs.setUI(new BasicTabbedPaneUI()
 		{
@@ -189,7 +192,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.7.3-test - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.8.0-test - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffeeControl=coffee;coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel titleBar = new JPanel(new BorderLayout(3, 0)); titleBar.add(title, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
 		JPanel menu = new JPanel(new GridLayout(2, 2, 4, 4));
@@ -206,7 +209,8 @@ public final class StudioPanel extends PluginPanel
         catalogueList.setTransferHandler(new TransferHandler()
         {
             @Override public int getSourceActions(javax.swing.JComponent c) { return COPY; }
-            @Override protected Transferable createTransferable(javax.swing.JComponent c) { String value = catalogueDragPayload(); return value == null ? null : new StringSelection(value); }
+            @Override protected void exportDone(javax.swing.JComponent source,Transferable data,int action){ItemDragImage.finish(this);}
+            @Override protected Transferable createTransferable(javax.swing.JComponent c) { String value=catalogueDragPayload();ItemInfo selected=catalogueList.getSelectedValue();ItemInfo info=selected==null?null:itemCache.get(selected.id);ItemDragImage.prepare(this,catalogueList,info==null?null:info.icon);return value==null?null:new StringSelection(value); }
         });
         if (!java.awt.GraphicsEnvironment.isHeadless()) catalogueList.setDragEnabled(true);
         catalogueList.addMouseListener(new java.awt.event.MouseAdapter() { @Override public void mouseClicked(MouseEvent e) { if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) addSelectedItem(); } });
@@ -219,9 +223,9 @@ public final class StudioPanel extends PluginPanel
 		bankLayout.addActionListener(e -> { if (!rendering && draft != null) { editorLayout = (BankLayouts.Mode) bankLayout.getSelectedItem(); rebuildDraftLayout(); markDirty(); renderBuilder(); } });
 		bottomToTop.addActionListener(e -> { if (!rendering && draft != null) { editorBottom = bottomToTop.isSelected(); if (editorLayout == BankLayouts.Mode.ZIGZAG) rebuildDraftLayout(); markDirty(); } });
 		bankStatus.setEditable(false); bankStatus.setLineWrap(true); bankStatus.setWrapStyleWord(true);
-		host.observeGear(this::acceptLiveGear);preferencesChanged();
+		host.observeBank(this::scheduleAlternatives);host.observeGear(this::acceptLiveGear);preferencesChanged();
 	}
-	public void dispose() { disposed = true; host.observeGear(null);host.cancelItemInput(); catalogueTimer.stop(); if (wikiSuggestTimer != null) wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); wikiSearchRevision++; wikiPageRevision++; }
+	public void dispose() { disposed = true;host.observeBank(null);host.observeGear(null);host.cancelItemInput(); catalogueTimer.stop();alternativeTimer.stop(); if (wikiSuggestTimer != null) wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); wikiSearchRevision++; wikiPageRevision++; }
 	public void bankMessage(String value) { if (!disposed) bankStatus.setText(value == null ? "Bank filtering failed." : value); }
 	private void syncBankFilter()
 	{
@@ -239,7 +243,7 @@ public final class StudioPanel extends PluginPanel
 	}
 	private static final class Column extends JPanel implements javax.swing.Scrollable
 	{
-		Column() { setLayout(new BoxLayout(this, BoxLayout.Y_AXIS)); setAlignmentX(Component.LEFT_ALIGNMENT); setBackground(BG); }
+		Column() { setMinimumSize(new Dimension(0,0));setLayout(new BoxLayout(this, BoxLayout.Y_AXIS)); setAlignmentX(Component.LEFT_ALIGNMENT); setBackground(BG); }
 		@Override protected void addImpl(Component child, Object constraints, int index)
 		{
 			if (child instanceof javax.swing.JComponent) ((javax.swing.JComponent) child).setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -255,7 +259,8 @@ public final class StudioPanel extends PluginPanel
 		@Override public int getScrollableUnitIncrement(java.awt.Rectangle r, int orientation, int direction) { return 18; }
 		@Override public int getScrollableBlockIncrement(java.awt.Rectangle r, int orientation, int direction) { return Math.max(18, r.height - 18); }
 	}
-	private static JPanel vertical() { return new Column(); }
+	@Override public Dimension getMinimumSize(){return new Dimension(0,0);}
+    private static JPanel vertical() { return new Column(); }
 	private static JLabel text(String text) { JLabel label = new JLabel(text); label.putClientProperty("html.disable", true); label.setAlignmentX(Component.LEFT_ALIGNMENT); label.setFont(BODY_FONT); label.setForeground(TEXT); return label; }
 	private static void themeForm(Component component)
 	{
@@ -269,6 +274,7 @@ public final class StudioPanel extends PluginPanel
 	private JPanel disclosure(String title, Component content)
 	{
 		JPanel p = vertical(); content.setVisible(expandedPanels.contains(title)); JButton toggle = button((content.isVisible() ? "- " : "+ ") + title, () -> { });
+		toggle.setName("disclosure:"+title);toggle.setHorizontalAlignment(JButton.LEFT);toggle.putClientProperty("disclosure",true);
 		toggle.addActionListener(e -> { boolean open = !content.isVisible(); content.setVisible(open); if (open) expandedPanels.add(title); else expandedPanels.remove(title); toggle.setText((open ? "- " : "+ ") + title); for (Container ancestor = p; ancestor != null; ancestor = ancestor.getParent()) { ancestor.invalidate(); if (ancestor == this) break; } p.revalidate(); }); p.add(toggle); p.add(content); return p;
 	}
 	private void updateNavigation() { for (int i = 0; i < navigation.size(); i++) { JButton b = navigation.get(i); boolean active = i == tabs.getSelectedIndex(); b.setForeground(active ? GOLD : TEXT); b.setBackground(active ? new Color(53, 48, 37) : CONTROL); b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 3, 0, 0, active ? GOLD : OUTLINE), BorderFactory.createEmptyBorder(5, 6, 5, 6))); } }
@@ -303,7 +309,10 @@ public final class StudioPanel extends PluginPanel
             component.setFont(FontManager.getRunescapeSmallFont());
             ((JButton)component).setBorder(BorderFactory.createEmptyBorder(2, 3, 2, 3));
         }
-		if (component instanceof JTextField || component instanceof JComboBox || component instanceof JList) component.setBackground(CONTROL);
+		if(component instanceof JButton && ((JButton)component).getClientProperty("disclosure")!=null){JButton b=(JButton)component;b.setBackground(new Color(44,44,44));b.setForeground(GOLD);b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,1,0,OUTLINE),BorderFactory.createEmptyBorder(6,5,6,5)));}
+        if(component instanceof JButton && component.getName()!=null && component.getName().startsWith("wikiPreset:")){JButton b=(JButton)component;b.setBackground(new Color(48,44,34));b.setForeground(GOLD);b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,3,0,0,GOLD),BorderFactory.createEmptyBorder(7,8,7,8)));}
+        if(component instanceof JButton && component.getName()!=null && component.getName().startsWith("setupToggle:")){JButton b=(JButton)component;boolean selected=Boolean.TRUE.equals(b.getClientProperty("selected"));b.setBackground(selected?new Color(58,51,33):CONTROL);b.setForeground(selected?GOLD:TEXT);b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE),BorderFactory.createEmptyBorder(3,3,3,3)));}
+        if (component instanceof JTextField || component instanceof JComboBox || component instanceof JList) component.setBackground(CONTROL);
 		if (component instanceof JTextField) ((JTextField) component).setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE), BorderFactory.createEmptyBorder(4, 5, 4, 5)));
 		if (component instanceof JScrollPane) ((JScrollPane) component).setBorder(BorderFactory.createLineBorder(OUTLINE));
 		if(component instanceof JComboBox && !Boolean.TRUE.equals(((JComboBox<?>)component).getClientProperty("preserveRenderer")))((JComboBox<?>)component).setRenderer(plainNames());
@@ -325,7 +334,7 @@ public final class StudioPanel extends PluginPanel
     }
 	private static JButton button(String label, Runnable action) { JButton button = new JButton(label); button.putClientProperty("html.disable", true); button.setFont(ACTION_FONT); button.setForeground(TEXT); button.setBackground(CONTROL); button.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(OUTLINE), BorderFactory.createEmptyBorder(5, 6, 5, 6))); button.setFocusPainted(true); button.setMargin(new Insets(5, 6, 5, 6)); button.addActionListener(e -> action.run()); return button; }
 	private static JPanel row(Component... children) { JPanel p = new JPanel(new GridLayout(0, Math.max(1, Math.min(2, children.length)), 3, 3)); p.setAlignmentX(Component.LEFT_ALIGNMENT); for (Component c : children) p.add(c); p.setMaximumSize(new Dimension(500, p.getPreferredSize().height)); return p; }
-	private static JScrollPane scroll(Component c) { JScrollPane pane = new JScrollPane(c); pane.setBorder(null); pane.getVerticalScrollBar().setUnitIncrement(18); pane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER); return pane; }
+	private static JScrollPane scroll(Component c) { JScrollPane pane = new JScrollPane(c);pane.setMinimumSize(new Dimension(0,0)); pane.setBorder(null); pane.getVerticalScrollBar().setUnitIncrement(18); pane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER); return pane; }
 	private static void watch(JTextField field, Runnable action) { field.getDocument().addDocumentListener(new DocumentListener() { public void insertUpdate(DocumentEvent e) { action.run(); } public void removeUpdate(DocumentEvent e) { action.run(); } public void changedUpdate(DocumentEvent e) { action.run(); } }); }
 	private void message(String value) { if (!disposed) { for(JTextArea feedback:new JTextArea[]{libraryFeedback,builderFeedback,exportFeedback}){feedback.setVisible(false);feedback.setText("");} status.setText(value == null ? "Could not complete this action." : value); status.setToolTipText(status.getText()); } }
     private void failure(String value)
@@ -394,7 +403,7 @@ public final class StudioPanel extends PluginPanel
             JScrollPane list=scroll(choices);list.setPreferredSize(new Dimension(190,96));list.setMaximumSize(new Dimension(500,100));existingControls.add(list);
             JTextArea review=info("Select setups to review or copy.",6);review.setName("existingReview");existingControls.add(review);
             choices.addListSelectionListener(e->{ExistingSetupReader.Entry selected=choices.getSelectedValue();review.setText(selected==null?"Select setups to review or copy.":ConversionReview.imported(selected.portable,selected.source));review.setToolTipText(review.getText());});
-            existingControls.add(row(button("Save copies",()->attempt(()->{List<ExistingSetupReader.Entry> selected=choices.getSelectedValuesList();if(selected.isEmpty())throw new IllegalArgumentException("Select one or more setups first.");if(JOptionPane.showConfirmDialog(this,"Copy "+selected.size()+" selected setup(s) into Loadout Studio? Existing entries and other plugins are retained.","Copy setups",JOptionPane.OK_CANCEL_OPTION)!=JOptionPane.OK_OPTION)return;int count=importCopies(selected);message("Copied "+count+" setup(s); identical copies were skipped.");})),button("Open copy",()->{ExistingSetupReader.Entry selected=choices.getSelectedValue();if(selected!=null)newDraft(selected.portable);})));existingControls.add(button("Close import list",()->{existingControls.removeAll();existingControls.revalidate();}));
+            existingControls.add(row(button("Save copies",()->attempt(()->{List<ExistingSetupReader.Entry> selected=choices.getSelectedValuesList();if(selected.isEmpty())throw new IllegalArgumentException("Select one or more setups first.");if(JOptionPane.showConfirmDialog(this,"Copy "+selected.size()+" selected setup(s) into Loadout Studio? Existing entries and other plugins are retained.","Copy setups",JOptionPane.OK_CANCEL_OPTION)!=JOptionPane.OK_OPTION)return;int count=importCopies(selected);message("Copied "+count+" setup(s); duplicate names were numbered.");})),button("Open copy",()->{ExistingSetupReader.Entry selected=choices.getSelectedValue();if(selected!=null)newDraft(selected.portable);})));existingControls.add(button("Close import list",()->{existingControls.removeAll();existingControls.revalidate();}));
             if(result.entries.isEmpty())review.setText("No compatible setups found in this RuneLite profile. Portable JSON/Bank Tag import remains available.");
             if(!result.warnings.isEmpty())existingControls.add(info(String.join("\n",result.warnings),3));themeForm(existingControls);existingControls.revalidate();existingControls.repaint();
         },error->{if(Objects.equals(owner,recoveryOwner)){existingControls.removeAll();existingControls.add(info(error,3));themeForm(existingControls);existingControls.revalidate();}});
@@ -404,8 +413,8 @@ public final class StudioPanel extends PluginPanel
         if(selected.size()>100)throw new IllegalArgumentException("Copy at most 100 setups at once.");int[] count={0};
         commit(next->{for(ExistingSetupReader.Entry candidate:selected)
         {
-            if(next.setups.stream().anyMatch(entry->entry.portable.equals(candidate.portable)))continue;
-            SetupLibrary.Entry copy=new SetupLibrary.Entry(candidate.portable);copy.favorite=candidate.favorite;
+            
+            SetupLibrary.Entry copy=new SetupLibrary.Entry(candidate.portable);SetupCodec.setup(copy.portable).addProperty("name",next.uniqueName(SetupCodec.name(copy.portable)));copy.favorite=candidate.favorite;
             if(candidate.section!=null)
             {
                 SetupLibrary.Section target=next.sections.stream().filter(group->group.name.equals(candidate.section)).findFirst().orElse(null);
@@ -517,7 +526,7 @@ public final class StudioPanel extends PluginPanel
 	}
 	void open(SetupLibrary.Entry entry)
 	{
-		if (!discard()) return; host.cancelItemInput();ignoreAmmo.setSelected(host.settings().ignoreAmmoQuantities()); draft = entry.portable.deepCopy(); editorLayout = entry.bankLayout == null ? BankLayouts.infer(draft) : entry.bankLayout; editorBottom = entry.bankLayout == null ? BankLayouts.inferBottom(draft) : entry.zigzagBottomToTop; editingId = entry.id; editorSection = entry.section; editorFavorite = entry.favorite; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); message("Opened saved setup. Changes are saved only when you choose Save."); alternativeRows.removeAll();alternativeUndo=null;if(library.find(entry.id)!=null)attempt(()->commit(l->l.find(entry.id).lastOpened=System.currentTimeMillis()));host.requestGear();resolveDraftDefaults();
+		if (!discard()) return; host.cancelItemInput();ignoreAmmo.setSelected(host.settings().ignoreAmmoQuantities()); draft = entry.portable.deepCopy(); editorLayout = entry.bankLayout == null ? BankLayouts.infer(draft) : entry.bankLayout; editorBottom = entry.bankLayout == null ? BankLayouts.inferBottom(draft) : entry.zigzagBottomToTop; editingId = entry.id; editorSection = entry.section; editorFavorite = entry.favorite; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); message("Opened saved setup. Changes are saved only when you choose Save."); alternativeRows.removeAll();alternativeUndo=null;if(library.find(entry.id)!=null)attempt(()->commit(l->l.find(entry.id).lastOpened=System.currentTimeMillis()));host.requestGear();scheduleAlternatives();resolveDraftDefaults();
 	}
     private void setLibraryFavorite(String id, boolean selected)
     {
@@ -545,19 +554,20 @@ public final class StudioPanel extends PluginPanel
     }
     private void newDraft(JsonObject p,boolean defaultsResolved)
 	{
-		SetupCodec.validate(p,false);if (!discard()) return; host.cancelItemInput(); alternativeRows.removeAll();alternativeUndo=null;ignoreAmmo.setSelected(host.settings().ignoreAmmoQuantities());draft = p.deepCopy(); editorLayout = BankLayouts.infer(draft); editorBottom = BankLayouts.inferBottom(draft); editingId = null; editorSection = null; editorFavorite = false; dirty = true; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); persistRecovery();message("New draft. Review it, then Save to your library."); host.requestGear();if(!defaultsResolved)resolveDraftDefaults();
+		SetupCodec.validate(p,false);if (!discard()) return; host.cancelItemInput(); alternativeRows.removeAll();alternativeUndo=null;ignoreAmmo.setSelected(host.settings().ignoreAmmoQuantities());draft = p.deepCopy(); editorLayout = BankLayouts.infer(draft); editorBottom = BankLayouts.inferBottom(draft); editingId = null; editorSection = null; editorFavorite = false; dirty = true; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); persistRecovery();message("New draft. Review it, then Save to your library."); host.requestGear();scheduleAlternatives();if(!defaultsResolved)resolveDraftDefaults();
 	}
+    private boolean needsDefault(JsonElement item){return SetupCodec.id(item)==0||item!=null&&item.isJsonObject()&&item.getAsJsonObject().has("label")&&ItemCatalogue.legacyRingId(SetupCodec.id(item),item.getAsJsonObject().get("label").getAsString())!=SetupCodec.id(item);}
     private void resolveDraftDefaults()
     {
-        boolean needed=false;for(String key:new String[]{"eq","inv","rp","qv","bp"})for(JsonElement e:SetupCodec.setup(draft).has(key)&&SetupCodec.setup(draft).get(key).isJsonArray()?SetupCodec.setup(draft).getAsJsonArray(key):new JsonArray())if(SetupCodec.id(e)==0)needed=true;
+        boolean needed=false;for(String key:new String[]{"eq","inv","rp","qv","bp"})for(JsonElement e:SetupCodec.setup(draft).has(key)&&SetupCodec.setup(draft).get(key).isJsonArray()?SetupCodec.setup(draft).getAsJsonArray(key):new JsonArray())if(needsDefault(e))needed=true;
         if(!needed)return;String token=session;JsonObject current=draft;
         host.whenItemsReady(error->{
             if(disposed||error!=null||!token.equals(session)||current!=draft)return;
-            int resolved=0;for(String key:new String[]{"eq","inv","rp","qv","bp"})for(JsonElement entry:SetupCodec.setup(draft).has(key)&&SetupCodec.setup(draft).get(key).isJsonArray()?SetupCodec.setup(draft).getAsJsonArray(key):new JsonArray())if(SetupCodec.id(entry)==0){
-                JsonObject item=entry.getAsJsonObject();ItemInfo first=host.defaultItem(WikiParser.defaultName(item));
-                if(first!=null){item.addProperty("id",first.id);item.addProperty("label",first.name);itemCache.put(first.id,first);resolved++;}
+            int resolved=0;for(String key:new String[]{"eq","inv","rp","qv","bp"})for(JsonElement entry:SetupCodec.setup(draft).has(key)&&SetupCodec.setup(draft).get(key).isJsonArray()?SetupCodec.setup(draft).getAsJsonArray(key):new JsonArray())if(needsDefault(entry)){
+                JsonObject item=entry.getAsJsonObject();int oldId=SetupCodec.id(item);ItemInfo first=host.defaultItem(WikiParser.defaultName(item));
+                if(first!=null){if(oldId>0)for(int i=0;i<draft.getAsJsonArray("layout").size();i++)if(draft.getAsJsonArray("layout").get(i).getAsInt()==oldId)draft.getAsJsonArray("layout").set(i,new com.google.gson.JsonPrimitive(first.id));item.addProperty("id",first.id);item.addProperty("label",first.name);itemCache.put(first.id,first);resolved++;}
             }
-            if(resolved>0){SetupCodec.rebuildLayout(draft);markDirty();renderBuilder();syncBankFilter();message("Applied first choices to "+resolved+" slot(s). Review and Save to keep them.");}
+            if(resolved>0){rebuildDraftLayout();markDirty();renderBuilder();syncBankFilter();scheduleAlternatives();message("Applied first choices to "+resolved+" slot(s). Review and Save to keep them.");}
         });
     }
 	private void capture()
@@ -610,9 +620,15 @@ public final class StudioPanel extends PluginPanel
 
             draftLabel.setText(dirty ? "Unsaved changes" : "Saved setup"); setupName.setToolTipText(SetupCodec.name(draft) + " - " + draftLabel.getText());
             filterBank.setSelected(s.has("fb") && s.get("fb").getAsBoolean()); bankLayout.setSelectedItem(editorLayout); bottomToTop.setSelected(editorBottom); bottomToTop.setEnabled(editorLayout == BankLayouts.Mode.ZIGZAG);
-			JButton quickFilter = button(filterBank.isSelected() ? "Clear filter" : "Filter Bank", () -> setBankFiltering(!filterBank.isSelected())); quickFilter.setName("quickBankFilter"); quickFilter.setToolTipText("Toggle this setup's Bank filter. Layout settings are below the loadout.");
-			JButton quickCompare = button("Compare", this::compareGear); quickCompare.setName("quickCompareGear"); quickCompare.setToolTipText("Compare your current gear with this setup."); builderTools.add(row(quickFilter, quickCompare));builderFeedback.setName("builderFeedback");builderTools.add(builderFeedback);gearReadiness.setName("gearReadiness");builderTools.add(gearReadiness);
-            JPanel alternatives=vertical();alternatives.add(button("Check my Bank",this::findAlternatives));alternatives.add(alternativeRows);builder.add(disclosure("My gear alternatives",alternatives));
+			            JPanel setupActions=new JPanel(new GridLayout(1,5,3,0));setupActions.setName("setupActions");
+            setupActions.add(setupToggle("filter",0,"Enable bank filtering",filterBank.isSelected(),()->setBankFiltering(!filterBank.isSelected())));
+            setupActions.add(setupToggle("unordered",1,"Only highlight items missing from Inventory; ignore order",s.has("uh")&&s.get("uh").getAsBoolean(),()->{s.addProperty("uh",!s.has("uh")||!s.get("uh").getAsBoolean());markDirty();renderBuilder();}));
+            setupActions.add(setupToggle("highlight",2,"Enable highlighting",highlighting(),()->{s.addProperty("hd",!highlighting());markDirty();renderBuilder();}));
+            setupActions.add(setupToggle("color",3,"Edit highlight color",true,()->{Color color=javax.swing.JColorChooser.showDialog(this,"Highlight color",highlightColor());if(color!=null){s.addProperty("hc",String.format("#FF%06X",color.getRGB()&0xFFFFFF));markDirty();renderBuilder();}}));
+            setupActions.add(setupToggle("favorite",4,"Favorite this setup",favorite.isSelected(),()->{favorite.doClick();renderBuilder();}));builderTools.add(setupActions);
+            if(host.settings().showAttackOption())builderTools.add(text("Attack option: "+(s.has("ao")&&!s.get("ao").isJsonNull()&&!s.get("ao").getAsString().isEmpty()?s.get("ao").getAsString():"not specified")));
+            JButton quickCompare=button("Compare",this::compareGear);quickCompare.setName("quickCompareGear");builderTools.add(quickCompare);builderFeedback.setName("builderFeedback");builderTools.add(builderFeedback);gearReadiness.setName("gearReadiness");builderTools.add(gearReadiness);
+            JPanel alternatives=vertical();alternativesContent=alternatives;if(!host.settings().autoAlternatives())alternatives.add(button("Refresh alternatives",this::refreshAlternatives));alternatives.add(alternativeRows);builder.add(disclosure("My gear alternatives",alternatives));
 
             JPanel inventory = itemGrid(7, 4); inventory.setName("inventoryGrid");
             for (int i = 0; i < 28; i++) inventory.add(slot("inv", i)); builder.add(loadoutSection("Inventory", inventory));
@@ -623,7 +639,7 @@ public final class StudioPanel extends PluginPanel
             int[][] positions = {{0,1,0},{1,0,1},{2,1,1},{13,2,1},{3,0,2},{4,1,2},{5,2,2},{7,1,3},{9,0,4},{10,1,4},{12,2,4}};
             for (int[] position : positions) { GridBagConstraints c = new GridBagConstraints(); c.gridx = position[1]; c.gridy = position[2]; c.insets = new Insets(0, 0, 0, 0); equipment.add(slot("eq", position[0]), c); }
             equipment.setPreferredSize(new Dimension(132, 220)); builder.add(loadoutSection("Equipment", equipment));
-            spellbook.setBorder(differences.contains("spellbook")?BorderFactory.createLineBorder(RED,2):javax.swing.UIManager.getBorder("ComboBox.border"));spellbook.setPreferredSize(new Dimension(132, 28)); builder.add(loadoutSection("Spellbook", spellbook));
+            spellbook.setBorder(highlighting()&&differences.contains("spellbook")?BorderFactory.createLineBorder(highlightColor(),2):javax.swing.UIManager.getBorder("ComboBox.border"));spellbook.setPreferredSize(new Dimension(132, 28)); builder.add(loadoutSection("Spellbook", spellbook));
             JPanel quiver = itemGrid(1, 1); quiver.add(slot("qv", 0)); builder.add(loadoutSection("Quiver", quiver));
 
             int extraCount = Math.max(4, ((s.getAsJsonObject("afi").size() + 3) / 4) * 4);
@@ -632,7 +648,7 @@ public final class StudioPanel extends PluginPanel
 
             JPanel loadoutOptions = vertical(); loadoutOptions.add(button("Max pouch runes (16k)", () -> { for (JsonElement e : s.getAsJsonArray("rp")) if (!e.isJsonNull()) e.getAsJsonObject().addProperty("q", 16000); markDirty(); renderBuilder(); })); loadoutOptions.add(button("Add Bolt Pouch slots",()->{if(!s.has("bp")||!s.get("bp").isJsonArray())s.add("bp",SetupCodec.empty(4));markDirty();renderBuilder();}));loadoutOptions.add(button("Capture attack option",()->{String token=session;host.capture(actual->{if(!disposed&&token.equals(session)){JsonObject current=SetupCodec.setup(actual);s.addProperty("ao",current.has("ao")?current.get("ao").getAsString():"");markDirty();renderBuilder();}},this::failure);}));loadoutOptions.add(button("Ignore attack option",()->{s.remove("ao");markDirty();renderBuilder();}));if(s.has("ao")&&!s.get("ao").isJsonNull()&&!s.get("ao").getAsString().isEmpty())loadoutOptions.add(info("Attack option: "+s.get("ao").getAsString(),1)); loadoutOptions.add(button("Add filtered item", () -> editSlot("afi", SetupCodec.setup(draft).getAsJsonObject("afi").size()))); builder.add(disclosure("Loadout options", loadoutOptions));
             JPanel bankOptions = vertical(); bankOptions.add(bankLayout); bankOptions.add(bottomToTop); bankStatus.setRows(2); bankStatus.setMaximumSize(new Dimension(500, 54)); bankOptions.add(bankStatus); builder.add(disclosure("Bank filtering and layout", bankOptions));
-            JPanel details = vertical(); details.add(text("Section")); details.add(section); details.add(favorite); details.add(button("Save copy", () -> saveDraft(true)));builder.add(disclosure("Setup details", details));
+            JPanel details = vertical(); details.add(text("Section")); details.add(section);  details.add(button("Save copy", () -> saveDraft(true)));builder.add(disclosure("Setup details", details));
 
 		}
 		finally { rendering = false; refreshGearComparison();themeForm(builderTools); themeForm(builder); builderTools.revalidate(); builderTools.repaint(); builder.revalidate(); builder.repaint(); if (viewport != null) SwingUtilities.invokeLater(() -> { if (!disposed && renderToken.equals(session)) viewport.setViewPosition(new java.awt.Point(0, Math.min(viewportPosition.y, Math.max(0, builder.getPreferredSize().height - viewport.getExtentSize().height)))); }); }
@@ -650,16 +666,12 @@ public final class StudioPanel extends PluginPanel
             }
         }
         if(target==null)return;
-        JPanel guide=vertical();guide.setName("resolutionGuide");String key=targetKey;int index=targetIndex;JsonObject item=target;
-        String label=item.has("label")?item.get("label").getAsString():key+" slot "+(index+1);
-        guide.add(info(remaining+" choice(s) needed · "+label,2));
-        if(item.has("choices") && item.get("choices").isJsonArray())
-        {
-            JComboBox<String> alternatives=new JComboBox<>();alternatives.addItem("Choose an alternative…");for(JsonElement option:item.getAsJsonArray("choices"))alternatives.addItem(option.getAsString());alternatives.setName("wikiAlternatives");guide.add(alternatives);
-            alternatives.addActionListener(e->{if(alternatives.getSelectedIndex()<1)return;String chosen=(String)alternatives.getSelectedItem();ItemInfo exact=host.defaultItem(chosen);if(exact==null){message("Choose the exact item/variant using Item Search. Source conditions remain in Notes.");editSlot(key,index);return;}itemCache.put(exact.id,exact);attempt(()->{JsonObject replacement=item.deepCopy();replacement.addProperty("id",exact.id);replacement.addProperty("label",exact.name);validateSlot(key,index,replacement);put(key,index,replacement);changedSlot();});});
-        }
-        guide.add(button(SetupCodec.id(item)==0?"Choose item in chat":"Enter missing quantity",()->{if(SetupCodec.id(item)==0)editSlot(key,index);else editQuantity(key,index);}));builderTools.add(guide);
+        JTextArea guide=new CompactStatusArea(remaining+" slots need review. Click ? to search; right-click a slot to set its quantity.");guide.setName("resolutionGuide");builderTools.add(guide);
     }
+
+    private JButton setupToggle(String name,int icon,String tooltip,boolean selected,Runnable action){JButton button=button("",action);button.setName("setupToggle:"+name);button.putClientProperty("selected",selected);button.setIcon(new SetupActionIcon(icon,highlightColor()));button.setToolTipText(tooltip);button.getAccessibleContext().setAccessibleName(tooltip);button.setPreferredSize(new Dimension(30,26));return button;}
+    private boolean highlighting(){return draft!=null&&(!SetupCodec.setup(draft).has("hd")||SetupCodec.setup(draft).get("hd").getAsBoolean());}
+    private Color highlightColor(){try{return new Color((int)Long.parseLong(SetupCodec.setup(draft).get("hc").getAsString().replace("#",""),16),true);}catch(RuntimeException ex){return RED;}}
     private static JPanel itemGrid(int rows, int columns)
     {
         JPanel grid = new JPanel(new GridLayout(rows, columns, 0, 0)); grid.setPreferredSize(new Dimension(columns * 44, rows * 44)); return grid;
@@ -687,9 +699,9 @@ public final class StudioPanel extends PluginPanel
 	{
 		JsonElement entry = get(key, index); int id = SetupCodec.id(entry); String empty = ""; String container = key.equals("eq") ? EQUIPMENT[index] : key.equals("inv") ? "Inventory" : key.equals("rp") ? "Rune Pouch" : key.equals("bp") ? "Bolt Pouch" : key.equals("qv") ? "Quiver" : "Additional filtered items";
 		LoadoutSlotButton button = new LoadoutSlotButton(id > 0 ? String.valueOf(id) : id == 0 ? "?" : empty); button.addActionListener(e -> editSlot(key, index)); button.setName("itemSlot"); button.putClientProperty("slotContainer", key); button.putClientProperty("slotIndex", index); button.setPreferredSize(new Dimension(44, 44)); button.setMinimumSize(new Dimension(44, 44)); button.setBackground(SLOT); button.setFont(FontManager.getRunescapeSmallFont()); button.setMargin(new Insets(1, 1, 1, 1)); button.setForeground(GOLD);
-		button.setBorder(BorderFactory.createLineBorder(slotDifferent(key + ":" + index) ? RED : BG, slotDifferent(key + ":" + index) ? 2 : 1));
+		button.setBorder(BorderFactory.createLineBorder(slotDifferent(key + ":" + index) ? highlightColor() : BG, slotDifferent(key + ":" + index) ? 2 : 1));
         button.setRolloverEnabled(true); button.setContentAreaFilled(true);
-        button.getModel().addChangeListener(e -> button.setBorder(BorderFactory.createLineBorder(slotDifferent(key + ":" + index) ? RED : button.getModel().isRollover() ? OUTLINE : BG)));
+        button.getModel().addChangeListener(e -> button.setBorder(BorderFactory.createLineBorder(slotDifferent(key + ":" + index) ? highlightColor() : button.getModel().isRollover() ? OUTLINE : BG)));
         button.getAccessibleContext().setAccessibleName((container + " slot " + (index + 1)) + (id < 0 ? " - empty" : " - edit item"));
         if (id < 0) button.setToolTipText("Empty " + container + " slot - click to add an item");
 		if (id == 0) button.setToolTipText((entry.getAsJsonObject().has("label")?entry.getAsJsonObject().get("label").getAsString():"Unresolved item") + " · choose an exact Item ID");
@@ -697,7 +709,8 @@ public final class StudioPanel extends PluginPanel
         button.setTransferHandler(new TransferHandler()
         {
             @Override public int getSourceActions(javax.swing.JComponent c) { return MOVE; }
-            @Override protected Transferable createTransferable(javax.swing.JComponent c) { String value = dragPayload(key, index); return value == null ? null : new StringSelection(value); }
+            @Override protected Transferable createTransferable(javax.swing.JComponent c) { String value = dragPayload(key, index);ItemDragImage.prepare(this,button,button.getIcon());return value == null ? null : new StringSelection(value); }
+            @Override protected void exportDone(javax.swing.JComponent source,Transferable data,int action){ItemDragImage.finish(this);}
             @Override public boolean canImport(TransferSupport support)
             {
                 try { if (!support.isDataFlavorSupported(DataFlavor.stringFlavor)) return false; return canDrop((String)support.getTransferable().getTransferData(DataFlavor.stringFlavor), key, index); } catch (Exception ex) { return false; }
@@ -713,7 +726,7 @@ public final class StudioPanel extends PluginPanel
             @Override public void mousePressed(MouseEvent e) { start = e.getPoint(); started = false; }
             @Override public void mouseDragged(MouseEvent e) { if (!started && start != null && (e.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) != 0 && start.distance(e.getPoint()) >= 5) { started = true; button.getModel().setArmed(false); button.getTransferHandler().exportAsDrag(button, e, TransferHandler.MOVE); } }
         };
-        button.addMouseListener(drag); button.addMouseMotionListener(drag); button.setComponentPopupMenu(slotMenu(key,index)); return button;
+        button.addMouseListener(drag); button.addMouseMotionListener(drag); button.menuFactory=shift->slotMenu(key,index,shift);button.setComponentPopupMenu(slotMenu(key,index)); return button;
     }
 
     private void refreshCatalogue()
@@ -748,6 +761,7 @@ public final class StudioPanel extends PluginPanel
     }
     String catalogueDragPayload() { ItemInfo item = catalogueList.getSelectedValue(); return item == null ? null : "loadout-item:" + session + ":" + item.id; }
     String dragPayload(String key, int index) { return validSlot(key, index) && !get(key, index).isJsonNull() ? "loadout-slot:" + session + ":" + key + ":" + index : null; }
+    private JsonElement dropItem(String key,JsonElement item){JsonElement copy=item.deepCopy();if(key.equals("rp")&&SetupCodec.quantity(copy)>16000)copy.getAsJsonObject().addProperty("q",16000);return copy;}
     private boolean canDrop(String value, String key, int index)
     {
         if (disposed || !validSlot(key, index) || value == null) return false;
@@ -755,7 +769,7 @@ public final class StudioPanel extends PluginPanel
         if (parts[0].equals("loadout-item") && parts.length == 3) { int id = Integer.parseInt(parts[2]); for (int i = 0; i < catalogueModel.size(); i++) if (catalogueModel.get(i).id == id) return true; return false; }
         if (!parts[0].equals("loadout-slot") || parts.length != 4 || !validSlot(parts[2], Integer.parseInt(parts[3]))) return false;
         JsonElement item = get(parts[2], Integer.parseInt(parts[3])); if (item.isJsonNull()) return false;
-        validateSlot(key, index, item); validateSlot(parts[2], Integer.parseInt(parts[3]), get(key, index)); return true;
+        validateSlot(key,index,dropItem(key,item));validateSlot(parts[2],Integer.parseInt(parts[3]),get(key,index));return true;
     }
     private void checkExtraDuplicate(String key, int index, JsonElement item)
     {
@@ -768,14 +782,21 @@ public final class StudioPanel extends PluginPanel
             if (!canDrop(value, key, index)) return false; String[] parts = value.split(":");
             if (parts[0].equals("loadout-item")) { addCatalogueItem(Integer.parseInt(parts[2]), key, index); return true; }
             String from = parts[2]; int old = Integer.parseInt(parts[3]); if (from.equals(key) && old == index) return false;
-            JsonElement a = get(from, old).deepCopy(), b = get(key, index).deepCopy();
+            JsonElement a = dropItem(key,get(from,old)), b = get(key,index).deepCopy();
+            JsonElement remainder=JsonNull.INSTANCE;
+            if(key.equals("rp")&&SetupCodec.quantity(get(from,old))>16000){
+                long remaining=(long)SetupCodec.quantity(get(from,old))-16000;
+                if(!b.isJsonNull()&&SetupCodec.id(b)==SetupCodec.id(a))remaining+=SetupCodec.quantity(b);
+                else if(!b.isJsonNull()) {if(!from.equals("inv"))throw new IllegalArgumentException("Use an Inventory rune stack for this transfer.");int empty=firstEmpty();if(empty<0)throw new IllegalArgumentException("Free one Inventory slot for the old Rune Pouch item first.");put("inv",empty,b);}
+                if(remaining>Integer.MAX_VALUE)throw new IllegalArgumentException("Combined rune stack exceeds the supported amount.");JsonObject rest=get(from,old).getAsJsonObject().deepCopy();rest.addProperty("q",remaining);remainder=rest;
+            }
             if (from.equals("afi") && key.equals("afi"))
             {
                 List<JsonElement> items = new ArrayList<>(); for (Map.Entry<String, JsonElement> entry : SetupCodec.setup(draft).getAsJsonObject("afi").entrySet()) items.add(entry.getValue()); while (items.size() <= Math.max(old, index)) items.add(JsonNull.INSTANCE); items.set(old, b); items.set(index, a);
                 JsonObject extras = new JsonObject(); for (JsonElement item : items) if (!item.isJsonNull()) extras.add(String.valueOf(SetupCodec.id(item)), item); SetupCodec.setup(draft).add("afi", extras);
             }
-            else { checkExtraDuplicate(key, index, a); checkExtraDuplicate(from, old, b); fieldsToDraft(); put(from, old, b); put(key, index, a); }
-            rebuildDraftLayout(); markDirty(); renderBuilder(); message("Moved item. Choose Save to keep your changes."); return true;
+            else { checkExtraDuplicate(key, index, a); checkExtraDuplicate(from, old, b); fieldsToDraft(); put(from,old,remainder.isJsonNull()?b:remainder);put(key,index,a); }
+            rebuildDraftLayout();markDirty();renderBuilder();scheduleAlternatives();message("Moved item. Choose Save to keep your changes."); return true;
         }
         catch (RuntimeException ex) { failure(failureMessage(ex)); return false; }
     }
@@ -790,7 +811,8 @@ public final class StudioPanel extends PluginPanel
 		if (key.equals("qv") && info != null && !info.name.toLowerCase(java.util.Locale.ROOT).matches(".*(arrow|bolt)s?(?: \\(.*\\))?$")) throw new IllegalArgumentException("Quiver accepts arrows or bolts.");
 		if (key.equals("eq") && info != null && info.slot != index) throw new IllegalArgumentException("This item belongs in a different Equipment slot.");
 	}
-    private javax.swing.JPopupMenu slotMenu(String key,int index)
+    private javax.swing.JPopupMenu slotMenu(String key,int index){return slotMenu(key,index,false);}
+    private javax.swing.JPopupMenu slotMenu(String key,int index,boolean shift)
     {
         javax.swing.JPopupMenu menu=new javax.swing.JPopupMenu(); JsonElement current=get(key,index);
         javax.swing.JMenuItem search=new javax.swing.JMenuItem("Update Slot from Search"); search.addActionListener(e->editSlot(key,index)); menu.add(search);
@@ -799,15 +821,20 @@ public final class StudioPanel extends PluginPanel
         javax.swing.JMenuItem fuzzy=new javax.swing.JMenuItem("Toggle Fuzzy"); fuzzy.setEnabled(!current.isJsonNull()); fuzzy.addActionListener(e->attempt(()->{ JsonObject item=get(key,index).getAsJsonObject(); item.addProperty("f",!item.has("f") || !item.get("f").getAsBoolean()); changedSlot(); })); menu.add(fuzzy);
         javax.swing.JMenu stack=new javax.swing.JMenu("Stack comparison"); stack.setEnabled(!current.isJsonNull() && !SetupCodec.unlimited(current));
         for(LoadoutStudioConfig.StackRule rule:LoadoutStudioConfig.StackRule.values()) { String value=rule.code; javax.swing.JMenuItem option=new javax.swing.JMenuItem(rule.label); option.addActionListener(e->attempt(()->{ get(key,index).getAsJsonObject().addProperty("sc",value); changedSlot(); })); stack.add(option); } menu.add(stack);
-        javax.swing.JMenuItem remove=new javax.swing.JMenuItem("Remove Item from Slot"); remove.setEnabled(!current.isJsonNull()); remove.addActionListener(e->{ put(key,index,JsonNull.INSTANCE); changedSlot(); }); menu.add(remove); themeMenu(menu); return menu;
+        javax.swing.JMenuItem remove=new javax.swing.JMenuItem("Remove Item from Slot"); remove.setEnabled(!current.isJsonNull()); remove.addActionListener(e->{ put(key,index,JsonNull.INSTANCE); changedSlot(); }); menu.add(remove);
+        if(shift&&SetupCodec.id(current)>0){menu.addSeparator();javax.swing.JMenuItem allCurrent=new javax.swing.JMenuItem("Update ALL slots from "+(key.equals("eq")?"Equipment":"Inventory"));allCurrent.addActionListener(e->attempt(()->bulkFromContainer(key,index)));menu.add(allCurrent);javax.swing.JMenuItem allSearch=new javax.swing.JMenuItem("Update ALL slots from Search");allSearch.addActionListener(e->attempt(()->bulkFromSearch(key,index)));menu.add(allSearch);}themeMenu(menu);return menu;
     }
-    private void changedSlot() { fieldsToDraft(); rebuildDraftLayout(); markDirty(); renderBuilder(); }
+    private void bulkFromSearch(String key,int index){if(dirty)throw new IllegalStateException("Save this setup before updating all saved setups.");int old=SetupCodec.id(get(key,index));String token=session;host.chooseItem(id->{if(!disposed&&token.equals(session))host.describe(id,replacement->host.describe(old,original->{if(!disposed&&token.equals(session))attempt(()->confirmBulkUpdate(original,replacement));}));},this::failure);}
+    private void bulkFromContainer(String key,int index){if(dirty)throw new IllegalStateException("Save this setup before updating all saved setups.");int old=SetupCodec.id(get(key,index));String token=session;host.capture(actual->{if(disposed||!token.equals(session))return;String source=key.equals("eq")?"eq":"inv";JsonArray slots=SetupCodec.setup(actual).getAsJsonArray(source);int id=index<slots.size()?SetupCodec.id(slots.get(index)):-1;if(id<1){failure("That live slot is empty. Choose Update ALL slots from Search instead.");return;}host.describe(id,replacement->host.describe(old,original->{if(!disposed&&token.equals(session))attempt(()->confirmBulkUpdate(original,replacement));}));},this::failure);}
+    Set<String> bulkTargets(int id){Set<String> targets=new HashSet<>();for(SetupLibrary.Entry entry:library.setups)if(BankLayouts.items(entry.portable).stream().anyMatch(item->SetupCodec.id(item)==id))targets.add(entry.id);return targets;}
+    private void confirmBulkUpdate(ItemInfo original,ItemInfo replacement){Set<String> targets=bulkTargets(original.id);if(targets.isEmpty())return;String owner=recoveryOwner,token=session;if(JOptionPane.showConfirmDialog(this,"Replace "+original.name+" with "+replacement.name+" in ALL "+targets.size()+" matching saved setups, including archived setups? Amounts and matching rules are retained. Undo is in Library tools.","Update all matching slots",JOptionPane.OK_CANCEL_OPTION)!=JOptionPane.OK_OPTION)return;if(owner.equals(recoveryOwner)&&token.equals(session))replaceLibraryItems(original,replacement,targets);}
+    private void changedSlot() { fieldsToDraft(); rebuildDraftLayout(); markDirty(); renderBuilder(); scheduleAlternatives(); }
     private void editSlot(String key,int index)
     {
         if(draft==null) return; fieldsToDraft(); String token=session; JsonElement before=get(key,index).deepCopy(); message("Choose an item in the RuneLite chatbox.");
         host.chooseItem(id->{ if(disposed || !token.equals(session) || id<1 || !before.equals(get(key,index))) return;
             host.describe(id,info->{ if(disposed || !token.equals(session) || !before.equals(get(key,index))) return; itemCache.put(id,info);
-                if(info.stackable || key.equals("rp") || key.equals("qv")) host.enterQuantity(amountText(before),value->{ if(token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,id,value); },this::failure);
+                if(info.stackable || key.equals("rp") || key.equals("qv")) host.enterQuantity(host.settings().emptyQuantityInput()?"":amountText(before),value->{ if(token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,id,value); },this::failure);
                 else applySlotItem(key,index,id,"1");
             });
         },this::failure);
@@ -819,7 +846,7 @@ public final class StudioPanel extends PluginPanel
     private void editQuantity(String key,int index)
     {
         JsonElement before=get(key,index).deepCopy(); String token=session; if(before.isJsonNull()) return;
-        host.enterQuantity(amountText(before),value->{ if(!disposed && token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,SetupCodec.id(before),value); },this::failure);
+        host.enterQuantity(host.settings().emptyQuantityInput()?"":amountText(before),value->{ if(!disposed && token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,SetupCodec.id(before),value); },this::failure);
     }
     private void applySlotItem(String key,int index,int id,String amount)
     {
@@ -827,7 +854,7 @@ public final class StudioPanel extends PluginPanel
             ItemInfo info=itemCache.get(id); if(info==null) throw new IllegalArgumentException("Item details are still loading."); if(!info.stackable && quantity>1) throw new IllegalArgumentException("Non-stackable items need separate slots.");
             JsonElement previous=get(key,index); JsonObject item=SetupCodec.item(id,quantity);
             if(!previous.isJsonNull()) for(String field:new String[]{"f","sc"}) if(previous.getAsJsonObject().has(field)) item.add(field,previous.getAsJsonObject().get(field).deepCopy());
-            if(quantity==0) item.addProperty("sc","None"); validateSlot(key,index,item); checkExtraDuplicate(key,index,item); put(key,index,item); changedSlot(); message(quantity==0 ? "Unlimited: quantity matching is disabled for this slot." : "Slot updated.");
+            if(quantity==0)item.addProperty("sc","None");else if(!item.has("sc")||item.get("sc").getAsString().equals("None"))item.addProperty("sc","Standard"); validateSlot(key,index,item); checkExtraDuplicate(key,index,item); put(key,index,item); changedSlot(); message(quantity==0 ? "Unlimited: quantity matching is disabled for this slot." : "Slot updated.");
         });
     }
     private void updateSlotFromContainer(String key,int index)
@@ -843,7 +870,7 @@ public final class StudioPanel extends PluginPanel
 	{
 		if (draft == null) return;
 		attempt(() -> { fieldsToDraft(); SetupCodec.validate(draft, false); String chosenSection = sectionIds.get(Math.max(0, section.getSelectedIndex())); boolean chosenFavorite = favorite.isSelected(); String id = copy || editingId == null ? UUID.randomUUID().toString() : editingId;
-			commit(l -> { SetupLibrary.Entry record = l.find(id); if (record == null) { record = new SetupLibrary.Entry(draft); record.id = id; l.setups.add(record); } record.portable = draft.deepCopy(); record.section = chosenSection; record.favorite = chosenFavorite; record.bankLayout = editorLayout; record.zigzagBottomToTop = editorBottom;record.lastOpened=System.currentTimeMillis(); }); editingId = id; dirty = false; clearRecovery(); draftLabel.setText("Saved setup"); setupName.setToolTipText(setupName.getText() + " - Saved setup"); message("Saved to this character/profile library."); });
+			commit(l -> { SetupLibrary.Entry record = l.find(id); if (record == null) { record = new SetupLibrary.Entry(draft); record.id = id; } record.portable=draft.deepCopy();if(copy||editingId==null)SetupCodec.setup(record.portable).addProperty("name",l.uniqueName(SetupCodec.name(draft)));record.section = chosenSection; record.favorite = chosenFavorite; record.bankLayout = editorLayout; record.zigzagBottomToTop = editorBottom;record.lastOpened=System.currentTimeMillis();if(l.find(id)==null)l.setups.add(record); });String storedName=SetupCodec.name(library.find(id).portable);SetupCodec.setup(draft).addProperty("name",storedName);boolean beforeRendering=rendering;rendering=true;setupName.setText(storedName);rendering=beforeRendering; editingId = id; dirty = false; clearRecovery(); draftLabel.setText("Saved setup"); setupName.setToolTipText(setupName.getText() + " - Saved setup"); message("Saved to this character/profile library."); });
 	}
 	private void compareGear()
 	{
@@ -852,23 +879,23 @@ public final class StudioPanel extends PluginPanel
 	}
     void acceptLiveGear(JsonObject actual)
     {
-        if(disposed)return;liveActual=actual==null?null:actual.deepCopy();refreshGearComparison();
+        if(disposed)return;liveActual=actual==null?null:actual.deepCopy();refreshGearComparison();scheduleAlternatives();
     }
     private void refreshGearComparison()
     {
         if(draft==null || liveActual==null){gearReadiness.setText("Live check: log in");gearReadiness.setToolTipText("Current gear is unknown until logged in.");if(liveActual==null){differences.clear();updateDifferenceBorders(builder);}return;}
         Set<String> next=SetupComparison.differences(draft,liveActual,ignoreAmmo.isSelected(),SetupVariationMapping::map);
         differences.clear();differences.addAll(next);gearReadiness.setText(next.isEmpty()?"Gear matches setup":next.size()+" gear difference(s)");List<String> reasons=new ArrayList<>();for(String key:next)reasons.add(differenceReason(key));gearReadiness.setToolTipText(next.isEmpty()?"Compared with your current local gear.":String.join("; ",reasons));
-        updateDifferenceBorders(builder);spellbook.setBorder(next.contains("spellbook")?BorderFactory.createLineBorder(RED,2):javax.swing.UIManager.getBorder("ComboBox.border"));
+        updateDifferenceBorders(builder);spellbook.setBorder(highlighting()&&next.contains("spellbook")?BorderFactory.createLineBorder(highlightColor(),2):javax.swing.UIManager.getBorder("ComboBox.border"));
     }
     private void updateDifferenceBorders(Container root)
     {
         for(Component child:root.getComponents()){
-            if(child instanceof JButton && "itemSlot".equals(child.getName())){JButton slot=(JButton)child;String key=slot.getClientProperty("slotContainer")+":"+slot.getClientProperty("slotIndex");slot.setBorder(BorderFactory.createLineBorder(slotDifferent(key)?RED:BG,slotDifferent(key)?2:1));slot.getAccessibleContext().setAccessibleDescription(slotDifferent(key)?differenceReason(key):"Matches current gear");String base=(String)slot.getClientProperty("baseTooltip");if(base!=null)slot.setToolTipText(base+(slotDifferent(key)?" · "+differenceReason(key):""));}
+            if(child instanceof JButton && "itemSlot".equals(child.getName())){JButton slot=(JButton)child;String key=slot.getClientProperty("slotContainer")+":"+slot.getClientProperty("slotIndex");slot.setBorder(BorderFactory.createLineBorder(slotDifferent(key)?highlightColor():BG,slotDifferent(key)?2:1));slot.getAccessibleContext().setAccessibleDescription(slotDifferent(key)?differenceReason(key):"Matches current gear");String base=(String)slot.getClientProperty("baseTooltip");if(base!=null)slot.setToolTipText(base+(slotDifferent(key)?" · "+differenceReason(key):""));}
             if(child instanceof Container)updateDifferenceBorders((Container)child);
         }
     }
-    private boolean slotDifferent(String key){return differences.contains(key)||key.equals("eq:3")&&differences.contains("attackOption");}
+    private boolean slotDifferent(String key){return highlighting()&&(differences.contains(key)||key.equals("eq:3")&&differences.contains("attackOption"));}
     private String differenceReason(String key)
     {
         if(key.equals("eq:3")&&!differences.contains(key)&&differences.contains("attackOption"))return "Wrong attack option";
@@ -881,24 +908,27 @@ public final class StudioPanel extends PluginPanel
         if(SetupCodec.id(expected)!=SetupCodec.id(present)&&!(expected.getAsJsonObject().has("f")&&expected.getAsJsonObject().get("f").getAsBoolean()&&SetupVariationMapping.map(SetupCodec.id(expected))==SetupVariationMapping.map(SetupCodec.id(present))))return name+": different item or slot";
         return name+": quantity differs";
     }
-    private void findAlternatives()
+    private void scheduleAlternatives(){if(alternativeUndo!=null&&draftRevision!=alternativeUndoRevision)alternativeUndo=null;if(!disposed&&draft!=null&&host.settings().autoAlternatives()&&alternativeUndo==null)alternativeTimer.restart();}
+    private void refreshAlternativeRows(){themeForm(alternativeRows);for(Container parent=alternativeRows;parent!=null;parent=parent.getParent()){parent.invalidate();if(parent==this)break;}builder.revalidate();builder.repaint();}
+    private void showAlternativesOnce(boolean available){if(!available||session.equals(autoShownAlternativeSession)||!host.settings().autoShowAlternatives())return;autoShownAlternativeSession=session;expandedPanels.add("My gear alternatives");if(alternativesContent!=null){alternativesContent.setVisible(true);Container parent=alternativesContent.getParent();if(parent!=null)for(Component child:parent.getComponents())if(child instanceof JButton&&"disclosure:My gear alternatives".equals(child.getName()))((JButton)child).setText("- My gear alternatives");}}
+    void refreshAlternatives()
     {
-        if(draft==null)return;fieldsToDraft();String token=session;long revision=draftRevision;alternativeRows.removeAll();alternativeRows.add(info("Checking local Bank and gear...",2));
+        if(draft==null)return;fieldsToDraft();String token=session;long revision=draftRevision;alternativeRows.removeAll();if(BankLayouts.items(draft).isEmpty())return;alternativeRows.add(info("Checking local gear...",1));
         host.availableGear(draft.deepCopy(),owned->{
             if(disposed||!token.equals(session)||revision!=draftRevision)return;alternativeRows.removeAll();
-            if(owned.observedAt==0){alternativeRows.add(info("Bank unknown. Open your Bank, then check again. No Wiki request is made.",3));renderBuilder();return;}
+            if(owned.observedAt==0){alternativeRows.add(info("Open your Bank to see owned alternatives.",2));refreshAlternativeRows();return;}
             String date=java.time.Instant.ofEpochMilli(owned.observedAt).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
             alternativeRows.add(info((owned.bankOpen?"Bank observed now":"Last Bank observation "+date)+". Other storage is not included. Review requirements before replacing.",4));
             List<OwnedGear.Proposal> proposals=owned.alternatives(draft,host::defaultItem);Map<OwnedGear.Proposal,JComboBox<ItemInfo>> choices=new java.util.LinkedHashMap<>();
             for(OwnedGear.Proposal proposal:proposals){
-                int id=SetupCodec.id(proposal.before);ItemInfo original=owned.items.get(id);alternativeRows.add(info((proposal.container.equals("eq")?EQUIPMENT[proposal.index]:"Inventory "+(proposal.index+1))+": "+(original==null?"Item "+id:original.name),2));
-                JComboBox<ItemInfo> select=new JComboBox<>();select.setName("ownedChoice:"+proposal.container+":"+proposal.index);select.addItem(new ItemInfo(-1,"Keep original",false,-1,null));for(ItemInfo item:proposal.choices){select.addItem(item);itemCache.put(item.id,item);}
+                int id=SetupCodec.id(proposal.before);ItemInfo original=owned.items.get(id);JLabel missing=text((proposal.container.equals("eq")?EQUIPMENT[proposal.index]:"Inventory "+(proposal.index+1))+": "+(original==null?"Item "+id:original.name));missing.setMinimumSize(new Dimension(0,18));missing.setToolTipText(missing.getText()+" · "+proposal.reason);alternativeRows.add(missing);
+                JComboBox<ItemInfo> select=new JComboBox<>();select.setName("ownedChoice:"+proposal.container+":"+proposal.index);select.addItem(new ItemInfo(-1,"Keep original",false,-1,null));for(ItemInfo item:proposal.choices.subList(0,Math.min(Math.max(1,Math.min(5,host.settings().maxAlternatives())),proposal.choices.size()))){select.addItem(item);itemCache.put(item.id,item);}
                 select.setRenderer(new javax.swing.DefaultListCellRenderer(){@Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focused){JLabel label=(JLabel)super.getListCellRendererComponent(list,value,index,selected,focused);label.putClientProperty("html.disable",true);label.setFont(BODY_FONT);label.setText(value==null||((ItemInfo)value).id<1?"Keep original":((ItemInfo)value).name+" ("+owned.count(((ItemInfo)value).id)+" seen)");return label;}});
-                select.putClientProperty("preserveRenderer",true);select.setToolTipText(proposal.reason);alternativeRows.add(select);alternativeRows.add(info(proposal.reason,3));choices.put(proposal,select);
+                select.putClientProperty("preserveRenderer",true);select.setToolTipText(proposal.reason);alternativeRows.add(select);choices.put(proposal,select);
             }
             if(proposals.isEmpty())alternativeRows.add(info("No supported owned alternatives found. Missing gear is not automatically replaced.",3));
-            else alternativeRows.add(button("Use selected alternatives",()->attempt(()->{if(!token.equals(session)||revision!=draftRevision)throw new IllegalStateException("Setup changed. Check your Bank again.");Map<OwnedGear.Proposal,ItemInfo> selected=new java.util.LinkedHashMap<>();choices.forEach((proposal,select)->{ItemInfo item=(ItemInfo)select.getSelectedItem();if(item!=null&&item.id>0)selected.put(proposal,item);});host.availableGear(draft.deepCopy(),fresh->{if(disposed||!token.equals(session)||revision!=draftRevision)return;attempt(()->{for(ItemInfo item:selected.values())if(fresh.count(item.id)<1)throw new IllegalStateException("An alternative is no longer observed. Check your Bank again.");if(host.settings().checkAlternativeStock())fresh.requireReplacementStock(draft,selected);applyAlternatives(selected);});},this::failure);})));renderBuilder();
-        },error->{if(!disposed&&token.equals(session))message(error);});
+            else alternativeRows.add(button("Use selected alternatives",()->attempt(()->{if(!token.equals(session)||revision!=draftRevision)throw new IllegalStateException("Setup changed. Check your Bank again.");Map<OwnedGear.Proposal,ItemInfo> selected=new java.util.LinkedHashMap<>();choices.forEach((proposal,select)->{ItemInfo item=(ItemInfo)select.getSelectedItem();if(item!=null&&item.id>0)selected.put(proposal,item);});host.availableGear(draft.deepCopy(),fresh->{if(disposed||!token.equals(session)||revision!=draftRevision)return;attempt(()->{for(ItemInfo item:selected.values())if(fresh.count(item.id)<1)throw new IllegalStateException("An alternative is no longer observed. Check your Bank again.");if(host.settings().checkAlternativeStock())fresh.requireReplacementStock(draft,selected);applyAlternatives(selected);});},this::failure);})));showAlternativesOnce(!proposals.isEmpty());refreshAlternativeRows();
+        },error->{if(!disposed&&token.equals(session)){alternativeRows.removeAll();alternativeRows.add(info(error,2));refreshAlternativeRows();}});
     }
     void applyAlternatives(Map<OwnedGear.Proposal,ItemInfo> selected)
     {
@@ -950,7 +980,7 @@ public final class StudioPanel extends PluginPanel
     {
         if(dirty)throw new IllegalStateException("Save your draft first.");if(ids.isEmpty())throw new IllegalArgumentException("Select at least one setup.");
         if(old.slot!=replacement.slot)throw new IllegalArgumentException("Replacement must fit the same Equipment slot or item category.");
-        String before=library.serialize(gson);commit(next->{for(String id:ids){SetupLibrary.Entry entry=next.find(id);if(entry==null||entry.archived)throw new IllegalArgumentException("Choose active saved setups.");if(!replacement.stackable)for(JsonElement item:BankLayouts.items(entry.portable))if(SetupCodec.id(item)==old.id&&SetupCodec.quantity(item)>1)throw new IllegalArgumentException("A selected stack cannot be replaced by a non-stackable item.");LibraryTools.replace(entry.portable,old.id,replacement.id,replacement.name);}});
+        String before=library.serialize(gson);commit(next->{for(String id:ids){SetupLibrary.Entry entry=next.find(id);if(entry==null)throw new IllegalArgumentException("Choose saved setups.");if(!replacement.stackable)for(JsonElement item:BankLayouts.items(entry.portable))if(SetupCodec.id(item)==old.id&&SetupCodec.quantity(item)>1)throw new IllegalArgumentException("A selected stack cannot be replaced by a non-stackable item.");for(String key:new String[]{"eq","inv","rp","qv","bp"})if(SetupCodec.setup(entry.portable).has(key))for(JsonElement item:SetupCodec.setup(entry.portable).getAsJsonArray(key))if(SetupCodec.id(item)==old.id){if(key.equals("rp")&&!replacement.name.toLowerCase(java.util.Locale.ROOT).endsWith(" rune"))throw new IllegalArgumentException("Rune Pouch replacements must be runes.");if(key.equals("qv")&&replacement.slot!=13)throw new IllegalArgumentException("Quiver replacements must be arrows or bolts.");if(key.equals("bp")&&!replacement.name.toLowerCase(java.util.Locale.ROOT).contains("bolt")&&!replacement.name.equalsIgnoreCase("Bolt rack"))throw new IllegalArgumentException("Bolt Pouch replacements must be bolts.");}LibraryTools.replace(entry.portable,old.id,replacement.id,replacement.name);}});
         if(editingId!=null&&ids.contains(editingId))open(library.find(editingId));upgradeBefore=before;upgradeAfter=library.serialize(gson);message("Updated "+ids.size()+" saved setup(s). Undo last upgrade is available in Library tools.");
     }
     void undoUpgrade()
@@ -987,7 +1017,7 @@ public final class StudioPanel extends PluginPanel
 			List<JsonObject> imported=codec.importText(text);boolean bankImport=!(text.startsWith("{")||text.startsWith("[")) || parsed!=null&&parsed.isJsonObject()&&parsed.getAsJsonObject().has("bankTag");
             JTextArea review=info("Add "+imported.size()+" setup(s)? Existing saved setups are retained.\n"+ConversionReview.imported(imported.get(0),bankImport?"Bank Tag":"Inventory Setup"),9);
             themeForm(review);if(JOptionPane.showConfirmDialog(this,review,"Review import",JOptionPane.OK_CANCEL_OPTION)!=JOptionPane.OK_OPTION)return;
-			commit(l -> { for (JsonObject p : imported) l.setups.add(new SetupLibrary.Entry(p)); }); message("Imported " + imported.size() + " setup(s). Open them from Library."); renderLibrary();
+			commit(l -> { for (JsonObject p : imported){JsonObject copy=p.deepCopy();SetupCodec.setup(copy).addProperty("name",l.uniqueName(SetupCodec.name(copy)));l.setups.add(new SetupLibrary.Entry(copy));} }); message("Imported " + imported.size() + " setup(s). Open them from Library."); renderLibrary();
 		});
 	}
 	private void backup()
@@ -999,7 +1029,7 @@ public final class StudioPanel extends PluginPanel
 		JPanel p = vertical(); JTextField url = new JTextField(), title = new JTextField(); url.setName("wikiPageUrl"); url.setMaximumSize(new Dimension(500, 28)); title.setMaximumSize(new Dimension(500, 28)); JTextArea raw = new JTextArea(10, 18); raw.setLineWrap(true);
 
 		JTextField query = new JTextField(); wikiQuery = query; query.setName("wikiSearch"); query.getAccessibleContext().setAccessibleName("Search Wiki content");
-		DefaultListModel<String> matches = new DefaultListModel<>(); JList<String> pages = new JList<>(matches); pages.setName("wikiSuggestions"); pages.putClientProperty("html.disable", true); pages.setVisibleRowCount(4); pages.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); JCheckBox strategies = new JCheckBox("Use Strategies subpage", true);
+		DefaultListModel<String> matches = new DefaultListModel<>(); JList<String> pages = new JList<>(matches); pages.setName("wikiSuggestions"); pages.putClientProperty("html.disable", true); pages.setVisibleRowCount(4); pages.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); 
 		p.add(text("Find content")); p.add(query);
 		JTextArea searchHint = new CompactStatusArea("Press Enter or Search Wiki to search. Typing uses cached suggestions."); p.add(searchHint);
 		Runnable searchPages = () -> attempt(() ->
@@ -1015,13 +1045,13 @@ public final class StudioPanel extends PluginPanel
 				if (disposed || revision != wikiSearchRevision || !Objects.equals(scope, capturedScope) || !query.getText().trim().equals(requested)) return;
 				matches.clear();
 				if (error != null) { searchHint.setText(error); searchHint.setToolTipText(error); message(error); }
-				else { for (String name : titles) matches.addElement(name); searchHint.setText(titles.isEmpty() ? "No pages found. Try another name." : "Select a page to load its setups."); }
+				else { for (String name : WikiClient.activityTitles(titles)) matches.addElement(name); searchHint.setText(titles.isEmpty() ? "No pages found. Try another name." : "Select a page to load its setups."); }
 			});
 		});
 		wikiSuggestTimer = new Timer(250, e ->
         {
             String term=query.getText().trim(),owner=recoveryOwner;long revision=wikiSearchRevision;
-            host.localWikiSuggestions(term,titles->{if(disposed || revision!=wikiSearchRevision || !Objects.equals(owner,recoveryOwner))return;matches.clear();for(String name:titles)matches.addElement(name);searchHint.setText(titles.isEmpty()?"Press Enter or Search Wiki to load suggestions.":"Cached suggestions · Search Wiki finds more.");});
+            host.localWikiSuggestions(term,titles->{if(disposed || revision!=wikiSearchRevision || !Objects.equals(owner,recoveryOwner))return;matches.clear();for(String name:WikiClient.activityTitles(titles))matches.addElement(name);searchHint.setText(titles.isEmpty()?"Press Enter or Search Wiki to load suggestions.":"Cached suggestions · Search Wiki finds more.");});
         });wikiSuggestTimer.setRepeats(false);
 		JButton find = button("Search Wiki", searchPages); find.setToolTipText("Search OSRS Wiki once; repeated requests reuse cached results");
 		watch(query, () ->
@@ -1032,7 +1062,7 @@ public final class StudioPanel extends PluginPanel
 			else{searchHint.setText("Checking cached suggestions…");wikiSuggestTimer.restart();}
 		});
 		tabs.addChangeListener(e -> { if (tabs.getSelectedIndex() != 2) { wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); wikiSearchRevision++; wikiPageRevision++; } });
-		query.addActionListener(e -> find.doClick()); p.add(find); JScrollPane pageList = new JScrollPane(pages); pageList.setPreferredSize(new Dimension(210, 96)); pageList.setMaximumSize(new Dimension(500, 110)); p.add(pageList); p.add(strategies);
+		query.addActionListener(e -> find.doClick()); p.add(find); JScrollPane pageList = new JScrollPane(pages); pageList.setPreferredSize(new Dimension(210, 96)); pageList.setMaximumSize(new Dimension(500, 110)); p.add(pageList);
 		wikiPageStatus.setName("wikiPageStatus"); wikiPageStatus.setEditable(false); wikiPageStatus.setLineWrap(true); wikiPageStatus.setWrapStyleWord(true);
 		wikiPresetRows.setName("wikiPresetChoices"); p.add(text("Available setups")); p.add(wikiPageStatus); p.add(wikiPresetRows);
 		final boolean[] refreshRequested={false};
@@ -1047,7 +1077,7 @@ public final class StudioPanel extends PluginPanel
 			wikiPageStatus.setText("Loading setups from " + page + "...");
 			try
 			{
-				host.fetchWikiPage(requested, strategies.isSelected(), force, (loaded, error) ->
+				host.fetchWikiPage(requested, true, force, (loaded, error) ->
 				{
 					if (disposed || revision != wikiPageRevision || !Objects.equals(scope, capturedScope) || !url.getText().trim().equals(requested)) return;
 					if (error != null) { wikiPageStatus.setText((force?"Refresh failed; existing choices are retained. ":"")+error); message(error); return; }
@@ -1065,10 +1095,10 @@ public final class StudioPanel extends PluginPanel
 			catch (RuntimeException ignored) { wikiPageStatus.setText("Choose a page or enter a valid Wiki URL."); }
 		});
 		Runnable selectPage = () -> { String selected = pages.getSelectedValue(); if (selected != null) { title.setText(selected.split("(?i)/Strategies", 2)[0]); url.setText(WikiClient.articleUrl(selected)); } };
-		pages.addListSelectionListener(e -> { if (!e.getValueIsAdjusting()) selectPage.run(); }); strategies.addActionListener(e -> selectPage.run());
-		url.addActionListener(e -> fetchPage.run()); p.add(row(button("Use cache", fetchPage),button("Refresh Wiki",()->{if(JOptionPane.showConfirmDialog(this,"Fetch a fresh copy from OSRS Wiki? Cached pages already work without a new request.","Refresh Wiki source",JOptionPane.OK_CANCEL_OPTION)==JOptionPane.OK_OPTION){refreshRequested[0]=true;fetchPage.run();}})));
+		pages.addListSelectionListener(e -> { if (!e.getValueIsAdjusting()) selectPage.run(); });
+		url.addActionListener(e -> fetchPage.run()); p.add(row(button("Refresh Wiki",()->{if(JOptionPane.showConfirmDialog(this,"Fetch a fresh copy from OSRS Wiki? Cached pages already work without a new request.","Refresh Wiki source",JOptionPane.OK_CANCEL_OPTION)==JOptionPane.OK_OPTION){refreshRequested[0]=true;fetchPage.run();}})));
 		JPanel advanced = vertical(); advanced.setVisible(false);
-		p.add(button("URL / pasted wikitext", () -> { advanced.setVisible(!advanced.isVisible()); p.revalidate(); })); p.add(advanced);
+		p.add(disclosure("URL / pasted wikitext",advanced));
 		advanced.add(text("Wiki article URL")); advanced.add(url); advanced.add(text("Page name (pasted text)")); advanced.add(title); advanced.add(text("Wikitext (optional)")); advanced.add(new JScrollPane(raw));
 		advanced.add(button("Generate from pasted text", () -> attempt(() -> { wikiPageRevision++; wikiPageTimer.stop(); generateWiki(raw.getText(), title.getText().trim(), "Pasted wikitext"); })));
 		p.add(disclosure("Wiki information", info("Search text, page titles and your IP address go to OSRS Wiki. No gear, saved setups or account credentials are uploaded. Ranked recommendation tables still require manual choices.", 6))); return p;
@@ -1083,7 +1113,7 @@ public final class StudioPanel extends PluginPanel
 			JButton choose = button(variant, () -> attempt(() -> openWikiPreset(preset)));
 			choose.setName("wikiPreset:" + variant); choose.setMaximumSize(new Dimension(500, 44)); choose.setToolTipText("Open " + variant + ". First Wiki choices are a starting point; review gear, quantities and Spellbook before Save."); wikiPresetRows.add(choose);
 		}
-		wikiPageStatus.setText(presets.size() + " setups. Review first choices before Save."); wikiPresetRows.invalidate(); if (wikiPresetRows.getParent() != null) wikiPresetRows.getParent().invalidate(); wikiPresetRows.revalidate(); wikiPresetRows.repaint();
+		wikiPageStatus.setText(presets.size() + " setups. Review first choices before Save.");themeForm(wikiPresetRows);wikiPresetRows.invalidate(); if (wikiPresetRows.getParent() != null) wikiPresetRows.getParent().invalidate(); wikiPresetRows.revalidate(); wikiPresetRows.repaint();
 	}
 	private void openWikiPreset(JsonObject original)
 	{

@@ -83,10 +83,11 @@ public class BankFilterTest
 	{
 		FakeBank bank = new FakeBank(); bank.open = true; StudioBankFilter filter = new StudioBankFilter(bank, "studio"); JsonObject p = setup(); SetupCodec.setup(p).addProperty("fb", false); filter.select(p); assertEquals(0, bank.opened);
 	}
-	@Test(expected = IllegalArgumentException.class) public void unresolvedItemBlocksFilter()
-	{
-		JsonObject p = setup(); SetupCodec.setup(p).getAsJsonArray("inv").set(0, SetupCodec.item(0, 1)); new StudioBankFilter(new FakeBank(), "studio").select(p);
-	}
+    @Test public void unresolvedItemsDoNotBlockResolvedMembership()
+    {
+        JsonObject p=setup();SetupCodec.setup(p).getAsJsonArray("inv").set(0,SetupCodec.item(0,1));BankLayouts.generate(p,BankLayouts.Mode.PRESET,false);FakeBank bank=new FakeBank();bank.open=true;String message=new StudioBankFilter(bank,"studio").select(p);assertTrue(message.contains("unresolved"));assertTrue(bank.matches.test(101));assertFalse(bank.matches.test(999));assertEquals(1,bank.opened);
+    }
+
 	@Test(expected = IllegalArgumentException.class) public void excessiveRuntimeLayoutIsRejected()
 	{
 		FakeBank bank = new FakeBank(); bank.open = true; bank.capacity = 10; new StudioBankFilter(bank, "studio").select(setup());

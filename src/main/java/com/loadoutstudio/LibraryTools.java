@@ -36,6 +36,6 @@ final class LibraryTools
     {
         incoming.validate();Map<String,String> mapping=new HashMap<>();
         for(SetupLibrary.Section section:incoming.sections){SetupLibrary.Section same=target.sections.stream().filter(e->e.name.equals(section.name)).findFirst().orElse(null);if(same==null){same=new SetupLibrary.Section(section.name);target.sections.add(same);}mapping.put(section.id,same.id);}
-        for(SetupLibrary.Entry e:incoming.setups){SetupLibrary.Entry copy=gson.fromJson(gson.toJson(e),SetupLibrary.Entry.class);copy.id=UUID.randomUUID().toString();copy.section=mapping.get(e.section);copy.lastOpened=0;target.setups.add(copy);}target.validate();
+        for(SetupLibrary.Entry e:incoming.setups){SetupLibrary.Entry copy=gson.fromJson(gson.toJson(e),SetupLibrary.Entry.class);copy.id=UUID.randomUUID().toString();copy.section=mapping.get(e.section);copy.lastOpened=0;SetupCodec.setup(copy.portable).addProperty("name",target.uniqueName(SetupCodec.name(copy.portable)));target.setups.add(copy);}target.validate();
     }
 }

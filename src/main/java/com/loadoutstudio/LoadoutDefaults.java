@@ -9,6 +9,7 @@ final class LoadoutDefaults
     static JsonObject captured(JsonObject source,LoadoutStudioConfig settings)
     {
         JsonObject copy=source.deepCopy(),setup=SetupCodec.setup(copy);setup.addProperty("fb",settings.defaultFilterBank());
+        setup.addProperty("hd",settings.defaultHighlight());setup.addProperty("hc",String.format("#FF%06X",settings.defaultHighlightColor().getRGB()&0xFFFFFF));setup.addProperty("uh",settings.defaultMissingOnly());
         if(!settings.captureAttackOption())setup.remove("ao");
         for(JsonElement item:BankLayouts.items(copy)){
             if(settings.defaultFuzzy())item.getAsJsonObject().addProperty("f",true);

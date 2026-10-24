@@ -56,11 +56,11 @@ public class PlayerWorkflowTest
         SwingUtilities.invokeAndWait(()->{try{
             for(int width:new int[]{220,260}) {
                 Host host=new Host();StudioPanel panel=new StudioPanel(host,RuneLiteAPI.GSON);panel.setSize(width,900);panel.open(entry("Vorkath"));layout(panel);layout(panel);
-                JButton filter=(JButton)find(panel,"quickBankFilter"),compare=(JButton)find(panel,"quickCompareGear");assertNull(SwingUtilities.getAncestorOfClass(JViewport.class,filter));assertNull(SwingUtilities.getAncestorOfClass(JViewport.class,compare));
-                assertTrue(filter.getWidth()>=80);assertTrue(compare.getWidth()>=80);assertTrue(compare.getX()+compare.getWidth()<=compare.getParent().getWidth());
+                JButton filter=(JButton)find(panel,"setupToggle:filter"),compare=(JButton)find(panel,"quickCompareGear");assertNull(SwingUtilities.getAncestorOfClass(JViewport.class,filter));assertNull(SwingUtilities.getAncestorOfClass(JViewport.class,compare));
+                assertTrue(filter.getWidth()>=26);assertTrue(compare.getWidth()>=80);assertTrue(compare.getX()+compare.getWidth()<=compare.getParent().getWidth());
                 assertTrue("Compare label fits without truncation",compare.getFontMetrics(compare.getFont()).stringWidth(compare.getText())<=compare.getWidth()-compare.getInsets().left-compare.getInsets().right);
-                click(panel,"quickCompareGear");assertEquals(1,host.comparisons);click(panel,"quickBankFilter");assertFalse(SetupCodec.setup(host.selectedBankSetup).get("fb").getAsBoolean());assertEquals("Filter Bank",((JButton)find(panel,"quickBankFilter")).getText());
-                click(panel,"quickBankFilter");assertTrue(SetupCodec.setup(host.selectedBankSetup).get("fb").getAsBoolean());assertEquals("Clear filter",((JButton)find(panel,"quickBankFilter")).getText());
+                click(panel,"quickCompareGear");assertEquals(1,host.comparisons);click(panel,"setupToggle:filter");assertFalse(SetupCodec.setup(host.selectedBankSetup).get("fb").getAsBoolean());assertEquals(Boolean.FALSE,((JButton)find(panel,"setupToggle:filter")).getClientProperty("selected"));
+                click(panel,"setupToggle:filter");assertTrue(SetupCodec.setup(host.selectedBankSetup).get("fb").getAsBoolean());assertEquals(Boolean.TRUE,((JButton)find(panel,"setupToggle:filter")).getClientProperty("selected"));
                 layout(panel);layout(panel);BufferedImage image=new BufferedImage(width,900,BufferedImage.TYPE_INT_RGB);Graphics2D g=image.createGraphics();panel.printAll(g);g.dispose();File dir=new File("build/previews/player-workflows");dir.mkdirs();ImageIO.write(image,"png",new File(dir,width+"-builder.png"));panel.dispose();
             }
         }catch(Exception e){throw new AssertionError(e);}});

@@ -33,13 +33,14 @@ public final class WikiClient
     private long nextRequest, cooldown;
     private boolean busy;
     private volatile boolean closed;
-    private static final String USER_AGENT="LoadoutStudio/0.7.3 (https://github.com/Pa5cal1/runelite-loadout-studio; RuneLite)";
+    private static final String USER_AGENT="LoadoutStudio/0.8.0 (https://github.com/Pa5cal1/runelite-loadout-studio; RuneLite)";
     interface Store
     {
         String load() throws IOException;
         void save(String data) throws IOException;
     }
     private final Store store;
+    private java.util.function.IntSupplier refreshDays=()->0;
     private boolean cacheLoaded;
     private volatile String cacheWarning = "";
     private static final class CacheEntry
@@ -64,6 +65,16 @@ public final class WikiClient
     {
         this.gson=gson;this.interval=interval;this.store=store;
         http=injected.newBuilder().followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false).callTimeout(25,TimeUnit.SECONDS).build();
+    }
+    WikiClient(OkHttpClient http,com.google.gson.Gson gson,long interval,Store store,java.util.function.IntSupplier refreshDays) {this(http,gson,interval,store);this.refreshDays=refreshDays;}
+    static java.util.List<String> activityTitles(java.util.List<String> titles) {
+        java.util.Map<String,String> activities=new java.util.LinkedHashMap<>();
+        for(String title:titles) {
+            if(title.toLowerCase(java.util.Locale.ROOT).contains("\'s head")||title.matches("(?i).*(?:/| )(?:table|miniquest|transcript|dialogue|head|stuffed head|pet|money making guide|loot|drops)(?:/.*)?$"))continue;
+            String base=title.replaceFirst("(?i)(?:/| )strategies$","");if(base.contains("/"))continue;
+            String key=base.toLowerCase(java.util.Locale.ROOT).replaceFirst("^the ","");activities.putIfAbsent(key,base);
+        }
+        return new java.util.ArrayList<>(activities.values());
     }
     public void search(String query,BiConsumer<java.util.List<String>,String> callback)
     {
@@ -107,7 +118,7 @@ public final class WikiClient
                     com.google.gson.JsonObject entry=new SetupCodec(gson).parse(line).getAsJsonObject();
                     String url=entry.get("url").getAsString(),text=entry.get("text").getAsString();
                     long fetched=entry.get("fetched").getAsLong(),until=entry.get("until").getAsLong(),now=System.currentTimeMillis();
-                    if(!allowedUrl(url) || fetched<1 || fetched>now+60000 || until<fetched || until>fetched+7*24*60*60*1000L)continue;
+                    if(!allowedUrl(url) || fetched<1 || fetched>now+60000 || until<fetched || until>fetched+30*24*60*60*1000L)continue;
                     validateResponse(url,text);cache.put(url,new CacheEntry(text,fetched,until));
                 }
                 catch(RuntimeException ignored) { cacheWarning="Some invalid cached Wiki entries were ignored."; }
@@ -153,7 +164,9 @@ public final class WikiClient
         onWorker(()->
         {
             loadCache();CacheEntry saved=cache.get(url);long now=System.currentTimeMillis();
-            if(!refresh && saved!=null && (now<saved.until || url.contains("prop=revisions"))){callback.accept(new Reply(saved,true),null);return;}
+            int days=Math.max(0,Math.min(30,refreshDays.getAsInt()));
+            if(saved!=null && days>0 && url.contains("prop=revisions")){saved=new CacheEntry(saved.text,saved.fetched,saved.fetched+days*24*60*60*1000L);cache.put(url,saved);}
+            if(!refresh && saved!=null && (now<saved.until || url.contains("prop=revisions")&&days==0)){callback.accept(new Reply(saved,true),null);return;}
             if(now<cooldown){if(!refresh && saved!=null)callback.accept(new Reply(saved,true),null);else callback.accept(null,"Wiki requests are paused. Use cached/saved setups or try later.");return;}
             Job existing=jobs.get(url);if(existing!=null){existing.callbacks.add(callback);return;}
             if(jobs.size()>=12){callback.accept(null,"Too many pending Wiki requests. Wait for the current search.");return;}

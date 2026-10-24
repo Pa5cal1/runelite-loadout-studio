@@ -1,0 +1,13 @@
+/* SPDX-License-Identifier: BSD-2-Clause */
+package com.loadoutstudio;
+import com.google.gson.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import okhttp3.*;
+import org.junit.Test;
+import net.runelite.http.api.RuneLiteAPI;
+import static org.junit.Assert.*;
+public class AutomaticWikiCacheTest {
+ private static PersistentWikiTest.Store stale(int days){PersistentWikiTest.Store store=new PersistentWikiTest.Store();long fetched=System.currentTimeMillis()-days*86400000L;JsonObject entry=new JsonObject();entry.addProperty("url","https://oldschool.runescape.wiki/api.php?action=query&redirects=1&prop=revisions&rvprop=content&rvslots=main&format=json&formatversion=2&titles=Vorkath&maxlag=5&maxage=3600&smaxage=3600");entry.addProperty("text",PersistentWikiTest.BODY);entry.addProperty("fetched",fetched);entry.addProperty("until",fetched+7*86400000L);store.data="LOADOUT-WIKI-CACHE-1\n"+RuneLiteAPI.GSON.toJson(entry)+"\n";return store;}
+ @Test public void oldPageRefreshesOnlyWhenTheUserOpensItAndSavesAutomatically() throws Exception {AtomicInteger requests=new AtomicInteger();PersistentWikiTest.Store store=stale(8);OkHttpClient http=new OkHttpClient.Builder().addInterceptor(chain->{requests.incrementAndGet();return new Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200).message("OK").body(ResponseBody.create(MediaType.parse("application/json"),PersistentWikiTest.BODY)).build();}).build();WikiClient client=new WikiClient(http,RuneLiteAPI.GSON,0,store,()->7);try{assertEquals(0,requests.get());assertEquals(0,store.reads);assertFalse(PersistentWikiTest.page(client,false).cached);assertEquals(1,requests.get());assertEquals(1,store.writes);assertTrue(PersistentWikiTest.page(client,false).cached);assertEquals(1,requests.get());}finally{client.close();http.dispatcher().executorService().shutdownNow();http.connectionPool().evictAll();}}
+ @Test public void expiredOfflineSourceStillWorksWithoutRetries() throws Exception {AtomicInteger requests=new AtomicInteger();PersistentWikiTest.Store store=stale(8);OkHttpClient http=new OkHttpClient.Builder().addInterceptor(chain->{requests.incrementAndGet();throw new java.io.IOException("Fixture offline");}).build();WikiClient client=new WikiClient(http,RuneLiteAPI.GSON,0,store,()->7);try{WikiClient.Page page=PersistentWikiTest.page(client,false);assertTrue(page.cached);assertTrue(page.stale);assertEquals(1,requests.get());assertEquals(0,store.writes);}finally{client.close();http.dispatcher().executorService().shutdownNow();http.connectionPool().evictAll();}}
+}

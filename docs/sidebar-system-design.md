@@ -106,8 +106,16 @@ OwnedGear carries an immutable local Bank observation plus carried/worn items, w
 
 Library mutations clone/validate/persist before replacing state. Bulk upgrades have exact-ID scope, preview, slot checks and one bounded Undo guarded by the complete current library. Selected share bundles use a marker separate from whole-library backups, so their import merges independent copies. New lastOpened metadata defaults to zero for old libraries; existing keys/schema remain compatible.
 
-Inventory Setups and standalone Bank Tag Layouts are optional data sources/formats, not linked modules. Built-in RuneLite Bank Tags remains the one declared plugin dependency. No native renderer is duplicated and no new HTTP route is added. RuneLite API changes can still require maintenance.
+Inventory Setups and standalone Bank Tag Layouts are optional data sources/formats, not linked modules. In this historical version built-in RuneLite Bank Tags was the declared plugin dependency; 0.8.0 removes that hard dependency. No native renderer is duplicated and no new HTTP route is added. RuneLite API changes can still require maintenance.
 
 ## 0.7.1 general preferences boundary
 
 Native ConfigSection groups own general defaults, comparison, sidebar order/visibility, hotkeys and Bank menus. Existing filterHotkey and bankMenu keys remain unchanged. Only explicit display/comparison keys refresh the open panel; library/recovery writes do not trigger preference refresh. Defaults are cloned into new blank/captured loadouts only, never imported or saved records. Empty drafts keep their configured layout mode/direction even when generated cells cannot distinguish them. Current setup overrides remain in collapsed sidebar controls. Duplicate Bank/Compare/Export actions are removed. Preference refresh updates comparison/order/visibility without replacing Notes or marking a saved setup dirty. Legacy recovery retains its captured Ammo preference until a later explicit preference change or setup opening.
+
+## Player feedback update in 0.8.0
+
+The hard built-in Bank Tags dependency is removed. Its active plugin injector supplies optional native tag services; disabled/missing native tags use IndependentBankView and BankViewPlan. The independent path filters script callbacks and positions original Bank widgets without rewriting their IDs, amounts or child indices. User drag changes the owned layout; ordinary Bank stock remains real. Potion Storage and account-wide ownership are outside the standalone observation. Confirm transitions and native Bank listener restoration manually.
+
+Known items can filter while unresolved slots remain editable. The item catalogue ranks actual equipment/tradeable definitions and verified gameval identities instead of only the lowest ID. Known beta-ring repairs require an explicit Save and preserve Custom positions.
+
+Automatic local alternatives are coalesced and update their own rows, retaining Notes caret and text. Choices are source/family ordered, bounded, and explicitly applied. Native preference sections now include Wiki and Editing. A compact setup icon row holds per-setup overrides; disclosure headers and Wiki choices are visually distinct from actions. Minimum sidebar width is bounded to avoid long import labels requesting a larger client. No code changes the game canvas size.

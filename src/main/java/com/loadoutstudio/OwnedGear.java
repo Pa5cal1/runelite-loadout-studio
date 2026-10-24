@@ -40,14 +40,10 @@ final class OwnedGear
                 if(candidates.isEmpty()){
                     StudioPanel.ItemInfo missing=items.get(id);String name=expected.has("label")?expected.get("label").getAsString():missing==null?"":missing.name;
                     List<String> family=family(name);
-                    for(StudioPanel.ItemInfo owned:items.values())if(count(owned.id)>0 && owned.id!=id && family.contains(owned.name.toLowerCase(Locale.ROOT)) && (!key.equals("eq") || owned.slot==i))candidates.put(owned.id,owned);
+                    for(String ranked:family)for(StudioPanel.ItemInfo owned:items.values())if(count(owned.id)>0 && owned.id!=id && ranked.equals(owned.name.toLowerCase(Locale.ROOT)) && (!key.equals("eq") || owned.slot==i))candidates.put(owned.id,owned);
                     reason="Same gear/supply group; review requirements and healing";
                 }
-                if(candidates.isEmpty() && key.equals("eq")){
-                    final int slot=i;items.values().stream().filter(item->count(item.id)>0&&item.id!=id&&item.slot==slot).sorted(Comparator.comparing(item->item.name,String.CASE_INSENSITIVE_ORDER)).limit(40).forEach(item->candidates.put(item.id,item));
-                    reason="Same slot only. Combat style, ammo, spells and boss suitability are not checked.";
-                }
-                if(!candidates.isEmpty())result.add(new Proposal(key,i,raw,new ArrayList<>(candidates.values()),reason));
+                if(!candidates.isEmpty())result.add(new Proposal(key,i,raw,new ArrayList<>(candidates.values()).subList(0,Math.min(5,candidates.size())),reason));
             }
         }return result;
     }
@@ -75,6 +71,14 @@ final class OwnedGear
         String[][] groups={
             {"torva platebody","bandos chestplate","fighter torso","obsidian platebody","rune platebody"},
             {"torva platelegs","bandos tassets","obsidian platelegs","dragon platelegs","rune platelegs"},
+            {"torva full helm","neitiznot faceguard","serpentine helm","helm of neitiznot","berserker helm"},
+            {"ultor ring","berserker ring (i)","berserker ring"},
+            {"venator ring","archers ring (i)","archers ring"},
+            {"magus ring","seers ring (i)","seers ring"},
+            {"bellator ring","warrior ring (i)","warrior ring"},
+            {"zaryte vambraces","barrows gloves","black d'hide vambraces"},
+            {"tormented bracelet","barrows gloves","mystic gloves"},
+            {"ferocious gloves","barrows gloves","dragon gloves","rune gloves"},
             {"primordial boots","dragon boots","rune boots","climbing boots"},
             {"ancestral robe top","virtus robe top","ahrim's robetop","bloodbark body","mystic robe top"},
             {"ancestral robe bottom","virtus robe bottom","ahrim's robeskirt","bloodbark legs","mystic robe bottom"},

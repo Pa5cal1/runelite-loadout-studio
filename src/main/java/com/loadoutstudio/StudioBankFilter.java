@@ -32,12 +32,13 @@ public final class StudioBankFilter
 	private boolean registered;
 	private boolean waiting;
 	public boolean waiting() { return waiting; }
+    int layoutItemId(int actual){int id=gateway.canonicalize(actual);if(selected==null)return id;for(JsonElement item:BankLayouts.items(selected))if(SetupCodec.id(item)>0&&gateway.canonicalize(SetupCodec.id(item))==id)return id;for(JsonElement item:BankLayouts.items(selected))if(SetupCodec.id(item)>0&&item.getAsJsonObject().has("f")&&item.getAsJsonObject().get("f").getAsBoolean()&&gateway.variation(gateway.canonicalize(SetupCodec.id(item)))==gateway.variation(id))return gateway.canonicalize(SetupCodec.id(item));return id;}
 	JsonArray readChangedLayout()
 	{
 		if(selected==null || !tag.equals(gateway.activeTag()))return null;
 		int[] cells=gateway.currentLayout();if(cells==null || cells.length>8192)return null;
-		Set<Integer> allowed=new HashSet<>();for(JsonElement item:BankLayouts.items(selected))allowed.add(gateway.canonicalize(SetupCodec.id(item)));
-		JsonArray layout=new JsonArray();for(int id:cells){if(id!=-1 && !allowed.contains(id))return null;layout.add(id);}
+		Set<Integer> allowed=new HashSet<>();for(JsonElement item:BankLayouts.items(selected))if(SetupCodec.id(item)>0)allowed.add(gateway.canonicalize(SetupCodec.id(item)));
+		JsonArray layout=new JsonArray();for(int id:cells){int mapped=id>0?layoutItemId(id):id;if(mapped!=-1&&!allowed.contains(mapped))return null;layout.add(mapped);}
 		JsonArray previous=new JsonArray();for(JsonElement e:selected.getAsJsonArray("layout"))previous.add(e.getAsInt()>0?gateway.canonicalize(e.getAsInt()):-1);
 		while(previous.size()>0 && previous.get(previous.size()-1).getAsInt()==-1)previous.remove(previous.size()-1);
 		while(layout.size()>0 && layout.get(layout.size()-1).getAsInt()==-1)layout.remove(layout.size()-1);
@@ -53,7 +54,7 @@ public final class StudioBankFilter
 		if (portable == null || !SetupCodec.setup(portable).has("fb") || !SetupCodec.setup(portable).get("fb").getAsBoolean()) return "Bank filter off.";
 		SetupCodec.validate(portable, false);
 		if (BankLayouts.items(portable).isEmpty()) return "Add items before filtering the Bank.";
-		for (JsonElement item : BankLayouts.items(portable)) if (SetupCodec.id(item) <= 0) throw new IllegalArgumentException("Resolve Item IDs before filtering the Bank.");
+		if(BankLayouts.items(portable).stream().noneMatch(item->SetupCodec.id(item)>0))return "No resolved items yet. Choose an item to start Bank filtering.";
 		selected = portable.deepCopy(); return apply();
 	}
 	public String apply()
@@ -63,7 +64,7 @@ public final class StudioBankFilter
 		Set<Integer> exact = new HashSet<>(), fuzzy = new HashSet<>();
 		for (JsonElement e : BankLayouts.items(selected))
 		{
-			int id = gateway.canonicalize(SetupCodec.id(e)); exact.add(id);
+			if(SetupCodec.id(e)<=0)continue;int id = gateway.canonicalize(SetupCodec.id(e)); exact.add(id);
 			if (e.getAsJsonObject().has("f") && e.getAsJsonObject().get("f").getAsBoolean()) fuzzy.add(gateway.variation(id));
 		}
 		IntPredicate matches = id -> { if (id <= 0) return false; int canonical = gateway.canonicalize(id); return exact.contains(canonical) || fuzzy.contains(gateway.variation(canonical)); };
@@ -74,7 +75,7 @@ public final class StudioBankFilter
 		for (int i = 0; i <= last; i++) if (source.get(i).getAsInt() > 0 && matches.test(source.get(i).getAsInt())) layout[i] = gateway.canonicalize(source.get(i).getAsInt());
 		gateway.register(tag, matches); registered = true; gateway.open(tag, layout);
 		waiting = false; refreshTitle();
-		return "Bank filtered: " + SetupCodec.name(selected) + ".";
+		long unresolved=BankLayouts.items(selected).stream().filter(item->SetupCodec.id(item)<=0).count();return "Bank filtered: "+SetupCodec.name(selected)+(unresolved>0?" · "+unresolved+" unresolved slot(s) skipped":"")+". Bank quantities show real stock.";
 	}
     public void refreshTitle()
     {

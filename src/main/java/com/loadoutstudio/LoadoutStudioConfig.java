@@ -18,6 +18,30 @@ public interface LoadoutStudioConfig extends Config
     @ConfigSection(name="Bank",description="Bank menu preferences",position=4,closedByDefault=true)
     String bank="bank";
 
+    @ConfigSection(name="Wiki",description="On-demand public sources; no startup or background requests",position=5,closedByDefault=true)
+    String wiki="wiki";
+    @ConfigSection(name="Editing",description="Chatbox and loadout editing",position=6,closedByDefault=true)
+    String editing="editing";
+    @ConfigItem(keyName="wikiFreshDays",name="Refresh source after days",description="On opening a source, refresh if its stored copy is older than this many days. No background polling",section=wiki,position=0)
+    @Range(min=1,max=30)
+    default int wikiFreshDays(){return 7;}
+    @ConfigItem(keyName="autoAlternatives",name="Find owned alternatives",description="Determine local, setup-specific alternatives after opening a setup or Bank change; never contacts the Wiki",section=bank,position=1)
+    default boolean autoAlternatives(){return true;}
+    @ConfigItem(keyName="maxAlternatives",name="Alternatives per item",description="Maximum number of ranked source or bundled alternatives shown per missing item",section=bank,position=2)
+    @Range(min=1,max=5)
+    default int maxAlternatives(){return 3;}
+    @ConfigItem(keyName="autoShowAlternatives",name="Show owned alternatives",description="Expand the compact alternatives list once per setup when compatible owned options exist",section=bank,position=3)
+    default boolean autoShowAlternatives(){return true;}
+    @ConfigItem(keyName="defaultHighlight",name="Default highlighting",description="Highlight differences in new setups; use each setup's marker button to override",section=defaults,position=6)
+    default boolean defaultHighlight(){return true;}
+    @ConfigItem(keyName="defaultHighlightColor",name="Default highlight color",description="Difference border color for new setups",section=defaults,position=7)
+    default java.awt.Color defaultHighlightColor(){return java.awt.Color.RED;}
+    @ConfigItem(keyName="defaultMissingOnly",name="Default missing items only",description="Highlight missing Inventory items without enforcing slot order in new setups",section=defaults,position=8)
+    default boolean defaultMissingOnly(){return false;}
+    @ConfigItem(keyName="emptyQuantityInput",name="Empty quantity input",description="Open amount entry empty so a new quantity can be typed immediately",section=editing,position=0)
+    default boolean emptyQuantityInput(){return true;}
+    @ConfigItem(keyName="showAttackOption",name="Show attack option",description="Show the saved attack option under the loadout title",section=sidebar,position=2)
+    default boolean showAttackOption(){return true;}
     enum LibraryOrder {
         ALPHABETICAL("Alphabetical"),RECENT("Recent"),FAVORITES("Favorites first"),MANUAL("Manual");
         private final String label;LibraryOrder(String label){this.label=label;}public String toString(){return label;}
@@ -52,5 +76,5 @@ public interface LoadoutStudioConfig extends Config
     @ConfigItem(keyName="bankMenu",name="Bank setup shortcuts",description="Show up to five favorite or recent setups on the Bank worn-items button",section=bank,position=0)
     default boolean bankMenu(){return true;}
 
-    static boolean isPreferenceKey(String key){return java.util.Arrays.asList("libraryOrder","showSupportButton","ignoreAmmoQuantities").contains(key);}
+    static boolean isPreferenceKey(String key){return java.util.Arrays.asList("libraryOrder","showSupportButton","ignoreAmmoQuantities","autoAlternatives","autoShowAlternatives","maxAlternatives","showAttackOption").contains(key);}
 }

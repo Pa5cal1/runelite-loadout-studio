@@ -48,13 +48,13 @@ public class SlotTransferTest
             assertTrue(drop(panel,panel.dragPayload("inv",2),"eq",3)); assertEquals(22978,SetupCodec.id(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("eq").get(3))); panel.dispose();
         });
     }
-    @Test public void quiverAcceptsArrowsAndPouchRejectsFoodAndOverCapacity() throws Exception
+    @Test public void quiverAcceptsArrowsAndPouchClampsLargeStacksWithoutLosingTheRemainder() throws Exception
     {
         SwingUtilities.invokeAndWait(()->{
             Host host=new Host(); StudioPanel panel=new StudioPanel(host,RuneLiteAPI.GSON); JsonObject p=SetupCodec.blank("Ammo test"),s=SetupCodec.setup(p);
             s.getAsJsonArray("inv").set(0,SetupCodec.item(892,1400)); s.getAsJsonArray("inv").set(1,SetupCodec.item(13441,1)); s.getAsJsonArray("inv").set(2,SetupCodec.item(560,16001)); s.getAsJsonArray("inv").set(3,SetupCodec.item(561,16000)); panel.newDraft(p);
             assertTrue(drop(panel,panel.dragPayload("inv",0),"qv",0)); assertEquals(1400,SetupCodec.quantity(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("qv").get(0)));
-            JsonObject before=host.selectedBankSetup.deepCopy(); assertFalse(drop(panel,panel.dragPayload("inv",1),"rp",0)); assertFalse(drop(panel,panel.dragPayload("inv",2),"rp",0)); assertEquals(before,host.selectedBankSetup);
+            JsonObject before=host.selectedBankSetup.deepCopy(); assertFalse(drop(panel,panel.dragPayload("inv",1),"rp",0)); assertEquals(before,host.selectedBankSetup);assertTrue(drop(panel,panel.dragPayload("inv",2),"rp",0));assertEquals(16000,SetupCodec.quantity(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("rp").get(0)));assertEquals(1,SetupCodec.quantity(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("inv").get(2)));
             assertTrue(drop(panel,panel.dragPayload("inv",3),"rp",0)); assertEquals(561,SetupCodec.id(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("rp").get(0))); panel.dispose();
         });
     }
@@ -87,4 +87,8 @@ public class SlotTransferTest
             for(Component component:panel.getComponents()) if(component instanceof JTabbedPane) assertEquals(1,((JTabbedPane)component).getSelectedIndex()); panel.dispose();
         });
     }
+    @Test public void oversizedTransferKeepsOldPouchRunesAndRejectsWhenInventoryIsFull() throws Exception {SwingUtilities.invokeAndWait(()->{
+        Host host=new Host();StudioPanel panel=new StudioPanel(host,RuneLiteAPI.GSON);JsonObject p=SetupCodec.blank("Occupied pouch");SetupCodec.setup(p).getAsJsonArray("inv").set(0,SetupCodec.item(561,16001));SetupCodec.setup(p).getAsJsonArray("rp").set(0,SetupCodec.item(560,700));panel.newDraft(p);assertTrue(drop(panel,panel.dragPayload("inv",0),"rp",0));assertEquals(16000,SetupCodec.quantity(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("rp").get(0)));assertEquals(1,SetupCodec.quantity(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("inv").get(0)));assertEquals(560,SetupCodec.id(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("inv").get(1)));assertEquals(700,SetupCodec.quantity(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("inv").get(1)));panel.dispose();
+        Host fullHost=new Host();StudioPanel full=new StudioPanel(fullHost,RuneLiteAPI.GSON);JsonObject packed=SetupCodec.blank("Packed");for(int i=0;i<28;i++)SetupCodec.setup(packed).getAsJsonArray("inv").set(i,SetupCodec.item(385,1));SetupCodec.setup(packed).getAsJsonArray("inv").set(0,SetupCodec.item(561,16001));SetupCodec.setup(packed).getAsJsonArray("rp").set(0,SetupCodec.item(560,700));full.newDraft(packed);JsonObject before=fullHost.selectedBankSetup.deepCopy();assertFalse(drop(full,full.dragPayload("inv",0),"rp",0));assertEquals(before,fullHost.selectedBankSetup);full.dispose();
+    });}
 }

@@ -49,7 +49,7 @@ public class WikiRedirectTest
 			f.responses.put("Fractured archive strategies", page("The Fractured Archive/Strategies", "{{Inventory|1=Shark}}"));
 			WikiClient.Page p = f.fetch("Fractured archive strategies", true);
 			assertEquals("The Fractured Archive/Strategies", p.title); assertEquals(1, f.titles.size());
-			assertEquals("The Fractured Archive", SetupCodec.name(new WikiParser().parse(p.text, p.title, p.url()).get(0)));
+			assertEquals("The Fractured Archive (Max gear)", SetupCodec.name(new WikiParser().parse(p.text, p.title, p.url()).get(0)));
 		}
 	}
 	@Test public void baseAliasUsesCanonicalNameBeforeFindingStrategies() throws Exception

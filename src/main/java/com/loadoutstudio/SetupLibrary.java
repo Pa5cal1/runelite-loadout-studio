@@ -54,6 +54,12 @@ public final class SetupLibrary
         }
 		SetupLibrary result = gson.fromJson(text, SetupLibrary.class); if (result == null) throw new IllegalArgumentException("Invalid library."); result.validate(); return result;
 	}
+    public String uniqueName(String desired) {
+        String clean=desired.trim();if(setups.stream().noneMatch(e->SetupCodec.name(e.portable).equalsIgnoreCase(clean)))return clean;
+        String base=clean.replaceFirst("\\s*\\(\\d+\\)$","").trim();
+        for(int n=1;n<=setups.size()+1;n++) {String suffix=" ("+n+")",name=base.substring(0,Math.min(base.length(),50-suffix.length()))+suffix;if(setups.stream().noneMatch(e->SetupCodec.name(e.portable).equalsIgnoreCase(name)))return name;}
+        throw new IllegalStateException("No free setup name.");
+    }
 	public void removeSection(String id) { sections.removeIf(s -> s.id.equals(id)); for (Entry entry : setups) if (id.equals(entry.section)) entry.section = null; }
 	public boolean removeArchived(String id) { Entry entry = find(id); return entry != null && entry.archived && setups.remove(entry); }
 	public Entry find(String id) { return setups.stream().filter(e -> e.id.equals(id)).findFirst().orElse(null); }

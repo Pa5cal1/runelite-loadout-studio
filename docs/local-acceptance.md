@@ -1,4 +1,4 @@
-# Testclient acceptance — 0.7.3-test
+# Testclient acceptance — 0.8.0-test
 
 Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 
@@ -23,7 +23,7 @@ Mark each row PASS or FAIL. For a failure, record the row ID, action, expected r
 | T13 Copies and library actions | Copy installed plugin data, create/share a section, filter/sort, archive/restore and confirm or cancel permanent deletion of a disposable setup | Originals remain unchanged; names truncate with full tooltips; sections/search work; trash only deletes after confirmation; Cancel is safe | Pending |
 | T14 Wiki cache and errors | Search an activity, choose a preset, revisit after restart, explicitly Refresh, then use a cached source offline | Choices appear, first choices are reviewable starting points, source date/cache status is clear, failures are readable and existing choices survive failed refresh. Typing alone uses local suggestions | Pending |
 | T15 Profiles and recovery | Change profile/character during capture, search, import/chatbox editing and with an unsaved draft | Late callbacks never change another scope; matching recovery restores the correct Notes/items/favorite; saved libraries stay separate | Pending |
-| T16 Independence and presentation | Disable optional Inventory Setups and standalone Bank Tag Layouts while leaving built-in Bank Tags enabled. Inspect 220/260 px and normal display scaling | Own Library/Builder remain usable; native settings apply; buttons, fields, menus, feedback, long titles, Notes and counts remain readable with one outer Notes scrollbar | Pending |
+| T16 Independence and presentation | Disable optional Inventory Setups and standalone Bank Tag Layouts with built-in Bank Tags both enabled and disabled. Inspect 220/260 px and normal display scaling | Own Library/Builder remain usable; native settings apply; buttons, fields, menus, feedback, long titles, Notes and counts remain readable with one outer Notes scrollbar | Pending |
 
 Network checks for zero startup/typing/background HTTP, coalescing, rate limits, cache persistence and cooldown are automated offline. Ordinary UI observation cannot prove zero HTTP; do not mark traffic monitoring complete from the absence of a visible error. The live cache/error behavior in T14 still needs user acceptance.
 
@@ -35,3 +35,17 @@ Network checks for zero startup/typing/background HTTP, coalescing, rate limits,
 - Choose a controlled public source repository/commit with user authorization; this task does not change visibility.
 - Finalize the prepared Hub manifest with a full reviewed commit and the precise Wiki network warning. Keep the example placeholder until that release commit is selected.
 - Create the actual Plugin Hub pull request separately and pass its checks/review. Local test success is not approval by RuneLite.
+
+## Targeted checks after the player feedback update
+
+- Open Vorkath, Duke and Fractured Archive; activity suggestions omit table/miniquest entries and automatically prefer Strategies with main-page fallback. Cache reuse/save is automatic; there is no Use cache control. Verify source names are meaningful.
+- Inspect Ultor ring tooltip ID 28307, including an older saved Wiki setup. Known obsolete IDs are corrected in a draft and kept only after Save; Custom positions should survive. Unknown expressions still allow known items to filter.
+- Click a question-mark slot or Update Slot from Search and type immediately without clicking the game area first. Quantity entry should be empty.
+- Check the item sprite while dragging on Windows; test Inventory runes/arrows to Pouch/Quiver. A 16001 rune stack puts 16000 in the Pouch and retains one in Inventory; an occupied target must be preserved or the transfer rejected intact.
+- Verify automatic compact alternatives show at most the configured number in source/family order, keep Notes caret/text, respect manual collapse, and never auto-apply a replacement.
+- Exercise all five setup icons, including highlighting off and a custom color, and verify the saved attack option is visible. Headers, ordinary actions and Wiki choices must be distinct.
+- Save, then Shift-right-click and review an ALL-slots update; test search and live-container sources and Undo. Duplicate saves/imports must use numbered names instead of being skipped.
+- With Bank Tags disabled, test ordinary Bank filtering, Preset/Zigzag/Custom positions, manual layout drag, clear, close/reopen and plugin disable. Withdraw manually and confirm the correct real stack/slot is used. Toggle Bank Tags while a Loadout filter is active and test again. This integration is not proven by offline geometry tests.
+- Open From installed plugins with long names and resize the client. Sidebar controls must fit without requesting a larger window. Recheck the reported in-game visual distortion; no canvas resize or graphics-setting change is made by this plugin.
+
+User feedback confirmed many 0.7.3 behaviors, including startup, persistence, favorites, invalid-import feedback, basic editing, comparison, native layouts and portable data import. Changed 0.8.0 paths above still need fresh acceptance; prior confirmations are not claimed as live tests of this build.

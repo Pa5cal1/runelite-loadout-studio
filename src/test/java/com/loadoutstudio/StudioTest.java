@@ -49,7 +49,7 @@ public class StudioTest
 		java.util.List<JsonObject> p = new WikiParser().parse(text, "Vorkath/Strategies", "Fixture"); assertEquals(2, p.size());
 		assertEquals("Torva full helm", SetupCodec.setup(p.get(0)).getAsJsonArray("eq").get(0).getAsJsonObject().get("label").getAsString());
 		assertEquals("Neitiznot faceguard", SetupCodec.setup(p.get(1)).getAsJsonArray("eq").get(0).getAsJsonObject().get("label").getAsString());
-		assertEquals("Vorkath", SetupCodec.name(p.get(0)));
+		assertEquals("Vorkath (Expert)", SetupCodec.name(p.get(0)));
 	}
 	@Test public void sectionDeletionMovesSetupsToUnfiledAndBackupIsIndependent()
 	{

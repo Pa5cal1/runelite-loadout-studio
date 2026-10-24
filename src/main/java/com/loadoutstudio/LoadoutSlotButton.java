@@ -13,6 +13,8 @@ final class LoadoutSlotButton extends JButton
 {
     @Override public javax.swing.JToolTip createToolTip(){javax.swing.JToolTip tip=super.createToolTip();tip.putClientProperty("html.disable",true);return tip;}
     private String amount = "";
+    java.util.function.Function<Boolean,javax.swing.JPopupMenu> menuFactory;
+    @Override protected void processMouseEvent(java.awt.event.MouseEvent event){if(menuFactory!=null&&(event.isPopupTrigger()||javax.swing.SwingUtilities.isRightMouseButton(event)))setComponentPopupMenu(menuFactory.apply(event.isShiftDown()));super.processMouseEvent(event);}
     LoadoutSlotButton(String text) { super(text); putClientProperty("html.disable", true); }
     /** RuneLite sprites arrive asynchronously; its helper repaints this cell on completion. */
     void itemIcon(Icon icon)

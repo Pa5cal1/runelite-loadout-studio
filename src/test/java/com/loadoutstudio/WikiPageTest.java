@@ -21,7 +21,7 @@ public class WikiPageTest
 		assertEquals("Elite void top", eq.get(4).getAsJsonObject().get("label").getAsString());
 		assertEquals("Void knight gloves", eq.get(9).getAsJsonObject().get("label").getAsString());
 		assertEquals("Avernic treads (max)", eq.get(10).getAsJsonObject().get("label").getAsString());
-		assertEquals("Vorkath", SetupCodec.name(presets.get(0)));
+		assertEquals("Vorkath (Ranged (crossbow))", SetupCodec.name(presets.get(0)));
 		for (JsonObject p : presets) for (String key : new String[]{"eq", "inv", "rp", "qv"}) for (JsonElement e : SetupCodec.setup(p).getAsJsonArray(key))
 		{
 			assertNotNull("Empty Wiki slots must use JsonNull, never Java null: " + key, e);

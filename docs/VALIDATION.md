@@ -1,4 +1,13 @@
-# Current validation — 0.7.3-test
+# Current validation — 0.8.0-test
+
+- Native Windows Java 11 test, jar and shadowJar passed: **160 tests, zero failures/errors/skipped**. The twenty additional regression tests cover live ring identity selection and legacy draft repair, nested template/dose resolution, meaningful variants, activity suggestions, automatic persistent cache refresh/fallback, local ordered alternatives, Notes preservation, numbered copies, partial/fuzzy Bank mapping, standalone Bank geometry, setup controls, blank quantity input, drag sprites and occupied Pouch transfers.
+- Offline previews at 220/260 px were inspected for Library, Builder, Wiki, Export and compact alternatives. Main previews use RuneLiteLAF with a fake host. Disclosure headings, ordinary actions and Wiki presets differ visibly. They are not live game tests.
+- Bank Tags is now optional. The independent ordinary-Bank path preserves real widget IDs, amounts and child indices; script callbacks and pure geometry have regression coverage. Correct native withdrawals, Bank service transitions and listener restoration remain manual acceptance items.
+- A source refresh occurs only when the user opens an expired source (default seven days), or confirms Refresh Wiki. No startup request, per-item HTTP lookup, background refresh or image request was added.
+- Production JAR targets class version 55 and contains no test classes or third-party Hub plugin classes. Versioned artifacts are copied to build/libs with matching hashes. Users need no Docker.
+- Pending live acceptance: Windows drag image, direct native chat focus, Pouch/Quiver transfers, canonical item sprites/IDs, unresolved partial filters, Bank Tags disabled/enabled transitions and manual withdrawals, highlighting options, import sizing and game-window resizing. See local-acceptance.md. No Plugin Hub submission or visibility change performed.
+
+# Previous validation — 0.7.3-test
 
 - Native Windows Java 11 test, jar and shadowJar passed: 140 tests, zero failures/errors/skipped. Nineteen added tests cover strict boolean/schema handling, favorite add/remove/save/copy/recovery and persistence failure, inline export feedback, portable amount-rule codes, aggregated replacement stock and its explicit config override, and native RuneLite theme layouts.
 - The two defects reproduced during the 0.7.2 review now have permanent regression coverage. Missing optional flags remain accepted; present non-boolean flags are rejected before entering the editor. Stored metadata is checked before Gson can coerce it; recovery flags are checked before restoration.

@@ -2,9 +2,9 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.7.3-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.8.0-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
-Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering/layouts require RuneLite's built-in **Bank Tags** plugin. Optional imports create independent copies.
+Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. When it is active, Loadout Studio can use its native layout service; otherwise it uses an independent view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
 ## Contents
 
@@ -59,7 +59,7 @@ You can also create a setup from the [Wiki](#finding-wiki-setups) or [import one
 
 ## Your Setup Library
 
-Click a setup's name to open it. Use the search bar to find setups by name, `item:<name or ID>` or `notes:<text>`. Choose Alphabetical, Recent, Favorites first or Manual sorting in **RuneLite plugin settings → Loadout Studio → Sidebar → Library order**. Right-click a setup name to move it up/down within its section; moving selects Manual order. Recent is recorded per character/profile. Long names are shortened in the list; hover over a name to see it in full.
+Click a setup's name to open it. New copies and duplicate imports are kept and numbered **(1)**, **(2)** and so on. Use the search bar to find setups by name, `item:<name or ID>` or `notes:<text>`. Choose Alphabetical, Recent, Favorites first or Manual sorting in **RuneLite plugin settings → Loadout Studio → Sidebar → Library order**. Right-click a setup name to move it up/down within its section; moving selects Manual order. Recent is recorded per character/profile. Long names are shortened in the list; hover over a name to see it in full.
 
 ### Favorites
 
@@ -86,13 +86,13 @@ If the setup is open in Builder, the confirmation also explains that its draft a
 
 Open a setup in **Builder** to see its Inventory, Rune Pouch, Equipment, Spellbook, Quiver, Additional filtered items and Notes.
 
-Right-click an item slot to replace it, change its quantity, adjust matching options or remove it. **Update Slot from Search** opens RuneLite's item search in the chatbox. You can also update a slot from the corresponding item in your current Inventory or Equipment.
+Click a question-mark slot or use **Update Slot from Search** to type directly in the native chatbox. Quantity entry opens empty by default. Right-click an item slot to replace it, change its quantity, adjust matching options or remove it. **Update Slot from Search** opens RuneLite's item search in the chatbox. You can also update a slot from the corresponding item in your current Inventory or Equipment.
 
 Expand **Find items** to search the local item list by English name or Item ID. Double-click a result, or select **Add to Inventory**, to fill the next empty Inventory slot.
 
 ### Dragging Items
 
-Drag an item from Find items into a slot to add it to your setup. Drag between slots to move or swap items. Equipment, Rune Pouch and Quiver slots check that the item fits.
+Drag an item from Find items into a slot to add it to your setup. Drag between slots to move or swap items. Equipment, Rune Pouch and Quiver slots check that the item fits. Rune stacks moved to the Pouch are capped at 16k, keeping the remainder in Inventory. An occupied target is preserved too; free an Inventory slot if needed. The drag uses the item sprite.
 
 These edits change the loadout you are building. Withdraw and equip your gear through the usual RuneLite controls.
 
@@ -116,13 +116,19 @@ Write instructions in **Notes** below the items. The notes area grows with the t
 
 ### Owned Gear Alternatives
 
-Open **My gear alternatives → Check my Bank** while logged in. Open the Bank at least once in the current session first. The plugin reads local Bank, Inventory and Equipment data; Bank placeholders do not count as owned items. Closed-Bank results show the observation time and can be out of date. Other storage is not included.
+Owned alternatives are determined locally after opening a setup and after Bank/gear changes. There is no Check my Bank step by default. Open **My gear alternatives** to review the compact list; compatible owned choices expand once per setup when enabled in settings. Open the Bank at least once in the current session first. The plugin reads local Bank, Inventory and Equipment data; Bank placeholders do not count as owned items. Closed-Bank results show the observation time and can be out of date. Other storage is not included.
 
-Missing items can offer Wiki alternatives, a small bundled gear/supply group, or other observed Equipment for the same slot. Each suggestion states its basis. Same-slot choices do not verify combat style, requirements, ammo, spells or boss suitability. The first Wiki choice remains the default; each replacement starts at **Keep original**. Select the replacements you want, then click **Use selected alternatives**. Availability is checked again before applying. By default, **Check replacement stock** also reserves combined amounts across Inventory and Equipment, including unchanged slots using a replacement item. A shortage keeps the draft unchanged and appears near the Builder actions. Explicit zero still requires at least one observed item per slot. Pouch contents and other storage are not counted in this check. Disable this check in **plugin settings → Comparison** if you want to plan beyond observed amounts; each selected replacement must still be observed. Review and Save; **Undo alternatives** is available until another draft edit makes it unsafe. Rune types are never freely substituted. No Wiki request is needed for this operation.
+Missing items offer ordered Wiki alternatives or a small compatible bundled gear/supply family, such as Torva platebody, Bandos chestplate and Fighter torso. Arbitrary items for the same slot are not suggested. At most three choices are shown by default, configurable from one to five. Requirements and source conditions still need review. The first Wiki choice remains the default; each replacement starts at **Keep original**. Select the replacements you want, then click **Use selected alternatives**. Availability is checked again before applying. By default, **Check replacement stock** also reserves combined amounts across Inventory and Equipment, including unchanged slots using a replacement item. A shortage keeps the draft unchanged and appears near the Builder actions. Explicit zero still requires at least one observed item per slot. Pouch contents and other storage are not counted in this check. Disable this check in **plugin settings → Comparison** if you want to plan beyond observed amounts; each selected replacement must still be observed. Review and Save; **Undo alternatives** is available until another draft edit makes it unsafe. Rune types are never freely substituted. No Wiki request is needed for this operation.
+
+### Setup controls
+
+The compact icon row controls Bank filtering, unordered missing-item matching, highlighting, highlight color and favorite state. Save per-setup changes. The saved attack option is shown under the title when enabled. Collapsible headings, action buttons and Wiki preset cards use distinct styling.
+
+**Bank stack counts show real stock.** A desired quantity such as 16k belongs to the setup and its amount comparison; filtering does not withdraw 16k or falsify the Bank count.
 
 ### Upgrading Saved Setups
 
-Save your current draft, then use **Library tools → Upgrade item in setups**. Choose the old and new item using chatbox search, select the active setups to change and confirm the preview. Only exact Item IDs are replaced; amounts, matching rules, Notes and layout positions are retained. Replacement Equipment must use the same slot. Review combat style and requirements yourself. **Undo last upgrade** works while no later library/draft change would be lost.
+Save your current draft, then Shift-right-click an item for **Update ALL slots from Inventory/Equipment** or **Update ALL slots from Search**. Confirm before all matching saved setups, including archived ones, are updated; Undo remains under Library tools. For a selected subset, use **Library tools → Upgrade item in setups**. Choose the old and new item using chatbox search, select the active setups to change and confirm the preview. Only exact Item IDs are replaced; amounts, matching rules, Notes and layout positions are retained. Replacement Equipment must use the same slot. Review combat style and requirements yourself. **Undo last upgrade** works while no later library/draft change would be lost.
 
 ### Bolt Pouch and Attack Option
 
@@ -136,7 +142,7 @@ Capture gear includes a carried Bolt Pouch and the current attack option when av
 4. Choose one of the available setups to open it in Builder.
 5. Review the loadout and click **Save**.
 
-The resolved Wiki page title becomes the setup name. You can rename it in Builder.
+The resolved page title and its source variant become the setup name. Source names such as Melee or Ranged (crossbow) are retained; table attributes are not used as names. You can rename it in Builder.
 
 Known alternatives use the first listed item by default. When several game items share a name, the first local catalogue result is used. Items you have already selected by Item ID stay unchanged. You can replace any default through item search.
 
@@ -146,7 +152,7 @@ For a specific page, expand **URL / pasted wikitext**. Pasted wikitext can be us
 
 ### Cached Pages
 
-Previously fetched pages are kept locally and reused after restarting the client. **Use cache** reopens the stored version. **Refresh Wiki** requests an updated version after confirmation. The panel shows when the source was fetched and whether it is out of date.
+Fetched pages are saved automatically and reused after restarting the client. There is no Use cache button. Opening a source older than seven days requests an update; change this interval under **Wiki → Refresh source after days**. There is no background refresh. **Refresh Wiki** requests an immediate update after confirmation, with cached data retained on a failure. The panel shows when the source was fetched and whether it is out of date.
 
 Starting the client, opening saved setups and typing in the search field do not send Wiki requests. Typing can suggest pages already in the local cache. An explicit search or page selection can contact the Wiki. The Wiki receives your IP address, search text and requested page title. Item images come from RuneLite's game cache.
 
@@ -259,6 +265,16 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.8.0-test
+
+- Prefer verified live item definitions, repair known obsolete Wiki ring IDs in drafts, and resolve nested item templates and dose-less potion names locally.
+- Save/reuse Wiki cache automatically, refresh stale sources only on user opening, prefer Strategies and hide technical suggestions. Preserve source variant names and correct table header parsing.
+- Find ordered, setup-compatible owned alternatives automatically in a compact list without rebuilding Notes; cap the displayed choices.
+- Focus native chatbox input, start quantity entry empty, draw item drag images, and safely cap Pouch transfers while retaining remainder stacks.
+- Allow partial Bank filtering with unresolved slots and add a standalone ordinary-Bank view when built-in Bank Tags is disabled.
+- Add per-setup icon controls, clearer section styling, visible attack options, Shift-right-click bulk updates and numbered duplicate names.
+- Extend native settings and sidebar sizing constraints. Live Windows drag, Bank service transitions and game-window resize still require user acceptance.
 
 ### 0.7.3-test
 
