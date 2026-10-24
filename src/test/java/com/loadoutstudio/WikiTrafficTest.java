@@ -9,6 +9,17 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 public class WikiTrafficTest
 {
+    @Test public void eleventhRequestWaitsForTheRollingMinuteBudget() throws Exception
+    {
+        AtomicInteger count=new AtomicInteger();OkHttpClient http=new OkHttpClient.Builder().addInterceptor(chain->{count.incrementAndGet();return new Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200).message("OK").body(ResponseBody.create(MediaType.parse("application/json"),"[\"query\",[],[],[]]")).build();}).build();
+        WikiClient wiki=new WikiClient(http,RuneLiteAPI.GSON,0);
+        try {
+            for(int i=0;i<10;i++){CompletableFuture<Void> done=new CompletableFuture<>();wiki.search("Boss "+i,(v,e)->{if(e==null)done.complete(null);else done.completeExceptionally(new IllegalStateException(e));});done.get(3,TimeUnit.SECONDS);}
+            CompletableFuture<Void> extra=new CompletableFuture<>();wiki.search("Boss eleven",(v,e)->extra.complete(null));
+            try{extra.get(250,TimeUnit.MILLISECONDS);fail("The eleventh request must remain queued.");}catch(TimeoutException expected){}
+            assertEquals(10,count.get());
+        }finally{wiki.close();http.dispatcher().executorService().shutdownNow();http.connectionPool().evictAll();}
+    }
     @Test public void startupIsSilentAndRepeatedConcurrentSearchesShareOneRequest() throws Exception
     {
         AtomicInteger count=new AtomicInteger();CompletableFuture<Void> release=new CompletableFuture<>();

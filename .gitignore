@@ -54,3 +54,8 @@ build/
 !/docs/screenshots/settings-bank-wiki.png
 !/.github/ISSUE_TEMPLATE/bug_report.yml
 !/docs/screenshots/diagnostics.png
+
+# Intentional release documentation and listing asset
+!/icon.png
+!/docs/release-readiness.md
+!/docs/plugin-hub/submission-description.md

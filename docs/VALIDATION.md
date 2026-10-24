@@ -1,4 +1,10 @@
-# Current validation — 0.9.0-test
+# Current validation — 0.9.1-rc.1
+
+- Native Java 11 test/jar/shadowJar: **199 tests, zero failures/errors/skipped**. New tests exercise three character libraries, favorites and gear identity, delayed Wiki callback rejection after switching character, discovery of Slayer task recommendation pages and the ten-start rolling-minute request budget.
+- Static review considered maxed main, mid-tier ironman, beginner hardcore and streaming/sharing workflows. See [the release-readiness report](release-readiness.md) for findings, limitations, policy sources and required live acceptance. No account/game input was automated.
+- Prepared original listing metadata, root icon, candidate version and submission instructions. Repository visibility and Plugin Hub submission remain unchanged. Local checks do not constitute external approval.
+
+# Previous validation — 0.9.0-test
 
 - Native Java 11 test/jar/shadowJar: 195 tests, zero failures/errors/skipped. Three additional style checks cover unchanged host UIManager defaults, minimum 4.5:1 contrast for the selected body/muted/accent/error text pairs, and full navigation/support labels fitting alongside icons at 220/260 px.
 - The Linux CI layout check exposed platform-dependent font widths. The permanent support button now derives its preferred width from its measured label, icon and insets rather than a fixed width; the fit assertion is retained.

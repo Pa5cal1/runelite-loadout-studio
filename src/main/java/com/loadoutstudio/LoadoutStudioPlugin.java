@@ -47,7 +47,7 @@ import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import okhttp3.OkHttpClient;
 
-@PluginDescriptor(name = "Loadout Studio (Test)", description = "Build and save loadouts with Inventory Setups and Bank Tag compatibility", tags = {"inventory", "setup", "bank", "loadout", "wiki"}, enabledByDefault = false, internalName = "loadout-studio")
+@PluginDescriptor(name = "Loadout Studio", description = "Create and organise gear loadouts with Wiki presets and owned alternatives", tags = {"inventory", "setup", "bank", "loadout", "wiki"}, enabledByDefault = false, internalName = "loadout-studio")
 
 public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 {
@@ -132,7 +132,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 		SwingUtilities.invokeLater(() ->
 		{
 			if (!active) return;
-			panel = new StudioPanel(this, gson); navigation = NavigationButton.builder().tooltip("Loadout Studio (Test)").icon(icon()).panel(panel).priority(7).build(); toolbar.addNavigation(navigation);
+			panel = new StudioPanel(this, gson); navigation = NavigationButton.builder().tooltip("Loadout Studio").icon(icon()).panel(panel).priority(7).build(); toolbar.addNavigation(navigation);
 		});
 		clientThread.invokeLater(()->{indexItems();if(client.getGameState()==GameState.LOGGED_IN)indexGearVarps();});
 		gearDirty=true;

@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.9.0-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.9.1-rc.1.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. When it is active, Loadout Studio can use its native layout service; otherwise it uses an independent view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
@@ -40,9 +40,11 @@ Settings previews below are generated from the current configuration definitions
 
 ## Getting Started
 
-Build and launch the test client using the instructions under [Development](#development). Enable **Loadout Studio (Test)** in RuneLite, then click the sword icon in the sidebar. Built-in Bank Tags is optional.
+Build and launch the test client using the instructions under [Development](#development). Enable **Loadout Studio** in RuneLite, then click the Combat Achievements icon in the sidebar. Built-in Bank Tags is optional.
 
-![Loadout Studio sidebar icon](src/main/resources/com/loadoutstudio/combat-tutor.png)
+![Loadout Studio sidebar icon](src/main/resources/com/loadoutstudio/combat-achievements.png)
+
+Release candidate review: [player scenarios and release gates](docs/release-readiness.md), [Plugin Hub preparation](docs/plugin-hub/README.md) and [proposed listing and submission text](docs/plugin-hub/submission-description.md). The candidate has not been approved by RuneLite.
 
 The sidebar has four tabs:
 
@@ -309,6 +311,12 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.9.1-rc.1
+
+- Keep Slayer task recommendation pages in Wiki search results while filtering technical subpages.
+- Add three-account isolation, delayed account-switch callback and rolling Wiki request-budget regression checks.
+- Prepare Plugin Hub listing metadata, icon, submission guidance and a release-readiness report. This is a candidate for manual testing, not a Plugin Hub approval.
 
 ### 0.9.0-test
 

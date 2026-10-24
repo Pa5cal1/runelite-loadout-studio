@@ -33,7 +33,7 @@ public final class WikiClient
     private long nextRequest, cooldown;
     private boolean busy;
     private volatile boolean closed;
-    private static final String USER_AGENT="LoadoutStudio/0.9.0 (https://github.com/Pa5cal1/runelite-loadout-studio; RuneLite)";
+    private static final String USER_AGENT="LoadoutStudio/0.9.1-rc.1 (https://github.com/Pa5cal1/runelite-loadout-studio; RuneLite)";
     interface Store
     {
         String load() throws IOException;
@@ -71,7 +71,9 @@ public final class WikiClient
         java.util.Map<String,String> activities=new java.util.LinkedHashMap<>();
         for(String title:titles) {
             if(title.toLowerCase(java.util.Locale.ROOT).contains("\'s head")||title.matches("(?i).*(?:/| )(?:table|miniquest|transcript|dialogue|head|stuffed head|pet|money making guide|loot|drops)(?:/.*)?$"))continue;
-            String base=title.replaceFirst("(?i)(?:/| )strategies$","");if(base.contains("/"))continue;
+            String base=title.replaceFirst("(?i)(?:/| )strategies$","");
+            // Slayer task pages contain the actual gear recommendations, not technical subpages.
+            if(base.contains("/") && !base.matches("(?i)^Slayer task/[^/]+$"))continue;
             String key=base.toLowerCase(java.util.Locale.ROOT).replaceFirst("^the ","");activities.putIfAbsent(key,base);
         }
         return new java.util.ArrayList<>(activities.values());

@@ -4,7 +4,7 @@ This design applies the supplied System Design template topics to the requested 
 
 ## 1 Abstract
 
-Use a fixed two-by-two navigation grid with native RuneLite fonts and a consistent dark palette. Give each view one main task. Keep Save visible during Builder scrolling. Wiki searching is always available without a permission checkbox; network traffic begins only when the user searches or requests a page.
+Use a fixed two-by-two navigation grid with the component-local Loadout Studio font and warm charcoal/gold palette. Native settings keep RuneLite fonts. Give each view one main task. Keep Save visible during Builder scrolling. Wiki searching is always available without a permission checkbox; network traffic begins only when the user searches or requests a page.
 
 ## 2 Goals and non goals
 
@@ -151,3 +151,23 @@ StudioTheme owns the sidebar palette: background #1C1A17, surfaces #27231D, cont
 The change is limited to this component tree and locally created popup menus/tooltips. Native RuneLite settings and in-game menu rendering are owned by the host and remain unchanged. UIManager values are never modified by StudioTheme. Item art and count fonts remain OSRS-style, with existing grid dimensions and drag/drop semantics. Settings/export/diagnostic flags and stored data receive no migration or rewrite.
 
 The current header and toolbar share the bundled OSRS Combat Achievements icon. Gold accents restore the requested warmer identity while keeping distinct navigation, cards and disclosure treatments. Native settings retain RuneLite styling.
+
+## Candidate architecture review 0.9.1-rc.1
+
+Status: proposed for final manual acceptance, 24 October 2026. The [design report](release-readiness.md) records player scenarios, evidence, implications and release gates. The retained templates remain unchanged; these repository notes describe the implementation, not a rendered Word artifact.
+
+| Component | Boundary and state | Failure behavior |
+| --- | --- | --- |
+| StudioPanel | EDT-owned draft, session token, scoped library and local component theme | Late callbacks are ignored; broken saved data is not overwritten |
+| LoadoutStudioPlugin | Client-thread game snapshots, owner epochs, optional core Bank Tags gateway | Login/profile changes clear observations and owned filtering |
+| WikiClient and WikiCacheFile | On-demand queue and bounded public-source cache on a worker | Cooldown, stale normal-request fallback and visible cache errors |
+| WikiParser and ItemCatalogue | Pure source parsing and local item identity resolution | First source choice is used when resolvable; remaining choices stay visible |
+| OwnedGear | Snapshot of observed Bank plus Inventory/Equipment; ranked local proposals | No automatic replacement; stock rechecked before applying |
+| SetupCodec and SetupExportText | Bounded JSON/CSV parsing and versioned native compression | Unsupported formats, expanded-size overflow and unresolved exports fail visibly |
+| StudioDiagnostics | Bounded session counters and allowed technical frames | No automatic transmission; disabling clears the session |
+
+Request lifecycle: explicit UI action, token capture, validation, cache lookup, bounded/coalesced request if necessary, source parse, local item resolution, reviewed draft and explicit Save. Layout/filtering remains local and never performs an equipment or withdrawal action. Public Wiki cache is independent of character libraries; no cached gear is uploaded.
+
+Consistency: config profile plus RuneScape character scope identifies saved libraries; draft/owner revisions invalidate pending work. A saved copy is deep-cloned and duplicate names are numbered. Runtime observations are not durable inventory authority. Sharing a Bank Tag cannot recreate absent Equipment assignments or amounts.
+
+Tradeoff: source-ranked and bundled alternatives are explainable and avoid extra HTTP, but they cannot certify item requirements, unlocks or HCIM safety. The per-client rate budget does not coordinate separate client processes. Keep these limitations visible and test native service transitions before stable release. Future background refresh, telemetry endpoints or automatic game actions require a new design and policy review.
