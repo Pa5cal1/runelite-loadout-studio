@@ -1,4 +1,4 @@
-# Testclient acceptance — 0.8.2-test
+# Testclient acceptance — 0.8.3-test
 
 Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 
@@ -53,3 +53,7 @@ User feedback confirmed many 0.7.3 behaviors, including startup, persistence, fa
 ## Aquanites ranked alternatives
 
 Open a fresh Wiki draft from the cached Aquanites source, not an older saved copy without choices. Melee Slash/Stab body choices follow Oathplate, Torva, Bandos, Blood Moon, Fighter torso, Sunfire and Proselyte; only observed items appear, capped by settings. Ranged uses its separate Masori/Crystal/Karil/blessed/black-dhide list. Confirm unlisted same-slot gear is absent, original Inventory is retained, and source conditions remain in Notes. No extra requests should be made just to determine alternatives.
+
+## Custom alternatives after the workflow review
+
+In a custom Bank layout, replace a missing item with an observed alternative. If no other slot still requires the old item, the replacement should occupy the old custom positions; Undo restores the original layout. If another slot still requires the old item, its positions remain and the new item is added. Save/reopen to check persistence. A missing item should have its known name above the alternatives selector, even when absent from the Bank observation.

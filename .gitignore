@@ -38,3 +38,12 @@ build/
 .idea/
 *.log
 *.class
+
+# Intentional documentation previews
+!/docs/screenshots/overview.png
+!/docs/screenshots/library.png
+!/docs/screenshots/builder.png
+!/docs/screenshots/builder-details.png
+!/docs/screenshots/alternatives.png
+!/docs/screenshots/wiki.png
+!/docs/screenshots/export.png

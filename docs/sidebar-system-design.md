@@ -119,3 +119,11 @@ The hard built-in Bank Tags dependency is removed. Its active plugin injector su
 Known items can filter while unresolved slots remain editable. The item catalogue ranks actual equipment/tradeable definitions and verified gameval identities instead of only the lowest ID. Known beta-ring repairs require an explicit Save and preserve Custom positions.
 
 Automatic local alternatives are coalesced and update their own rows, retaining Notes caret and text. Choices are source/family ordered, bounded, and explicitly applied. Native preference sections now include Wiki and Editing. A compact setup icon row holds per-setup overrides; disclosure headers and Wiki choices are visually distinct from actions. Minimum sidebar width is bounded to avoid long import labels requesting a larger client. No code changes the game canvas size.
+
+## Player workflow review in 0.8.3
+
+The primary path remains Library/Wiki → Builder → review local gear differences and bounded alternatives → Save → optional Export. Player review found that replacing a unique item in a custom Bank layout appended its replacement instead of occupying the previous cell. Replacements now update those cells before normal custom-layout reconciliation; if another setup slot still needs the old item, its position is retained and the new ID is appended. Undo retains the previous portable layout.
+
+The alternatives heading prefers a stored item label over a generic numeric ID when the missing item is absent from the Bank observation. General settings stay in RuneLite configuration. Sections, actions and Wiki preset cards remain visually distinct. Source conditions and equipment combinations still require player review; the plugin does not evaluate combat optimality or withdraw/equip items automatically.
+
+The README gallery intentionally uses offline, labeled UI previews with example data. It demonstrates sidebar presentation, not live Bank correctness. The in-game resize report, Windows drag visuals, native chat focus and independent Bank transitions remain pending player confirmation.

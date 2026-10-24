@@ -1,4 +1,11 @@
-# Current validation — 0.8.2-test
+# Current validation — 0.8.3-test
+
+- Native Java 11 test/jar/shadowJar: 170 tests, zero failures/errors/skipped. Three added regressions cover custom-position preservation and Undo, preserving an old item still used in another slot, and missing-item names absent from the local Bank observation.
+- Seven documentation PNGs render the actual sidebar with RuneLiteLAF and example data: Library, Builder, Equipment/Notes, alternatives, Wiki, Export and overview. Screens were visually inspected. A separate local-only renderer uses prepared sprite inputs; it is not shipped or counted among the 170 tests.
+- Player workflow review covered creating/opening, editing, filtering/comparison, alternative selection, explicit Save, duplicate imports, export formats, archive/delete, cache behavior and narrow layouts using source inspection and offline tests. This is not game interaction or live acceptance.
+- Live acceptance remains necessary for native Bank Tags transitions, standalone Bank withdrawals/listener restoration, Windows drag visuals, native chat focus and game-window resizing. Recheck replacement in a custom layout, Undo, and saved positions in the test client.
+
+# Previous validation — 0.8.2-test
 
 - Native Java 11 test/jar/shadowJar: 167 tests, zero failures/errors/skipped.
 - Inventory-to-Pouch drops still cap at 16000, but excess no longer creates an Inventory remainder. A different displaced rune swaps into the freed source slot, including with full Inventory. An oversized same-rune transfer clears the source without producing another stack.

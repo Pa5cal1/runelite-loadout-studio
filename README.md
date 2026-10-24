@@ -2,9 +2,17 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.8.2-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.8.3-test.** Loadout Studio is a local test plugin and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. When it is active, Loadout Studio can use its native layout service; otherwise it uses an independent view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
+
+## Screenshots
+
+Offline renders of the actual sidebar using RuneLite styling and example loadouts. These are UI previews, not captures of a logged-in client or proof of live Bank behavior.
+
+![Library, Builder, Wiki and Export previews](docs/screenshots/overview.png)
+
+[Library](docs/screenshots/library.png) · [Builder](docs/screenshots/builder.png) · [Equipment and Notes](docs/screenshots/builder-details.png) · [Owned alternatives](docs/screenshots/alternatives.png) · [Wiki choices](docs/screenshots/wiki.png) · [Export](docs/screenshots/export.png)
 
 ## Contents
 
@@ -269,6 +277,12 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.8.3-test
+
+- Preserve custom Bank positions when applying an alternative; retain the old position when another slot still requires that item. Undo restores the previous arrangement.
+- Show the known missing-item name even when it is absent from the Bank observation.
+- Add labeled UI previews of Library, Builder, Equipment/Notes, owned alternatives, Wiki and Export to this guide.
 
 ### 0.8.2-test
 

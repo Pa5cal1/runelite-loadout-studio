@@ -192,7 +192,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.8.2-test - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("Loadout Studio"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.8.3-test - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffeeControl=coffee;coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel titleBar = new JPanel(new BorderLayout(3, 0)); titleBar.add(title, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
 		JPanel menu = new JPanel(new GridLayout(2, 2, 4, 4));
@@ -917,7 +917,7 @@ public final class StudioPanel extends PluginPanel
             alternativeRows.add(info((owned.bankOpen?"Bank observed now":"Last Bank observation "+date)+". Other storage is not included. Review requirements before replacing.",4));
             List<OwnedGear.Proposal> proposals=owned.alternatives(draft,host::defaultItem);Map<OwnedGear.Proposal,JComboBox<ItemInfo>> choices=new java.util.LinkedHashMap<>();
             for(OwnedGear.Proposal proposal:proposals){
-                int id=SetupCodec.id(proposal.before);ItemInfo original=owned.items.get(id);JLabel missing=text((proposal.container.equals("eq")?EQUIPMENT[proposal.index]:"Inventory "+(proposal.index+1))+": "+(original==null?"Item "+id:original.name));missing.setMinimumSize(new Dimension(0,18));missing.setToolTipText(missing.getText()+" · "+proposal.reason);alternativeRows.add(missing);
+                int id=SetupCodec.id(proposal.before);ItemInfo original=owned.items.get(id);String missingName=proposal.before.getAsJsonObject().has("label")?proposal.before.getAsJsonObject().get("label").getAsString():original==null?itemCache.containsKey(id)?itemCache.get(id).name:"Item "+id:original.name;JLabel missing=text((proposal.container.equals("eq")?EQUIPMENT[proposal.index]:"Inventory "+(proposal.index+1))+": "+missingName);missing.setMinimumSize(new Dimension(0,18));missing.setToolTipText(missing.getText()+" · "+proposal.reason);alternativeRows.add(missing);
                 JComboBox<ItemInfo> select=new JComboBox<>();select.setName("ownedChoice:"+proposal.container+":"+proposal.index);select.addItem(new ItemInfo(-1,"Keep original",false,-1,null));for(ItemInfo item:proposal.choices.subList(0,Math.min(Math.max(1,Math.min(5,host.settings().maxAlternatives())),proposal.choices.size()))){select.addItem(item);itemCache.put(item.id,item);}
                 select.setRenderer(new javax.swing.DefaultListCellRenderer(){@Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focused){JLabel label=(JLabel)super.getListCellRendererComponent(list,value,index,selected,focused);label.putClientProperty("html.disable",true);label.setFont(BODY_FONT);label.setText(value==null||((ItemInfo)value).id<1?"Keep original":((ItemInfo)value).name+" ("+owned.count(((ItemInfo)value).id)+" seen)");return label;}});
                 select.putClientProperty("preserveRenderer",true);select.setToolTipText(proposal.reason);alternativeRows.add(select);choices.put(proposal,select);
@@ -934,6 +934,11 @@ public final class StudioPanel extends PluginPanel
             OwnedGear.Proposal proposal=e.getKey();ItemInfo item=e.getValue();if(!proposal.before.equals(get(proposal.container,proposal.index))||proposal.choices.stream().noneMatch(choice->choice.id==item.id))throw new IllegalStateException("Alternative no longer matches this slot. Check again.");
             itemCache.put(item.id,item);JsonObject replacement=proposal.before.getAsJsonObject().deepCopy();replacement.addProperty("id",item.id);replacement.addProperty("label",item.name);validateSlot(proposal.container,proposal.index,replacement);SetupCodec.setup(next).getAsJsonArray(proposal.container).set(proposal.index,replacement);
             if(!item.stackable && SetupCodec.quantity(replacement)>1)throw new IllegalArgumentException("Adjust the quantity before choosing a non-stackable replacement.");
+        }
+        if(editorLayout==BankLayouts.Mode.CUSTOM)for(Map.Entry<OwnedGear.Proposal,ItemInfo> e:selected.entrySet()) {
+            int oldId=SetupCodec.id(e.getKey().before),newId=e.getValue().id;
+            if(BankLayouts.items(next).stream().noneMatch(item->SetupCodec.id(item)==oldId))
+                for(int i=0;i<next.getAsJsonArray("layout").size();i++)if(next.getAsJsonArray("layout").get(i).getAsInt()==oldId)next.getAsJsonArray("layout").set(i,new com.google.gson.JsonPrimitive(newId));
         }
         next.add("layout",BankLayouts.generate(next,editorLayout,editorBottom));SetupCodec.validate(next,false);alternativeUndo=draft.deepCopy();draft=next;markDirty();alternativeUndoRevision=draftRevision;
         alternativeRows.removeAll();alternativeRows.add(info("Alternatives applied to this draft. Review and Save to keep them.",3));alternativeRows.add(button("Undo alternatives",()->attempt(this::undoAlternatives)));syncBankFilter();renderBuilder();
