@@ -8,7 +8,7 @@ Loadout Studio works without the Inventory Setups and standalone Bank Tag Layout
 
 ## Screenshots
 
-Offline renders of the actual sidebar using Loadout Studio's own slate/turquoise theme and example loadouts. These are UI previews, not captures of a logged-in client or proof of live Bank behavior.
+Offline renders of the actual sidebar using Loadout Studio's own charcoal/gold theme and example loadouts. These are UI previews, not captures of a logged-in client or proof of live Bank behavior.
 
 ![Library, Builder, Wiki and Export previews](docs/screenshots/overview.png)
 
@@ -53,7 +53,7 @@ The sidebar has four tabs:
 
 ## Visual Design
 
-Loadout Studio uses its own dark slate surfaces, turquoise accents, sans-serif typography, wordmark, navigation icons and compact setup cards. Primary actions, expandable sections and Wiki setup choices have distinct treatments. OSRS item sprites, yellow stack counts and the familiar slot geometry remain intact.
+Loadout Studio uses its own warm charcoal surfaces, gold accents, sans-serif typography, wordmark, navigation icons and compact setup cards. Primary actions, expandable sections and Wiki setup choices have distinct treatments. OSRS item sprites, yellow stack counts and the familiar slot geometry remain intact.
 
 The theme is applied only to this plugin's sidebar, controls and support views. RuneLite's native configuration window and in-game Bank menus retain the host's styling; other plugins' UI defaults are not changed.
 
@@ -312,7 +312,9 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 
 ### 0.9.0-test
 
-- Give Loadout Studio a distinct slate/turquoise visual identity, sans-serif text, two-line wordmark and icon navigation.
+- Restore warm gold accents and charcoal surfaces while retaining the distinct sidebar controls and cards. Use the OSRS Combat Achievements icon in the sidebar and header.
+
+- Give Loadout Studio a distinct charcoal/gold visual identity, sans-serif text, two-line wordmark and icon navigation.
 - Restyle setup cards, section headings, Wiki choices, primary actions, checkboxes, menus and tooltips consistently within this plugin.
 - Preserve item artwork, count rendering, slot dimensions, saved data and native RuneLite settings styling. No global UI defaults are changed.
 - Refresh the sidebar and diagnostics screenshot gallery; verify contrast and narrow navigation labels.

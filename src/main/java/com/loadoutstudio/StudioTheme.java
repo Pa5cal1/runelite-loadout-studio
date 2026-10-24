@@ -4,7 +4,7 @@ import java.awt.*;
 import javax.swing.*;
 /** Loadout Studio's own palette. Applied locally; never changes RuneLite UI defaults. */
 final class StudioTheme {
-    static final Color BACKGROUND=new Color(19,27,37),SURFACE=new Color(27,38,51),CONTROL=new Color(16,23,33),BORDER=new Color(52,72,92),TEXT=new Color(231,237,242),MUTED=new Color(156,176,192),ACCENT=new Color(100,212,198),SELECTED=new Color(25,58,61),FAVORITE=new Color(231,184,110),ERROR=new Color(230,139,134);
+    static final Color BACKGROUND=new Color(28,26,23),SURFACE=new Color(39,35,29),CONTROL=new Color(23,21,18),BORDER=new Color(91,77,52),TEXT=new Color(241,234,220),MUTED=new Color(188,174,148),ACCENT=new Color(232,188,99),SELECTED=new Color(64,49,25),FAVORITE=new Color(247,207,117),ERROR=new Color(230,139,134);
     static final Font BODY=new Font(Font.SANS_SERIF,Font.PLAIN,12),ACTION=new Font(Font.SANS_SERIF,Font.BOLD,12),SMALL=new Font(Font.SANS_SERIF,Font.PLAIN,11),SECTION=new Font(Font.SANS_SERIF,Font.BOLD,11),CODE=new Font(Font.MONOSPACED,Font.PLAIN,11);
     private StudioTheme(){}
     static JToolTip tooltip(JToolTip tip){tip.setFont(SMALL);tip.setBackground(SURFACE);tip.setForeground(TEXT);tip.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER),BorderFactory.createEmptyBorder(5,7,5,7)));return tip;}

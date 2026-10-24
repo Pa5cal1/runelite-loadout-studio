@@ -16,6 +16,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.Image;
+import javax.swing.ImageIcon;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
@@ -203,7 +205,7 @@ public final class StudioPanel extends PluginPanel
 		JPanel heading = vertical(); JLabel title = text("LOADOUT"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.9.0-test - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel wordmark=new JPanel(new GridLayout(2,1,0,0));wordmark.setName("studioWordmark");wordmark.add(title);JLabel subtitle=text("STUDIO");subtitle.setName("studioSubtitle");wordmark.add(subtitle);
-        JPanel identity=new JPanel(new BorderLayout(6,0));JLabel mark=new JLabel(StudioTheme.route(1));mark.setName("studioMark");mark.setForeground(GOLD);mark.setPreferredSize(new Dimension(18,32));identity.add(mark,BorderLayout.WEST);identity.add(wordmark,BorderLayout.CENTER);
+        JPanel identity=new JPanel(new BorderLayout(6,0));JLabel mark=new JLabel(new ImageIcon(StudioBrandIcon.create().getScaledInstance(24,24,Image.SCALE_REPLICATE)));mark.setName("studioMark");mark.setForeground(GOLD);mark.setPreferredSize(new Dimension(24,32));identity.add(mark,BorderLayout.WEST);identity.add(wordmark,BorderLayout.CENTER);
         JPanel titleBar = new JPanel(new BorderLayout(4, 0));titleBar.setBorder(BorderFactory.createEmptyBorder(1,2,8,0));titleBar.add(identity, BorderLayout.CENTER); titleBar.add(coffee, BorderLayout.EAST); heading.add(titleBar);
 		JPanel menu = new JPanel(new GridLayout(2, 2, 4, 4));
 		for (int i = 0; i < tabs.getTabCount(); i++)

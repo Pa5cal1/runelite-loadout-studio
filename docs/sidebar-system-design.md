@@ -146,6 +146,8 @@ Show worn items gets a distinct Loadout Studio submenu. Layout/filter actions ca
 
 ## Independent visual identity in 0.9.0
 
-StudioTheme owns the sidebar palette: background #131B25, surfaces #1B2633, controls #101721, turquoise accent #64D4C6 and muted text #9CB0C0. Logical SansSerif 12 is the UI body font; small uppercase section labels and a two-line LOADOUT/STUDIO wordmark distinguish the chrome from Inventory Setups' presentation. Route glyphs, an active underline, card rails and clear primary actions provide redundant visual cues. Favorites retain a warm secondary star.
+StudioTheme owns the sidebar palette: background #1C1A17, surfaces #27231D, controls #171512, gold accent #E8BC63 and muted text #BCAE94. Logical SansSerif 12 is the UI body font; small uppercase section labels and a two-line LOADOUT/STUDIO wordmark distinguish the chrome from Inventory Setups' presentation. Route glyphs, an active underline, card rails and clear primary actions provide redundant visual cues. Favorites retain a warm secondary star.
 
 The change is limited to this component tree and locally created popup menus/tooltips. Native RuneLite settings and in-game menu rendering are owned by the host and remain unchanged. UIManager values are never modified by StudioTheme. Item art and count fonts remain OSRS-style, with existing grid dimensions and drag/drop semantics. Settings/export/diagnostic flags and stored data receive no migration or rewrite.
+
+The current header and toolbar share the bundled OSRS Combat Achievements icon. Gold accents restore the requested warmer identity while keeping distinct navigation, cards and disclosure treatments. Native settings retain RuneLite styling.

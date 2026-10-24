@@ -24,6 +24,7 @@
 !/scripts/Launch-Test.bat
 !/settings.gradle
 !/src/main/resources/com/loadoutstudio/combat-tutor.png
+!/src/main/resources/com/loadoutstudio/combat-achievements.png
 !/src/main/resources/com/loadoutstudio/inventory-setups-LICENSE.txt
 !/src/test/resources/logback-test.xml
 !/src/test/resources/wiki/vorkath-strategies.wikitext

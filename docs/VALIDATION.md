@@ -241,3 +241,8 @@ Bank filtering now uses the built-in Bank Tags dependency, an in-memory custom t
 - Standard and owned-alternative list renderers use the RuneScape body font and keep HTML disabled. Import, share and upgrade review content receives the same form theme; native dialog buttons remain managed by RuneLite.
 - Native Windows Java 11 test/shadowJar/jar succeeded: 121 tests, zero failures/errors/skipped. The new regression checks actual slot/submenu and Library menus. Existing offline layout tests cover 220/260 px; Library, Builder, Wiki, Export and slot-menu previews were visually reviewed.
 - Versioned local artifacts copied and hashes matched. Offline Swing fixtures do not validate live RuneLite look-and-feel, game sprites or real input; manual acceptance remains required.
+
+## Warm identity correction
+
+- Restored gold accents on warm charcoal surfaces. Header and toolbar use the bundled OSRS Combat Achievements icon.
+- Contrast, native-theme isolation and narrow-sidebar label-fit regressions are retained. Screenshots are offline UI previews; live display scaling remains a manual check.

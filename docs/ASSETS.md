@@ -1,6 +1,6 @@
 # Asset credits
 
-`src/main/resources/com/loadoutstudio/combat-tutor.png` is the OSRS Combat Tutor map icon requested by the user. Source: [Combat Tutor icon on OSRS Wiki](https://oldschool.runescape.wiki/w/File:Combat_Tutor_icon.png), image URL https://oldschool.runescape.wiki/images/Combat_Tutor_icon.png. RuneScape artwork is copyright Jagex. The project license does not transfer ownership of Jagex artwork. Review artwork permissions before public distribution.
+The legacy bundled `src/main/resources/com/loadoutstudio/combat-tutor.png` is the OSRS Combat Tutor map icon. Source: [Combat Tutor icon on OSRS Wiki](https://oldschool.runescape.wiki/w/File:Combat_Tutor_icon.png), image URL https://oldschool.runescape.wiki/images/Combat_Tutor_icon.png. RuneScape artwork is copyright Jagex. The project license does not transfer ownership of Jagex artwork. Review artwork permissions before public distribution. The current sidebar and header use Combat Achievements instead.
 
 The small PNG is bundled in the plugin and scaled with nearest-neighbor rendering. Runtime code does not fetch it or other Wiki images. Other sidebar controls are locally drawn; item sprites use RuneLite ItemManager.
 
@@ -21,3 +21,5 @@ Item artwork is copyright Jagex. The small sprite inputs were obtained once for 
 Settings previews use RuneLite fonts, styling and the section-arrow resource from the RuneLite client. See the [RuneLite source and license](https://github.com/runelite/runelite). No additional runtime image request is introduced.
 
 The 0.9 sidebar wordmark treatment, route glyphs and checkbox controls are locally drawn Java UI code. They introduce no downloaded fonts or image requests. Settings documentation continues to represent the native RuneLite configuration style.
+
+`src/main/resources/com/loadoutstudio/combat-achievements.png` is the OSRS Combat Achievements Character Summary icon used by the sidebar and header. Source: [OSRS Wiki asset page](https://oldschool.runescape.wiki/w/File:Combat_achievements_icon.png), image URL https://oldschool.runescape.wiki/images/Combat_achievements_icon.png. Artwork copyright Jagex. Bundled locally; no runtime image requests.
