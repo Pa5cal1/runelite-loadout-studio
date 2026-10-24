@@ -24,7 +24,7 @@ Loadout Studio works without the Inventory Setups and standalone Bank Tag Layout
 
 ## Getting Started
 
-Build and launch the test client using the instructions under [Development](#development). Enable **Bank Tags** and **Loadout Studio (Test)** in RuneLite, then click the sword icon in the sidebar.
+Build and launch the test client using the instructions under [Development](#development). Enable **Loadout Studio (Test)** in RuneLite, then click the sword icon in the sidebar. Built-in Bank Tags is optional.
 
 ![Loadout Studio sidebar icon](src/main/resources/com/loadoutstudio/combat-tutor.png)
 
@@ -39,11 +39,13 @@ The sidebar has four tabs:
 
 Open the RuneLite plugin list, find Loadout Studio and click its configuration cog. General settings live here rather than in the sidebar:
 
-- **Default loadouts:** initial layout/direction, Bank filtering, Fuzzy, amount rule and attack-option capture. These affect newly created blank/captured setups only. Saved setups, Wiki source choices and imports retain their own values.
+- **Default loadouts:** initial layout/direction, Bank filtering, Fuzzy, amount rule, highlighting/color, missing-only matching and attack-option capture. These affect newly created blank/captured setups only. Saved setups, Wiki source choices and imports retain their own values.
 - **Comparison:** ignore worn Ammo/Quiver amounts and check combined replacement stock. Rune Pouch matching remains independent.
-- **Sidebar:** library order and the optional coffee button.
+- **Sidebar:** library order, automatic compact alternatives and their maximum count, saved attack-option display and the optional coffee button.
 - **Hotkeys:** the existing Bank filter hotkey.
 - **Bank:** the existing Bank-menu setup shortcuts.
+- **Wiki:** days before a source is refreshed on the next user open (seven by default).
+- **Editing:** empty initial quantity input.
 
 The sidebar keeps current-setup actions and overrides: Save, Compare, Bank toggle, per-setup layout, items, Notes, section and favorite. It has no global sort dropdown, Ammo preference checkbox or duplicate Compare/Export/Bank-toggle buttons. Existing config keys and saved setup data remain compatible. Restoring an older draft retains its recorded Ammo preference until a global preference change or another setup is opened.
 
@@ -160,7 +162,7 @@ See the [Wiki request policy](docs/wiki-network-policy.md) for the full caching 
 
 ## Bank Filtering and Layouts
 
-**Bank Tags must be enabled.**
+Built-in **Bank Tags is optional**. With it disabled, Loadout Studio filters and positions real items in the ordinary Bank independently. This path does not duplicate physical stacks or include Potion Storage; confirm manual withdrawals and service transitions in the test client.
 
 Open a setup and use **Filter Bank** / **Clear filter** above the loadout for quick access. To choose a layout, expand **Bank filtering and layout**:
 
