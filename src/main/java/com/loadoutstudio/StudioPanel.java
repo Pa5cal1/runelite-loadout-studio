@@ -120,6 +120,7 @@ public final class StudioPanel extends PluginPanel
 		void searchWiki(String query, BiConsumer<List<String>, String> callback);
 		void updateBankFilter(JsonObject portable, String scope, Consumer<String> callback);
 		void clearBankFilter();
+        default void pauseBankFilter(){clearBankFilter();}
 	}
 	public static final class ItemInfo
 	{
@@ -206,7 +207,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("LOADOUT"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.9.1-rc.10 - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("LOADOUT"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.9.1-rc.11 - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel wordmark=new JPanel(new GridLayout(2,1,0,0));wordmark.setName("studioWordmark");wordmark.add(title);JLabel subtitle=text("STUDIO");subtitle.setName("studioSubtitle");wordmark.add(subtitle);
         JPanel identity=new JPanel(new BorderLayout(6,0));JLabel mark=new JLabel(new ImageIcon(StudioBrandIcon.create().getScaledInstance(24,24,Image.SCALE_REPLICATE)));mark.setName("studioMark");mark.setForeground(GOLD);mark.setPreferredSize(new Dimension(24,32));identity.add(mark,BorderLayout.WEST);identity.add(wordmark,BorderLayout.CENTER);
@@ -250,6 +251,7 @@ public final class StudioPanel extends PluginPanel
 		host.updateBankFilter(draft, scope, value -> { if (token.equals(session)) bankMessage(value); },layout->{if(!disposed&&token.equals(session)&&draft!=null){draft.add("layout",layout.deepCopy());editorLayout=BankLayouts.Mode.CUSTOM;markDirty();renderBuilder();message("Custom Bank layout updated. Save to keep it.");}},explicit);
 	}
     public String bankMenuToken(){return bankMenuToken;}
+    public void showBankFromMenu(){host.pauseBankFilter();bankMessage("Showing your Bank. Return to loadout from Show worn items, or reopen the Bank.");}
     public void activateFromBankMenu(){attempt(StudioDiagnostics.Operation.BANK_FILTER,()->{if(draft==null)throw new IllegalStateException("Open a setup in Builder first.");filterBank.setSelected(true);markDirty();renderBuilder();syncBankFilter(true);});}
     public void clearFromBankMenu(){attempt(StudioDiagnostics.Operation.BANK_FILTER,()->setBankFiltering(false));}
     public void layoutFromBankMenu(BankLayouts.Mode mode,boolean bottom){attempt(StudioDiagnostics.Operation.BANK_LAYOUT,()->{
@@ -687,11 +689,20 @@ public final class StudioPanel extends PluginPanel
 
             JPanel loadoutOptions = vertical(); loadoutOptions.add(button("Max pouch runes (16k)", () -> { for (JsonElement e : s.getAsJsonArray("rp")) if (!e.isJsonNull()) e.getAsJsonObject().addProperty("q", 16000); markDirty(); renderBuilder(); })); loadoutOptions.add(button("Add Bolt Pouch slots",()->{if(!s.has("bp")||!s.get("bp").isJsonArray())s.add("bp",SetupCodec.empty(4));markDirty();renderBuilder();}));loadoutOptions.add(button("Capture attack option",()->{String token=session;host.capture(actual->{if(!disposed&&token.equals(session)){JsonObject current=SetupCodec.setup(actual);s.addProperty("ao",current.has("ao")?current.get("ao").getAsString():"");markDirty();renderBuilder();}},this::failure);}));loadoutOptions.add(button("Ignore attack option",()->{s.remove("ao");markDirty();renderBuilder();}));if(s.has("ao")&&!s.get("ao").isJsonNull()&&!s.get("ao").getAsString().isEmpty())loadoutOptions.add(info("Attack option: "+s.get("ao").getAsString(),1)); loadoutOptions.add(button("Add filtered item", () -> editSlot("afi", SetupCodec.setup(draft).getAsJsonObject("afi").size()))); builder.add(disclosure("Loadout options", loadoutOptions));
             JPanel bankOptions = vertical(); bankOptions.add(bankLayout); bankOptions.add(bottomToTop); bankStatus.setRows(2); bankStatus.setMaximumSize(new Dimension(500, 54)); bankOptions.add(bankStatus); builder.add(disclosure("Bank filtering and layout", bankOptions));
-            JPanel details = vertical(); details.add(text("Section")); details.add(section);  details.add(button("Save copy", () -> saveDraft(true)));builder.add(disclosure("Setup details", details));
+            JPanel details = vertical(); details.add(text("Section")); details.add(section);
+            JTextField newSection=new JTextField();newSection.setName("builderNewSection");newSection.setToolTipText("New section name (1–60 characters)");details.add(newSection);
+            Runnable addSection=()->attempt(()->createBuilderSection(newSection.getText()));newSection.addActionListener(e->addSection.run());details.add(button("+ Create section",addSection));
+            details.add(button("Save copy", () -> saveDraft(true)));builder.add(disclosure("Setup details", details));
 
 		}
 		finally { rendering = false; refreshGearComparison();themeForm(builderTools); themeForm(builder); builderTools.revalidate(); builderTools.repaint(); builder.revalidate(); builder.repaint(); if (viewport != null) SwingUtilities.invokeLater(() -> { if (!disposed && renderToken.equals(session)) viewport.setViewPosition(new java.awt.Point(0, Math.min(viewportPosition.y, Math.max(0, builder.getPreferredSize().height - viewport.getExtentSize().height)))); }); }
 	}
+    void createBuilderSection(String input){
+        String name=input==null?"":input.trim();if(name.isEmpty()||name.length()>60)throw new IllegalArgumentException("Section name must be 1–60 characters.");
+        fieldsToDraft();SetupLibrary.Section chosen=library.sections.stream().filter(s->s.name.equalsIgnoreCase(name)).findFirst().orElse(null);
+        if(chosen==null){chosen=new SetupLibrary.Section(name);SetupLibrary.Section created=chosen;commit(l->l.sections.add(created));}
+        editorSection=chosen.id;markDirty();renderBuilder();message("Section selected. Save to keep this setup in it.");
+    }
     private void addResolutionGuide()
     {
         int remaining=0;String targetKey=null;int targetIndex=0;JsonObject target=null;

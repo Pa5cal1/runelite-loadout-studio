@@ -101,8 +101,9 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	{
 		active = true;diagnostics.clear();diagnostics.enabled(config.localDiagnostics()); wiki = new WikiClient(http, gson, 2000, new WikiCacheFile(this::getPluginDirectory),config::wikiFreshDays);wiki.diagnostics(diagnostics);
         independentBank=new IndependentBankView(client,clientThread,bankSearch,id->bankFilter==null?itemManager.canonicalize(id):bankFilter.layoutItemId(id));independentBank.onChanged(this::localBankLayoutChanged);
+        independentBank.onFailure(error->{diagnostics.failure(StudioDiagnostics.Operation.BANK_LAYOUT,error,0);if(bankFilter!=null)bankFilter.pause();reportBankStatus("Bank layout failed and was paused. Close and reopen the Bank, then review Diagnostics before retrying.");});
         placeholderOverlay=new BankPlaceholderOverlay(client,independentBank,itemManager);overlayManager.add(placeholderOverlay);
-        bankBuildRefresh=new BankBuildRefresh(task->clientThread.invokeLater(task),this::refreshAfterBankBuild);
+        bankBuildRefresh=new BankBuildRefresh(task->clientThread.invokeAtTickEnd(task),this::refreshAfterBankBuild);
         filterHotkey=new net.runelite.client.util.HotkeyListener(config::filterHotkey){@Override public void hotkeyPressed(){clientThread.invoke(()->{net.runelite.api.widgets.Widget bank=client.getWidget(InterfaceID.Bankmain.ITEMS);if(!active||bank==null||bank.isHidden())return;String owner=recoveryOwner();SwingUtilities.invokeLater(()->{if(active&&panel!=null&&owner.equals(recoveryOwner()))panel.toggleBankFilter();});});}};keyManager.registerKeyListener(filterHotkey);
         importWorker=java.util.concurrent.Executors.newSingleThreadExecutor(r->{Thread t=new Thread(r,"loadout-local-import");t.setDaemon(true);return t;});
 		bankFilter = new StudioBankFilter(new StudioBankFilter.Gateway()
@@ -153,13 +154,18 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     @Subscribe public void onPluginChanged(net.runelite.client.events.PluginChanged event){if(event.getPlugin() instanceof BankTagsPlugin)clientThread.invokeLater(()->{if(active&&bankFilter!=null)bankFilter.apply();});}
 	private static BufferedImage icon() { return StudioBrandIcon.navigation(); }
     @Override public void quickLinks(List<StudioPanel.QuickLink> links){quickLinks=java.util.Collections.unmodifiableList(new java.util.ArrayList<>(links));}
-    @Subscribe public void onMenuEntryAdded(net.runelite.api.events.MenuEntryAdded event)
+    @Subscribe public void onMenuOpened(net.runelite.api.events.MenuOpened event)
     {
-        if(!active||panel==null||(!config.bankMenu()&&!config.bankLayoutMenu())||event.getActionParam1()!=InterfaceID.Bankmain.WORNITEMS_BUTTON||event.getType()!=net.runelite.api.MenuAction.CC_OP.getId()||event.getIdentifier()!=1)return;
+        if(!active||panel==null||(!config.bankMenu()&&!config.bankLayoutMenu()))return;
+        net.runelite.api.MenuEntry[] entries=client.getMenu().getMenuEntries();
+        if(java.util.Arrays.stream(entries).anyMatch(e->e.getOption().equals("Loadout Studio")))return;
+        if(java.util.Arrays.stream(entries).noneMatch(e->e.getParam1()==InterfaceID.Bankmain.WORNITEMS_BUTTON&&e.getType()==net.runelite.api.MenuAction.CC_OP&&e.getIdentifier()==1))return;
         String owner=recoveryOwner(),token=panel.bankMenuToken();
         if(token==null&&(!config.bankMenu()||quickLinks.isEmpty()))return;
         net.runelite.api.Menu menu=client.getMenu().createMenuEntry(-1).setOption("Loadout Studio").setType(net.runelite.api.MenuAction.RUNELITE).createSubMenu();
         if(token!=null){
+            menu.createMenuEntry(-1).setOption("Show bank").setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->runBankMenu(owner,token,StudioPanel::showBankFromMenu));
+            menu.createMenuEntry(-1).setOption("Return to loadout").setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->runBankMenu(owner,token,StudioPanel::activateFromBankMenu));
             menu.createMenuEntry(-1).setOption("Filter Bank").setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->runBankMenu(owner,token,StudioPanel::activateFromBankMenu));
             menu.createMenuEntry(-1).setOption("Clear filter").setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->runBankMenu(owner,token,StudioPanel::clearFromBankMenu));
             if(config.bankLayoutMenu()){
@@ -175,6 +181,13 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
         }
     }
     private void runBankMenu(String owner,String token,Consumer<StudioPanel> action){SwingUtilities.invokeLater(()->{StudioPanel current=panel;if(active&&current!=null&&owner.equals(recoveryOwner())&&token.equals(current.bankMenuToken())){if(navigation!=null)toolbar.openPanel(navigation);action.accept(current);}});}
+    @Override public void pauseBankFilter(){clientThread.invoke(()->{if(active&&bankFilter!=null)bankFilter.pause();});}
+    @Subscribe public void onMenuOptionClicked(net.runelite.api.events.MenuOptionClicked event){
+        if(!active||bankFilter==null||net.runelite.api.widgets.WidgetUtil.componentToInterface(event.getParam1())!=InterfaceID.BANKMAIN)return;
+        String option=event.getMenuEntry().getOption();
+        if(option.startsWith("View tab")||option.equals("View all items")||event.getParam1()==InterfaceID.Bankmain.POTIONSTORE_BUTTON)bankFilter.pause();
+    }
+    @Subscribe public void onWidgetLoaded(net.runelite.api.events.WidgetLoaded event){if(active&&bankFilter!=null&&event.getGroupId()==InterfaceID.BANKMAIN){bankFilter.bankOpened();bankBuildRefresh.request(true);}}
 
     @Override public void observeGear(Consumer<JsonObject> observer) { gearObserver=observer;gearDirty=true; }
     @Override public void requestGear() { clientThread.invoke(()->{lastGear=null;gearDirty=true;}); }
@@ -214,7 +227,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
             observeBank();java.util.Map<Integer,Integer> amounts=new java.util.LinkedHashMap<>(observedBank);java.util.Map<Integer,StudioPanel.ItemInfo> details=new java.util.LinkedHashMap<>();
             for(int container:new int[]{InventoryID.INV,InventoryID.WORN}){ItemContainer items=client.getItemContainer(container);if(items!=null)for(Item item:items.getItems())if(item.getId()>0&&item.getQuantity()>0)amounts.merge(itemManager.canonicalize(item.getId()),item.getQuantity(),(a,b)->(int)Math.min(Integer.MAX_VALUE,(long)a+b));}
             java.util.Set<Integer> ids=new java.util.LinkedHashSet<>(amounts.keySet());for(com.google.gson.JsonElement e:BankLayouts.items(expected))if(SetupCodec.id(e)>0)ids.add(SetupCodec.id(e));
-            for(int id:ids){ItemComposition item=itemManager.getItemComposition(id);ItemStats stats=itemManager.getItemStats(id);details.put(id,new StudioPanel.ItemInfo(id,item.getMembersName(),item.isStackable(),stats!=null&&stats.getEquipment()!=null?stats.getEquipment().getSlot():-1,null));}
+            for(int id:ids){ItemComposition item=itemManager.getItemComposition(id);ItemStats stats=equipmentStats(id);details.put(id,new StudioPanel.ItemInfo(id,item.getMembersName(),item.isStackable(),stats!=null&&stats.getEquipment()!=null?stats.getEquipment().getSlot():-1,null));}
             net.runelite.api.widgets.Widget widget=client.getWidget(InterfaceID.Bankmain.ITEMS);OwnedGear result=new OwnedGear(amounts,details,bankObservedAt,widget!=null&&!widget.isHidden());SwingUtilities.invokeLater(()->{if(active&&owner.equals(recoveryOwner()))success.accept(result);});
         });
     }
@@ -369,13 +382,14 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 			for (; nextItem < limit; nextItem++)
 			{
 				ItemComposition composition = itemManager.getItemComposition(nextItem);
-				ItemStats stats=itemManager.getItemStats(nextItem);int slot=stats!=null&&stats.getEquipment()!=null?stats.getEquipment().getSlot():-1;
+				ItemStats stats=equipmentStats(nextItem);int slot=stats!=null&&stats.getEquipment()!=null?stats.getEquipment().getSlot():-1;
                 catalogue.add(nextItem,composition.getMembersName(),composition.isStackable(),composition.getNote(),composition.getPlaceholderTemplateId(),slot,composition.isGeTradeable(),composition.getInventoryActions()!=null&&java.util.Arrays.stream(composition.getInventoryActions()).anyMatch(java.util.Objects::nonNull));
                 catalogue.bankId(nextItem,itemManager.canonicalize(nextItem));
 			}
 			if (nextItem < client.getItemCount()) return false; indexing = false;catalogue.indexed();return true;
 		});
 	}
+    private ItemStats equipmentStats(int id){ItemStats stats=itemManager.getItemStats(id);int base=EquipmentVariants.base(id);return (stats==null||stats.getEquipment()==null)&&base!=id?itemManager.getItemStats(base):stats;}
 	@Override public void describe(int id, Consumer<StudioPanel.ItemInfo> callback)
 	{
 		clientThread.invoke(() ->
@@ -384,7 +398,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 			try
 			{
 				if (id < 1 || id >= client.getItemCount()) throw new IllegalArgumentException();
-				ItemComposition composition = itemManager.getItemComposition(id); ItemStats stats = itemManager.getItemStats(id); int slot = stats != null && stats.getEquipment() != null ? stats.getEquipment().getSlot() : -1;
+				ItemComposition composition = itemManager.getItemComposition(id); ItemStats stats = equipmentStats(id); int slot = stats != null && stats.getEquipment() != null ? stats.getEquipment().getSlot() : -1;
 				result = new StudioPanel.ItemInfo(id, composition.getMembersName(), composition.isStackable(), slot, new ImageIcon(itemManager.getImage(id)));
 			}
 			catch (RuntimeException ex) { result = new StudioPanel.ItemInfo(id, "Item " + id, true, -1, null); }

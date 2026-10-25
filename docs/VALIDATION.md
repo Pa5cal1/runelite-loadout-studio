@@ -1,4 +1,10 @@
-# Current validation — 0.9.1-rc.10
+# Current validation — 0.9.1-rc.11
+
+- Full Java 11 test/jar/shadowJar build: **238 tests, zero failures/errors/skipped**.
+- Five added regressions cover Bank pause/resume/reopen, background edits while paused, six cosmetic armour pairs with exact export preservation, inline section creation/reuse and invalid section input.
+- Native menu freeze is reported by the player and remains a release blocker until manually retested. Its exact native cause has not been proven.
+
+# Previous validation — 0.9.1-rc.10
 
 - Full Java 11 test/jar/shadowJar build: **233 tests, zero failures/errors/skipped**.
 - Existing contrast, narrow sidebar and host-default isolation tests retained for the RuneLite gray palette.

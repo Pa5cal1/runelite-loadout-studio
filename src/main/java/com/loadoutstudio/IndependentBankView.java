@@ -17,11 +17,13 @@ final class IndependentBankView {
     private final Client client;private final ClientThread thread;private final BankSearch search;private final IntUnaryOperator canonical;
     
     private boolean active,rebuildQueued;private int[] cells=new int[0],placeholders=new int[0];private IntPredicate matches=id->false;private Runnable changed=()->{};
+    private Consumer<Throwable> failed=error->{};
+    void onFailure(Consumer<Throwable> failed){this.failed=failed;}
     IndependentBankView(Client client,ClientThread thread,BankSearch search,IntUnaryOperator canonical){this.client=client;this.thread=thread;this.search=search;this.canonical=canonical;}
     boolean active(){return active;}int[] layout(){return cells.clone();}int[] placeholders(){return active?placeholders.clone():new int[0];}void onChanged(Runnable changed){this.changed=changed;}
     void select(int[] layout,IntPredicate predicate){cells=layout.clone();placeholders=new int[0];matches=predicate;active=true;rebuild();}
     void clear(){boolean wasActive=active;active=false;placeholders=new int[0];if(wasActive)rebuild();}
-    private void rebuild(){if(rebuildQueued)return;rebuildQueued=true;thread.invokeLater(()->{rebuildQueued=false;search.layoutBank();});}
+    private void rebuild(){if(rebuildQueued)return;rebuildQueued=true;thread.invokeAtTickEnd(()->{rebuildQueued=false;try{search.layoutBank();}catch(RuntimeException|AssertionError error){active=false;placeholders=new int[0];failed.accept(error);}});}
     void callback(ScriptCallbackEvent event){Widget bank=client.getWidget(InterfaceID.Bankmain.ITEMS);if(!active||bank==null||bank.isHidden())return;BankViewPlan.callback(event.getEventName(),client.getIntStack(),client.getIntStackSize(),matches);}
 
     void arrange(){

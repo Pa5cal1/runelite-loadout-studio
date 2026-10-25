@@ -1,6 +1,6 @@
 # Loadout Studio release readiness
 
-Version: **0.9.1-rc.10**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
+Version: **0.9.1-rc.11**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
 
 Reviewed candidate source commit: `efba39690972953de41bc63d6f90fc0b2b9896fe`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
 
@@ -23,7 +23,7 @@ One concrete defect was corrected during the review: useful `Slayer task/…` ar
 | Gate | Evidence | State |
 | --- | --- | --- |
 | Java compatibility | Java 11 compilation and class version 55 | Locally checked |
-| Regression suite | 233 tests, zero failures, errors or skips | Locally passed |
+| Regression suite | 238 tests, zero failures, errors or skips | Locally passed |
 | Account separation | Three-account save/reopen/favorite test, draft recovery and delayed callback guards | Offline passed; live switching pending |
 | Wiki request restraint | Interceptor tests, persisted cache, explicit actions, rolling request budget | Offline passed |
 | Sidebar appearance | Gold theme, 220/260 px layout checks and example-data previews | Offline checked; live scaling pending |
@@ -167,3 +167,12 @@ Offline regressions cover deferred/coalesced refresh without a post-event and co
 The sidebar now uses RuneLite ColorScheme grays for backgrounds, surfaces, controls, borders, text and selections. Gold remains an accent for headings and selected or primary actions. Shared host UI defaults are unchanged. Documentation images were regenerated offline with example data.
 
 A cached Maggot King Strategies source reproduced two concrete parsing defects: inventory-based styles omitted adjacent recommended Equipment, and recommendation-only styles disappeared when another style had a concrete Inventory. Adjacent source recommendations now populate Equipment when the style has no concrete Equipment template; explicitly empty concrete Equipment slots remain empty. Recommendation-only styles remain separately selectable with empty Inventory disclosed for manual completion. This preserves each style and its source-ranked alternatives. No network policy changed.
+
+
+### Bank pause, menu safety and cosmetic armour (0.9.1-rc.11)
+
+Clicking an ordinary Bank tab or choosing Show bank temporarily pauses the loadout without disabling its saved filter preference. Return to loadout resumes it; loading the Bank interface again releases the temporary pause. Clear filter remains the persistent off action. The worn-items submenu is built on MenuOpened rather than while script-generated menu entries are being added. Bank rebuilds and post-build work are deferred to tick end. A rebuild exception/assertion pauses the owned view and reports a technical failure instead of repeatedly attempting it.
+
+A player reported an injected-client assertion/freeze in rc.10. Its exact native cause is not established by the obfuscated stack. The timing/menu corrections and containment above remain pending an in-game retest; offline success is not proof that the reported freeze is eliminated. Plugin Hub submission remains blocked on that acceptance.
+
+Blood Torva and radiant Oathplate are explicitly recognised cosmetic counterparts for Bank membership and owned alternatives. Missing ornament-specific Equipment stats fall back to their known base piece; exact saved/exported IDs remain unchanged. Builder > Setup details now creates a section inline and selects it, reusing an existing case-insensitive name. Saving the setup remains explicit and unsaved Notes are retained.

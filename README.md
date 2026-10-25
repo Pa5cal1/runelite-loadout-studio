@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.9.1-rc.10.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.9.1-rc.11.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. Both Bank Tags states now use the same Loadout Studio view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
@@ -486,3 +486,12 @@ Offline regressions cover deferred/coalesced refresh without a post-event and co
 The sidebar now uses RuneLite ColorScheme grays for backgrounds, surfaces, controls, borders, text and selections. Gold remains an accent for headings and selected or primary actions. Shared host UI defaults are unchanged. Documentation images were regenerated offline with example data.
 
 A cached Maggot King Strategies source reproduced two concrete parsing defects: inventory-based styles omitted adjacent recommended Equipment, and recommendation-only styles disappeared when another style had a concrete Inventory. Adjacent source recommendations now populate Equipment when the style has no concrete Equipment template; explicitly empty concrete Equipment slots remain empty. Recommendation-only styles remain separately selectable with empty Inventory disclosed for manual completion. This preserves each style and its source-ranked alternatives. No network policy changed.
+
+
+### Bank pause, menu safety and cosmetic armour (0.9.1-rc.11)
+
+Clicking an ordinary Bank tab or choosing Show bank temporarily pauses the loadout without disabling its saved filter preference. Return to loadout resumes it; loading the Bank interface again releases the temporary pause. Clear filter remains the persistent off action. The worn-items submenu is built on MenuOpened rather than while script-generated menu entries are being added. Bank rebuilds and post-build work are deferred to tick end. A rebuild exception/assertion pauses the owned view and reports a technical failure instead of repeatedly attempting it.
+
+A player reported an injected-client assertion/freeze in rc.10. Its exact native cause is not established by the obfuscated stack. The timing/menu corrections and containment above remain pending an in-game retest; offline success is not proof that the reported freeze is eliminated. Plugin Hub submission remains blocked on that acceptance.
+
+Blood Torva and radiant Oathplate are explicitly recognised cosmetic counterparts for Bank membership and owned alternatives. Missing ornament-specific Equipment stats fall back to their known base piece; exact saved/exported IDs remain unchanged. Builder > Setup details now creates a section inline and selects it, reusing an existing case-insensitive name. Saving the setup remains explicit and unsaved Notes are retained.
