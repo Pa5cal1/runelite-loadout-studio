@@ -2,7 +2,11 @@
 
 Version: **0.9.1-rc.18**. Review date: **25 October 2026**. Status: **submission candidate; user acceptance recorded for the corrected flows; external review pending**.
 
-Reviewed candidate source commit: `16ceb65a1772a0831e615c25a7d939b53e447bed`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
+Reviewed candidate source commit: `982faa9eb22517d28c551d82ace947ceee8bbd52`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
+
+## Plugin Hub scan follow-up — 26 October 2026
+
+Removed the explicit disabled-by-default descriptor flag requested by the Plugin Hub scanner. Fresh local test/jar build passes all 289 tests. The source revision above includes this one-line installation-default correction; saved user preferences are not rewritten. PR #19421 is updated to scan this revision.
 
 ## Current submission assessment
 

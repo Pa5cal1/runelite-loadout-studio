@@ -2,6 +2,8 @@
 
 Full suite: **289 tests, zero failures/errors/skipped**.
 
+26 October 2026: Plugin Hub scan feedback addressed by removing enabledByDefault=false from the PluginDescriptor. Fresh Java 11 test/jar build passed all 289 tests. This changes the default installation state only.
+
 
 ### Drop a setup onto another setup (0.9.1-rc.18)
 
@@ -396,3 +398,4 @@ Corrects false rejection of real imbued items such as Salve amulet(ei). Native m
 ### Trouver variant checks
 
 The rc.6 offline suite includes all 145 declared Trouver-related IDs from the pinned API fixture, including locked, broken/mangled definitions and the parchment itself. Explicit selection and both export round trips preserve their IDs. Dedicated cape cases cover Infernal max cape (l), Fire max cape (l), Fire cape (l) and Infernal cape (l): exact-name lookup resolves them, exact Bank filtering retains the selected locked item and its layout reference, and does not silently substitute another cape. This tests identity policy and offline boundaries; it does not prove every definition is wearable or owned. Confirm locked cape selection, sprite, save/reopen and filtering in the actual client.
+
