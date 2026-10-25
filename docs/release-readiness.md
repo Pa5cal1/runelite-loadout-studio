@@ -2,7 +2,7 @@
 
 Version: **0.9.1-rc.18**. Review date: **25 October 2026**. Status: **submission candidate; user acceptance recorded for the corrected flows; external review pending**.
 
-Reviewed candidate source commit: `173d7036b941d61932a56441d80b0d5f8b4cdc1e`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
+Reviewed candidate source commit: `16ceb65a1772a0831e615c25a7d939b53e447bed`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
 
 ## Current submission assessment
 
@@ -263,3 +263,4 @@ Library setup-name buttons now accept drops as well as starting drags. Dropping 
 Player acceptance: food and potion withdrawals are confirmed working. The screenshots also show visible fuzzy stars and section changes. The new name-button drop gesture still needs player confirmation.
 
 Validation: 289 offline tests passed. The new regression test delivers a real Swing TransferSupport to a destination setup-name button, checks persisted section membership and unchanged target/favorite, retains MOVE as its source action and rejects unrelated payloads.
+
