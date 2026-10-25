@@ -55,8 +55,9 @@ final class ItemCatalogue
         add(id,name,stackable,note,placeholder);
         if(items.containsKey(id)){items.put(id,new StudioPanel.ItemInfo(id,name,stackable,slot,null));quality.put(id,(ge?4:0)+(slot>=0?2:0)+(usable?1:0));}
     }
-    static int selectionId(int id,String name){String key=name.toLowerCase(Locale.ROOT);return key.equals("ultor ring")||key.equals("magus ring")||key.equals("bellator ring")||key.equals("venator ring")?preferred(name):id;}
-    static int legacyRingId(int id,String name){if(id==net.runelite.api.gameval.ItemID.BETA_ITEM_2||id==net.runelite.api.gameval.ItemID.BETA_ITEM_3||id==net.runelite.api.gameval.ItemID.BETA_ITEM_4||id==net.runelite.api.gameval.ItemID.BETA_ITEM_5||id==net.runelite.api.gameval.ItemID.BR_ULTOR_RING||id==net.runelite.api.gameval.ItemID.BR_MAGUS_RING)return selectionId(id,name);return id;}
+    /** An explicit native search choice is authoritative; preferences must never reject it. */
+    static int selectionId(int id){if(id<1)throw new IllegalArgumentException("Choose an item first.");return id;}
+    static int legacyRingId(int id,String name){if(id==net.runelite.api.gameval.ItemID.BETA_ITEM_2||id==net.runelite.api.gameval.ItemID.BETA_ITEM_3||id==net.runelite.api.gameval.ItemID.BETA_ITEM_4||id==net.runelite.api.gameval.ItemID.BETA_ITEM_5||id==net.runelite.api.gameval.ItemID.BR_ULTOR_RING||id==net.runelite.api.gameval.ItemID.BR_MAGUS_RING){String key=name.toLowerCase(Locale.ROOT);if(key.equals("ultor ring")||key.equals("magus ring")||key.equals("bellator ring")||key.equals("venator ring"))return preferred(name);}return id;}
     static String normalize(String name) {
         String result=name.replace('_',' ').trim().replaceAll("\\s+"," ");
         if(result.equalsIgnoreCase("Teleport to house (tablet)"))return "Teleport to house";
@@ -78,11 +79,11 @@ final class ItemCatalogue
     StudioPanel.ItemInfo firstExact(String name)
     {
         StudioPanel.ItemInfo first = null;
-        for (StudioPanel.ItemInfo item : items.values()) if (!AutomaticItemExclusions.contains(item.id) && item.name.equalsIgnoreCase(normalize(name)) && (first == null || rank(item,name)>rank(first,name) || rank(item,name)==rank(first,name)&&item.id < first.id)) first = item;
-        if(first==null){String base=normalize(name);int dose=-1;for(StudioPanel.ItemInfo item:items.values()){if(AutomaticItemExclusions.contains(item.id))continue;java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)^"+java.util.regex.Pattern.quote(base)+"\\s*\\(([1-4])\\)$").matcher(item.name);if(m.matches()){int candidate=Integer.parseInt(m.group(1));if(candidate>dose||candidate==dose&&(first==null||rank(item,name)>rank(first,name))){first=item;dose=candidate;}}}}
+        for (StudioPanel.ItemInfo item : items.values()) if (!AutomaticItemExclusions.avoidDefault(item.id) && item.name.equalsIgnoreCase(normalize(name)) && (first == null || rank(item,name)>rank(first,name) || rank(item,name)==rank(first,name)&&item.id < first.id)) first = item;
+        if(first==null){String base=normalize(name);int dose=-1;for(StudioPanel.ItemInfo item:items.values()){if(AutomaticItemExclusions.avoidDefault(item.id))continue;java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)^"+java.util.regex.Pattern.quote(base)+"\\s*\\(([1-4])\\)$").matcher(item.name);if(m.matches()){int candidate=Integer.parseInt(m.group(1));if(candidate>dose||candidate==dose&&(first==null||rank(item,name)>rank(first,name))){first=item;dose=candidate;}}}}
         return first;
     }
-    private int rank(StudioPanel.ItemInfo item,String name){return (item.id==preferred(name)?100:0)+quality.getOrDefault(item.id,0);}
+    private int rank(StudioPanel.ItemInfo item,String name){return (item.id==preferred(name)?100:0)+quality.getOrDefault(item.id,0)-(AutomaticItemExclusions.contains(item.id)?16:0);}
 
     List<StudioPanel.ItemInfo> search(String query)
     {

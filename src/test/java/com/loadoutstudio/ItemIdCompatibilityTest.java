@@ -36,9 +36,10 @@ public class ItemIdCompatibilityTest {
         JsonArray ids=fixture().getAsJsonArray("ids");SetupCodec codec=new SetupCodec(RuneLiteAPI.GSON);assertEquals(19996,ids.size());
         for(int start=0;start<ids.size();start+=28){JsonObject draft=SetupCodec.blank("ID audit");int end=Math.min(start+28,ids.size());for(int i=start;i<end;i++)SetupCodec.setup(draft).getAsJsonArray("inv").set(i-start,SetupCodec.item(ids.get(i).getAsInt(),1));SetupCodec.rebuildLayout(draft);JsonObject restored=codec.importText(codec.inventory(draft)).get(0);for(int i=start;i<end;i++)assertEquals(ids.get(i).getAsInt(),SetupCodec.id(SetupCodec.setup(restored).getAsJsonArray("inv").get(i-start)));}
     }
-    @Test public void allUpstreamSearchExclusionsAreAvoidedByAutomaticWikiChoice(){
-        JsonArray ids=fixture().getAsJsonArray("automaticExclusions");assertEquals(1572,ids.size());ItemCatalogue catalogue=new ItemCatalogue();
-        for(JsonElement id:ids){assertTrue(AutomaticItemExclusions.contains(id.getAsInt()));catalogue.add(id.getAsInt(),"Audit duplicate",false,-1,-1,3,true,true);}
+    @Test public void preferenceSnapshotIsRetainedButOnlyNonstandardDefaultsAreExcluded(){
+        JsonObject data=fixture();JsonArray preferences=data.getAsJsonArray("automaticExclusions");assertEquals(1572,preferences.size());for(JsonElement id:preferences)assertTrue(AutomaticItemExclusions.contains(id.getAsInt()));
+        JsonArray ids=data.getAsJsonArray("nonstandardDefaults");assertEquals(310,ids.size());ItemCatalogue catalogue=new ItemCatalogue();
+        for(JsonElement id:ids){assertTrue(AutomaticItemExclusions.avoidDefault(id.getAsInt()));catalogue.add(id.getAsInt(),"Audit duplicate",false,-1,-1,3,true,true);}
         assertNull(catalogue.firstExact("Audit duplicate"));catalogue.add(ItemID.ULTOR_RING,"Audit duplicate",false,-1,-1,12,true,true);assertEquals(ItemID.ULTOR_RING,catalogue.firstExact("Audit duplicate").id);
     }
     @Test public void bankExportCanonicalizesEveryContainerAndLayoutWithoutRewritingInventory(){

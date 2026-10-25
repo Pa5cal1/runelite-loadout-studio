@@ -1,6 +1,6 @@
 # Loadout Studio release readiness
 
-Version: **0.9.1-rc.5**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
+Version: **0.9.1-rc.6**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
 
 Reviewed candidate source commit: `c3ad4798ed5fbe605427816a4043430cc7f62ffd`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
 
@@ -23,7 +23,7 @@ One concrete defect was corrected during the review: useful `Slayer task/…` ar
 | Gate | Evidence | State |
 | --- | --- | --- |
 | Java compatibility | Java 11 compilation and class version 55 | Locally checked |
-| Regression suite | 212 tests, zero failures, errors or skips | Locally passed |
+| Regression suite | 217 tests, zero failures, errors or skips | Locally passed |
 | Account separation | Three-account save/reopen/favorite test, draft recovery and delayed callback guards | Offline passed; live switching pending |
 | Wiki request restraint | Interceptor tests, persisted cache, explicit actions, rolling request budget | Offline passed |
 | Sidebar appearance | Gold theme, 220/260 px layout checks and example-data previews | Offline checked; live scaling pending |
@@ -131,3 +131,8 @@ Proceed with the manual candidate acceptance pass. Do not claim Plugin Hub readi
 - [Jagex Third Party Client Guidelines](https://secure.runescape.com/m=news/third-party-client-guidelines?oldschool=1).
 - [MediaWiki API etiquette](https://www.mediawiki.org/wiki/API:Etiquette), used as general API guidance rather than an OSRS-specific quota.
 - Production source and the local regression suite; all tests use offline fixtures/interceptors rather than live account automation.
+
+
+### Legitimate item selection correction (0.9.1-rc.6)
+
+Corrects false rejection of real imbued items such as Salve amulet(ei). Native manual selections are authoritative after canonicalization; automatic preferences no longer classify legitimate imbues as invalid. Regression coverage includes three Salve variants through sidebar selection, save and export, plus saved-source preservation and imbued mask, helm and ring families. In-game confirmation remains pending.

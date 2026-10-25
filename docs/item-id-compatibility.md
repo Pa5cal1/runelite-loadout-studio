@@ -1,12 +1,12 @@
 # Item identity compatibility audit
 
-Candidate: **0.9.1-rc.2**. Checked: **24 October 2026**.
+Candidate: **0.9.1-rc.6**. Checked: **25 October 2026**.
 
 ## Outcome
 
 Inventory Setups, Bank Tag Layouts and native RuneLite do not share a single list of "correct item IDs". They retrieve definitions through RuneLite ItemManager and use different identity rules for exact slots, ordinary Bank items and variant groups. Loadout Studio must preserve these boundaries rather than replacing every ID with a fuzzy base.
 
-The audited Inventory Setups table has **83 custom fuzzy mappings**. Every entry matches the local adaptation. The search filter has **1,572 explicit exclusions**, now used to avoid known temporary/duplicate candidates during automatic Wiki resolution and chatbox selection. These exclusions do not rewrite explicit imported or captured IDs: some excluded search results are legitimate context-specific variants.
+The audited Inventory Setups table has **83 custom fuzzy mappings**. Every entry matches the local adaptation. The upstream search table has **1,572 preference entries**, including legitimate imbued variants. These are not validity rules. Manual native selections remain authoritative after RuneLite canonicalization. Only **310 nonstandard defaults** are skipped by automatic Wiki resolution; the other entries receive a ranking penalty but remain available.
 
 ## Source revisions
 
@@ -37,9 +37,9 @@ Native Bank variation membership uses the negative RuneLite base ID, matching Ta
 
 ### Wiki and search selection
 
-Automatic first-choice lookup excludes the 1,572 known temporary/duplicate search IDs before ranking otherwise eligible candidates. If no eligible definition exists, the slot stays unresolved for manual review. This is safer than assigning a known temporary copy merely to remove a question mark. RuneLite's chatbox UI can still display such results, but choosing one is rejected with a clear message.
+Automatic first-choice lookup skips 310 nonstandard default candidates and ranks the remaining definitions. Legitimate NMZ, Soul Wars and Emir's Arena imbued variants remain available. Manual native search choices are preserved after RuneLite canonicalization and are never rejected merely because they appear in the preference snapshot.
 
-Older Wiki items that retain source-choice metadata and use a known excluded ID are re-resolved as a draft. Their custom layout references are updated with the corrected ID. Saved data is changed only by Save. Ordinary exact imports/captures without that source-choice metadata are not rewritten. Existing targeted beta-ring migration remains in place.
+Older Wiki source choices are re-resolved only for a nonstandard automatic default or a targeted legacy ring migration. A saved legitimate imbued variant is preserved. Changes remain drafts until Save. This corrects the earlier blanket exclusion policy, which incorrectly rejected real items such as Salve amulet(ei).
 
 ## Offline evidence
 
@@ -48,7 +48,9 @@ Older Wiki items that retain source-choice metadata and use a known excluded ID 
 | Custom mapping parity | All 83 source-table entries compared with the local table |
 | Fuzzy behavior | Every integer from zero through 34,731 checked against the upstream rule: RuneLite mapping first, extra mapping only if unchanged |
 | Inventory serialization | All 19,996 positive declared IDs exported and imported in batches; exact values remain unchanged |
-| Search exclusions | All 1,572 explicit exclusion IDs rejected by automatic Wiki choice |
+| Automatic preferences | All 1,572 snapshot entries retained; only 310 nonstandard defaults skipped |
+| Manual selection | All 19,996 positive fixture IDs preserved by the selection policy |
+| Legitimate imbues | Three Salve amulet(ei) variants inserted, saved and exported; saved source choices preserved; mask, helm and ring families covered |
 | Canonical Bank export | Both formats, every supported container and layout; original draft/Inventory IDs retained |
 | Charges and Fuzzy | Exact ring charge ID preserved; native Fuzzy membership uses RuneLite's base |
 | Old temporary source choice | Corrected draft and custom position, original source unchanged until Save |
@@ -61,7 +63,7 @@ These are offline codec, policy and UI-boundary tests. No game input was automat
 
 Test ordinary/worn Graceful, a noted item, a Bank placeholder, a low-charge teleport item, normal Ultor/Magus rings, Rune Pouch and Quiver ammunition. Compare Inventory Setups output with exact source IDs and both Bank Tag outputs with the expected ordinary Bank IDs. Verify the visible conversion warning before relying on Fuzzy behavior across formats.
 
-After RuneLite/cache or upstream changes, rerun the full suite, compare the pinned source tables and review new same-name definitions. The runtime definition index follows the user's actual client, but the curated search exclusions and upstream snapshot still need maintenance. Future content and removed/renamed constants prevent any permanent 100-percent-correctness guarantee.
+After RuneLite/cache or upstream changes, rerun the full suite, compare the pinned source tables and review new same-name definitions. The runtime definition index follows the user's actual client, but the curated automatic preferences and upstream snapshot still need maintenance. Future content and removed/renamed constants prevent any permanent 100-percent-correctness guarantee.
 
 ## Source links
 

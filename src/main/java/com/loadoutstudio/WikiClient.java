@@ -33,7 +33,7 @@ public final class WikiClient
     private long nextRequest, cooldown;
     private boolean busy;
     private volatile boolean closed;
-    private static final String USER_AGENT="LoadoutStudio/0.9.1-rc.5 (https://github.com/Pa5cal1/runelite-loadout-studio; RuneLite)";
+    private static final String USER_AGENT="LoadoutStudio/0.9.1-rc.6 (https://github.com/Pa5cal1/runelite-loadout-studio; RuneLite)";
     interface Store
     {
         String load() throws IOException;

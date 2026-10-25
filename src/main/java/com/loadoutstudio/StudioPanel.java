@@ -206,7 +206,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("LOADOUT"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.9.1-rc.5 - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("LOADOUT"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.9.1-rc.6 - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel wordmark=new JPanel(new GridLayout(2,1,0,0));wordmark.setName("studioWordmark");wordmark.add(title);JLabel subtitle=text("STUDIO");subtitle.setName("studioSubtitle");wordmark.add(subtitle);
         JPanel identity=new JPanel(new BorderLayout(6,0));JLabel mark=new JLabel(new ImageIcon(StudioBrandIcon.create().getScaledInstance(24,24,Image.SCALE_REPLICATE)));mark.setName("studioMark");mark.setForeground(GOLD);mark.setPreferredSize(new Dimension(24,32));identity.add(mark,BorderLayout.WEST);identity.add(wordmark,BorderLayout.CENTER);
@@ -593,7 +593,7 @@ public final class StudioPanel extends PluginPanel
         if(SetupCodec.id(item)==0)return true;
         if(item==null||!item.isJsonObject()||!item.getAsJsonObject().has("label"))return false;
         JsonObject value=item.getAsJsonObject();int id=SetupCodec.id(item);
-        return ItemCatalogue.legacyRingId(id,value.get("label").getAsString())!=id || value.has("choices")&&AutomaticItemExclusions.contains(id);
+        return ItemCatalogue.legacyRingId(id,value.get("label").getAsString())!=id || value.has("choices")&&AutomaticItemExclusions.avoidDefault(id);
     }
     private void resolveDraftDefaults()
     {

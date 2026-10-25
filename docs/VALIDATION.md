@@ -1,6 +1,6 @@
-# Current validation — 0.9.1-rc.5
+# Current validation — 0.9.1-rc.6
 
-- Full Java 11 test/jar/shadowJar result: **212 tests, zero failures/errors/skipped**.
+- Full Java 11 test/jar/shadowJar result: **217 tests, zero failures/errors/skipped**.
 - Reproduced a 42-slot difference case. Its tooltip is grouped by container, bounded in width and height, and contains no item labels or raw slot keys. The individual slot details remain available.
 - Manual Compare now updates both the displayed count and tooltip, preventing stale details after a successful comparison. Regression tests cover both cases and render the actual Swing tooltip offline.
 - Live client hover behavior remains for user acceptance after restart. The current running session is left intact.
@@ -279,3 +279,8 @@ Bank filtering now uses the built-in Bank Tags dependency, an in-memory custom t
 
 - Restored gold accents on warm charcoal surfaces. Header and toolbar use the bundled OSRS Combat Achievements icon.
 - Contrast, native-theme isolation and narrow-sidebar label-fit regressions are retained. Screenshots are offline UI previews; live display scaling remains a manual check.
+
+
+### Legitimate item selection correction (0.9.1-rc.6)
+
+Corrects false rejection of real imbued items such as Salve amulet(ei). Native manual selections are authoritative after canonicalization; automatic preferences no longer classify legitimate imbues as invalid. Regression coverage includes three Salve variants through sidebar selection, save and export, plus saved-source preservation and imbued mask, helm and ring families. In-game confirmation remains pending.

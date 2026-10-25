@@ -267,7 +267,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     @Override public void chooseItem(Consumer<Integer> chosen,Consumer<String> error)
     {
         clientThread.invoke(()->{ if(!active) return; if(client.getGameState()!=GameState.LOGGED_IN) { SwingUtilities.invokeLater(()->error.accept("Log in to use the RuneLite chatbox Item Search.")); return; }
-            net.runelite.client.game.chatbox.ChatboxItemSearch input=chatboxSearch.get(); ownedChatbox=input; input.value("");input.tooltipText("Set slot to").onItemSelected(id->{int real=itemManager.canonicalize(id);int selected=ItemCatalogue.selectionId(real,itemManager.getItemComposition(real).getMembersName());if(AutomaticItemExclusions.contains(selected)){SwingUtilities.invokeLater(()->{if(active)error.accept("This is a temporary or duplicate search item. Choose the normal game item instead.");});return;}SwingUtilities.invokeLater(()->{if(active)chosen.accept(selected);});}).build();diagnostics.completed(StudioDiagnostics.Operation.ITEM_SEARCH,StudioDiagnostics.Outcome.SUCCESS,0);SwingUtilities.invokeLater(()->client.getCanvas().requestFocusInWindow());
+            net.runelite.client.game.chatbox.ChatboxItemSearch input=chatboxSearch.get(); ownedChatbox=input; input.value("");input.tooltipText("Set slot to").onItemSelected(id->{int selected=ItemCatalogue.selectionId(itemManager.canonicalize(id));SwingUtilities.invokeLater(()->{if(active)chosen.accept(selected);});}).build();diagnostics.completed(StudioDiagnostics.Operation.ITEM_SEARCH,StudioDiagnostics.Outcome.SUCCESS,0);SwingUtilities.invokeLater(()->client.getCanvas().requestFocusInWindow());
         });
     }
     @Override public void enterQuantity(String initial,Consumer<String> chosen,Consumer<String> error)

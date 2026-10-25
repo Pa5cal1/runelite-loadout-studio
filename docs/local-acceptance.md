@@ -1,4 +1,4 @@
-# Testclient acceptance — 0.9.1-rc.5
+# Testclient acceptance — 0.9.1-rc.6
 
 The candidate passed 212 offline tests. Before stable publication, also complete the account and real Bank scenarios in [the release-readiness report](release-readiness.md#manual-acceptance-before-submission). A previous pass on another version does not cover newly changed native integrations.
 
