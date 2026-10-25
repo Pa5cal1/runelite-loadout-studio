@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.9.1-rc.11.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.9.1-rc.12.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. Both Bank Tags states now use the same Loadout Studio view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
@@ -495,3 +495,10 @@ Clicking an ordinary Bank tab or choosing Show bank temporarily pauses the loado
 A player reported an injected-client assertion/freeze in rc.10. Its exact native cause is not established by the obfuscated stack. The timing/menu corrections and containment above remain pending an in-game retest; offline success is not proof that the reported freeze is eliminated. Plugin Hub submission remains blocked on that acceptance.
 
 Blood Torva and radiant Oathplate are explicitly recognised cosmetic counterparts for Bank membership and owned alternatives. Missing ornament-specific Equipment stats fall back to their known base piece; exact saved/exported IDs remain unchanged. Builder > Setup details now creates a section inline and selects it, reusing an existing case-insensitive name. Saving the setup remains explicit and unsaved Notes are retained.
+
+
+### Settings applicability correction (0.9.1-rc.12)
+
+Audited all 23 configuration items. New Wiki drafts now receive creation defaults, including highlighting, color, missing-only, filtering, Fuzzy, amount rule and layout. Previously only blank/captured setup creation used this policy. Explicit imports and saved setups retain their own options; defaults are not global overrides. New manual/catalogue/captured-slot insertions receive item defaults while replacements retain existing slot rules. Entering an explicit amount can enable exact comparison; zero remains unlimited.
+
+Live sidebar preferences rebuild the affected controls without losing Notes/caret. Automatic alternative timers and stale callbacks are invalidated when preferences change. Auto-find and auto-expand labels clarify automatic versus manual operation without changing configuration keys. Respect-other-filter changes schedule a safe live reassessment. Freshness duration is read at the next user request, with no background traffic. Existing native Bank freeze acceptance remains open; the settings audit does not close that blocker.

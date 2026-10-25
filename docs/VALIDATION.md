@@ -1,4 +1,10 @@
-# Current validation — 0.9.1-rc.11
+# Current validation — 0.9.1-rc.12
+
+- Full Java 11 test/jar/shadowJar build: **249 tests, zero failures/errors/skipped**.
+- Eleven new regressions cover creation policy, the actual Wiki-open/highlight border path, import preservation, live display preferences, stale alternatives, caps, new/replaced slots, stock checkbox, amount input, diagnostics off and dynamic Wiki freshness.
+- All 23 settings mapped in local-acceptance.md. Native hotkey/menu behavior and the reported Bank assertion still require player acceptance.
+
+# Previous validation — 0.9.1-rc.11
 
 - Full Java 11 test/jar/shadowJar build: **238 tests, zero failures/errors/skipped**.
 - Five added regressions cover Bank pause/resume/reopen, background edits while paused, six cosmetic armour pairs with exact export preservation, inline section creation/reuse and invalid section input.

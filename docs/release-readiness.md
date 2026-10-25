@@ -1,6 +1,6 @@
 # Loadout Studio release readiness
 
-Version: **0.9.1-rc.11**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
+Version: **0.9.1-rc.12**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
 
 Reviewed candidate source commit: `0e2ad367b71ad8118b2b9bfad2fbd3ae4472480f`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
 
@@ -23,7 +23,7 @@ One concrete defect was corrected during the review: useful `Slayer task/…` ar
 | Gate | Evidence | State |
 | --- | --- | --- |
 | Java compatibility | Java 11 compilation and class version 55 | Locally checked |
-| Regression suite | 238 tests, zero failures, errors or skips | Locally passed |
+| Regression suite | 249 tests, zero failures, errors or skips | Locally passed |
 | Account separation | Three-account save/reopen/favorite test, draft recovery and delayed callback guards | Offline passed; live switching pending |
 | Wiki request restraint | Interceptor tests, persisted cache, explicit actions, rolling request budget | Offline passed |
 | Sidebar appearance | Gold theme, 220/260 px layout checks and example-data previews | Offline checked; live scaling pending |
@@ -176,3 +176,10 @@ Clicking an ordinary Bank tab or choosing Show bank temporarily pauses the loado
 A player reported an injected-client assertion/freeze in rc.10. Its exact native cause is not established by the obfuscated stack. The timing/menu corrections and containment above remain pending an in-game retest; offline success is not proof that the reported freeze is eliminated. Plugin Hub submission remains blocked on that acceptance.
 
 Blood Torva and radiant Oathplate are explicitly recognised cosmetic counterparts for Bank membership and owned alternatives. Missing ornament-specific Equipment stats fall back to their known base piece; exact saved/exported IDs remain unchanged. Builder > Setup details now creates a section inline and selects it, reusing an existing case-insensitive name. Saving the setup remains explicit and unsaved Notes are retained.
+
+
+### Settings applicability correction (0.9.1-rc.12)
+
+Audited all 23 configuration items. New Wiki drafts now receive creation defaults, including highlighting, color, missing-only, filtering, Fuzzy, amount rule and layout. Previously only blank/captured setup creation used this policy. Explicit imports and saved setups retain their own options; defaults are not global overrides. New manual/catalogue/captured-slot insertions receive item defaults while replacements retain existing slot rules. Entering an explicit amount can enable exact comparison; zero remains unlimited.
+
+Live sidebar preferences rebuild the affected controls without losing Notes/caret. Automatic alternative timers and stale callbacks are invalidated when preferences change. Auto-find and auto-expand labels clarify automatic versus manual operation without changing configuration keys. Respect-other-filter changes schedule a safe live reassessment. Freshness duration is read at the next user request, with no background traffic. Existing native Bank freeze acceptance remains open; the settings audit does not close that blocker.

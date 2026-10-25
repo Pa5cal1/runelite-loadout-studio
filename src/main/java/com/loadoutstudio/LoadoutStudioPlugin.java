@@ -211,6 +211,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     }
     @Subscribe public void onConfigChanged(ConfigChanged event)
     {
+        if(active&&LoadoutStudioConfig.GROUP.equals(event.getGroup())&&event.getKey().equals("respectOtherBankFilters"))clientThread.invokeAtTickEnd(()->{if(active&&bankFilter!=null)reportBankStatus(bankFilter.apply());});
         if(active && LoadoutStudioConfig.GROUP.equals(event.getGroup()) && LoadoutStudioConfig.isPreferenceKey(event.getKey())){SwingUtilities.invokeLater(()->{if(active&&panel!=null)panel.preferencesChanged();});return;}
     }
     private void clearBankObservation(){clientThread.invoke(()->{observedBank.clear();bankObservedAt=0;});}

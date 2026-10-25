@@ -162,6 +162,7 @@ public final class StudioPanel extends PluginPanel
     private JsonObject liveActual,alternativeUndo;
     private final JPanel alternativeRows=vertical();
     private JPanel alternativesContent;private String autoShownAlternativeSession;
+    private long alternativeRequestVersion;private Boolean appliedAutoExpand;
     private LoadoutStudioConfig.LibraryOrder libraryOrder=LoadoutStudioConfig.LibraryOrder.ALPHABETICAL;
     private String upgradeBefore,upgradeAfter;
     private long alternativeUndoRevision;
@@ -169,7 +170,7 @@ public final class StudioPanel extends PluginPanel
     private final JTextField catalogueQuery = new JTextField();
     private final DefaultListModel<ItemInfo> catalogueModel = new DefaultListModel<>();
     private final JList<ItemInfo> catalogueList = new JList<>(catalogueModel);
-    private final Timer alternativeTimer = new Timer(200,e->refreshAlternatives());
+    private final Timer alternativeTimer = new Timer(200,e->refreshAutomaticAlternatives());
     private final Timer catalogueTimer = new Timer(180, e -> refreshCatalogue());
     private final JLabel catalogueCount = text("Search English item names or IDs");
     private String renderedSession;
@@ -207,7 +208,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("LOADOUT"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.9.1-rc.11 - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("LOADOUT"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.9.1-rc.12 - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel wordmark=new JPanel(new GridLayout(2,1,0,0));wordmark.setName("studioWordmark");wordmark.add(title);JLabel subtitle=text("STUDIO");subtitle.setName("studioSubtitle");wordmark.add(subtitle);
         JPanel identity=new JPanel(new BorderLayout(6,0));JLabel mark=new JLabel(new ImageIcon(StudioBrandIcon.create().getScaledInstance(24,24,Image.SCALE_REPLICATE)));mark.setName("studioMark");mark.setForeground(GOLD);mark.setPreferredSize(new Dimension(24,32));identity.add(mark,BorderLayout.WEST);identity.add(wordmark,BorderLayout.CENTER);
@@ -382,6 +383,7 @@ public final class StudioPanel extends PluginPanel
     private void attempt(StudioDiagnostics.Operation operation,Runnable action){long started=System.nanoTime();try{action.run();diagnostics.completed(operation,StudioDiagnostics.Outcome.SUCCESS,started);}catch(RuntimeException error){diagnostics.failure(operation,error,started);failure(failureMessage(error));}}
 	public void reloadScope()
 	{
+        alternativeTimer.stop();alternativeRequestVersion++;diagnostics.enabled(host.settings().localDiagnostics());appliedAutoExpand=host.settings().autoShowAlternatives();autoShownAlternativeSession=null;if(!appliedAutoExpand)expandedPanels.remove("My gear alternatives");
 		libraryOrder=host.settings().libraryOrder();ignoreAmmo.setSelected(host.settings().ignoreAmmoQuantities());liveActual=null;alternativeUndo=null;upgradeBefore=null;upgradeAfter=null;alternativeRows.removeAll();
 		host.cancelItemInput(); host.clearBankFilter(); bankMessage("Bank filter off.");
 		if (disposed) return; boolean recoveryFailed=false; if (wikiSuggestTimer != null) wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); wikiSearchRevision++; wikiPageRevision++; wikiPresetRows.removeAll(); wikiPageStatus.setText("Choose a Wiki page to see its setups."); scope = host.scope(); recoveryOwner=host.recoveryOwner(); recovery=null;existingControls.removeAll(); draft = null; editingId = null; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); code.setText(""); storageError = false;
@@ -585,7 +587,16 @@ public final class StudioPanel extends PluginPanel
     }
     void preferencesChanged()
     {
-        if(disposed)return;LoadoutStudioConfig settings=host.settings();diagnostics.enabled(settings.localDiagnostics());libraryOrder=settings.libraryOrder();ignoreAmmo.setSelected(settings.ignoreAmmoQuantities());code.setText("");renderLibrary();refreshGearComparison();revalidate();repaint();
+        if(disposed)return;LoadoutStudioConfig settings=host.settings();
+        int dot=notes.getCaret().getDot(),mark=notes.getCaret().getMark();if(draft!=null)fieldsToDraft();
+        diagnostics.enabled(settings.localDiagnostics());libraryOrder=settings.libraryOrder();ignoreAmmo.setSelected(settings.ignoreAmmoQuantities());code.setText("");
+        alternativeTimer.stop();alternativeRequestVersion++;
+        if(Boolean.TRUE.equals(appliedAutoExpand)&&!settings.autoShowAlternatives())expandedPanels.remove("My gear alternatives");
+        if(!Boolean.valueOf(settings.autoShowAlternatives()).equals(appliedAutoExpand))autoShownAlternativeSession=null;
+        appliedAutoExpand=settings.autoShowAlternatives();
+        if(alternativeUndo==null)alternativeRows.removeAll();renderLibrary();renderBuilder();
+        notes.getCaret().setDot(Math.min(mark,notes.getDocument().getLength()));notes.getCaret().moveDot(Math.min(dot,notes.getDocument().getLength()));
+        if(alternativeUndo==null&&settings.autoAlternatives())scheduleAlternatives();revalidate();repaint();
     }
     private void newDraft(JsonObject p,boolean defaultsResolved)
 	{
@@ -799,9 +810,10 @@ public final class StudioPanel extends PluginPanel
         {
             if (disposed || !token.equals(session)) return;
             if (!before.equals(get(key, index))) { message("This slot changed. Choose the destination again."); return; }
-            attempt(() -> { itemCache.put(id, info); JsonObject item = SetupCodec.item(id, 1); validateSlot(key, index, item); checkExtraDuplicate(key, index, item); fieldsToDraft(); put(key, index, item); rebuildDraftLayout(); markDirty(); renderBuilder(); message("Added " + info.name + ". Review its quantity if needed."); });
+            attempt(() -> { itemCache.put(id, info); JsonObject item = SetupCodec.item(id, 1);slotRules(item,before); validateSlot(key, index, item); checkExtraDuplicate(key, index, item); fieldsToDraft(); put(key, index, item); rebuildDraftLayout(); markDirty(); renderBuilder(); message("Added " + info.name + ". Review its quantity if needed."); });
         });
     }
+    private void slotRules(JsonObject item,JsonElement before){if(before.isJsonNull())LoadoutDefaults.newItem(item,host.settings());else for(String field:new String[]{"f","sc"})if(before.getAsJsonObject().has(field))item.add(field,before.getAsJsonObject().get(field).deepCopy());}
     private boolean validSlot(String key, int index)
     {
         if (draft == null || index < 0) return false;
@@ -880,8 +892,8 @@ public final class StudioPanel extends PluginPanel
         if(draft==null) return; fieldsToDraft(); String token=session; JsonElement before=get(key,index).deepCopy(); message("Choose an item in the RuneLite chatbox.");
         host.chooseItem(id->{ if(disposed || !token.equals(session) || id<1 || !before.equals(get(key,index))) return;
             host.describe(id,info->{ if(disposed || !token.equals(session) || !before.equals(get(key,index))) return; itemCache.put(id,info);
-                if(info.stackable || key.equals("rp") || key.equals("qv")) host.enterQuantity(host.settings().emptyQuantityInput()?"":amountText(before),value->{ if(token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,id,value); },this::failure);
-                else applySlotItem(key,index,id,"1");
+                if(info.stackable || key.equals("rp") || key.equals("qv")) host.enterQuantity(host.settings().emptyQuantityInput()?"":amountText(before),value->{ if(token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,id,value,true); },this::failure);
+                else applySlotItem(key,index,id,"1",false);
             });
         },this::failure);
     }
@@ -892,15 +904,15 @@ public final class StudioPanel extends PluginPanel
     private void editQuantity(String key,int index)
     {
         JsonElement before=get(key,index).deepCopy(); String token=session; if(before.isJsonNull()) return;
-        host.enterQuantity(host.settings().emptyQuantityInput()?"":amountText(before),value->{ if(!disposed && token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,SetupCodec.id(before),value); },this::failure);
+        host.enterQuantity(host.settings().emptyQuantityInput()?"":amountText(before),value->{ if(!disposed && token.equals(session) && before.equals(get(key,index))) applySlotItem(key,index,SetupCodec.id(before),value,true); },this::failure);
     }
-    private void applySlotItem(String key,int index,int id,String amount)
+    private void applySlotItem(String key,int index,int id,String amount,boolean amountEntered)
     {
         attempt(()->{ int quantity=amount.trim().equals("0") ? 0 : SetupCodec.parseQuantity(amount);
             ItemInfo info=itemCache.get(id); if(info==null) throw new IllegalArgumentException("Item details are still loading."); if(!info.stackable && quantity>1) throw new IllegalArgumentException("Non-stackable items need separate slots.");
             JsonElement previous=get(key,index); JsonObject item=SetupCodec.item(id,quantity);
-            if(!previous.isJsonNull()) for(String field:new String[]{"f","sc"}) if(previous.getAsJsonObject().has(field)) item.add(field,previous.getAsJsonObject().get(field).deepCopy());
-            if(quantity==0)item.addProperty("sc","None");else if(!item.has("sc")||item.get("sc").getAsString().equals("None"))item.addProperty("sc","Standard"); validateSlot(key,index,item); checkExtraDuplicate(key,index,item); put(key,index,item); changedSlot(); message(quantity==0 ? "Unlimited: quantity matching is disabled for this slot." : "Slot updated.");
+            slotRules(item,previous);
+            if(quantity==0)item.addProperty("sc","None");else if(amountEntered&&(!item.has("sc")||item.get("sc").getAsString().equals("None")))item.addProperty("sc","Standard"); validateSlot(key,index,item); checkExtraDuplicate(key,index,item); put(key,index,item); changedSlot(); message(quantity==0 ? "Unlimited: quantity matching is disabled for this slot." : "Slot updated.");
         });
     }
     private void updateSlotFromContainer(String key,int index)
@@ -908,7 +920,7 @@ public final class StudioPanel extends PluginPanel
         String token=session; JsonElement before=get(key,index).deepCopy();
         host.capture(actual->{ if(disposed || !token.equals(session) || !before.equals(get(key,index))) return; JsonElement item=SetupCodec.setup(actual).getAsJsonArray(key).get(index).deepCopy();
             if(item.isJsonNull()) { put(key,index,JsonNull.INSTANCE); changedSlot(); return; }
-            host.describe(SetupCodec.id(item),info->{ if(disposed || !token.equals(session) || !before.equals(get(key,index))) return; itemCache.put(info.id,info); attempt(()->{validateSlot(key,index,item);put(key,index,item);changedSlot();}); });
+            host.describe(SetupCodec.id(item),info->{ if(disposed || !token.equals(session) || !before.equals(get(key,index))) return; itemCache.put(info.id,info); attempt(()->{slotRules(item.getAsJsonObject(),before);validateSlot(key,index,item);put(key,index,item);changedSlot();}); });
         },this::failure);
     }
 
@@ -966,13 +978,14 @@ public final class StudioPanel extends PluginPanel
         return name+": quantity differs";
     }
     private void scheduleAlternatives(){if(alternativeUndo!=null&&draftRevision!=alternativeUndoRevision)alternativeUndo=null;if(!disposed&&draft!=null&&host.settings().autoAlternatives()&&alternativeUndo==null)alternativeTimer.restart();}
+    private void refreshAutomaticAlternatives(){if(!disposed&&host.settings().autoAlternatives())refreshAlternatives();}
     private void refreshAlternativeRows(){themeForm(alternativeRows);for(Container parent=alternativeRows;parent!=null;parent=parent.getParent()){parent.invalidate();if(parent==this)break;}builder.revalidate();builder.repaint();}
     private void showAlternativesOnce(boolean available){if(!available||session.equals(autoShownAlternativeSession)||!host.settings().autoShowAlternatives())return;autoShownAlternativeSession=session;expandedPanels.add("My gear alternatives");if(alternativesContent!=null){alternativesContent.setVisible(true);Container parent=alternativesContent.getParent();if(parent!=null)for(Component child:parent.getComponents())if(child instanceof JButton&&"disclosure:My gear alternatives".equals(child.getName()))((JButton)child).setText("- My gear alternatives");}}
     void refreshAlternatives()
     {
-        if(draft==null)return;long alternativesStarted=System.nanoTime();fieldsToDraft();String token=session;long revision=draftRevision;alternativeRows.removeAll();if(BankLayouts.items(draft).isEmpty())return;alternativeRows.add(info("Checking local gear...",1));
+        if(draft==null)return;long alternativesStarted=System.nanoTime();fieldsToDraft();String token=session;long revision=draftRevision,request=++alternativeRequestVersion;alternativeRows.removeAll();if(BankLayouts.items(draft).isEmpty())return;alternativeRows.add(info("Checking local gear...",1));
         host.availableGear(draft.deepCopy(),owned->{
-            if(disposed||!token.equals(session)||revision!=draftRevision)return;diagnostics.completed(StudioDiagnostics.Operation.ALTERNATIVES,owned.observedAt==0?StudioDiagnostics.Outcome.EXPECTED_STATE:StudioDiagnostics.Outcome.SUCCESS,alternativesStarted);alternativeRows.removeAll();
+            if(disposed||!token.equals(session)||revision!=draftRevision||request!=alternativeRequestVersion)return;diagnostics.completed(StudioDiagnostics.Operation.ALTERNATIVES,owned.observedAt==0?StudioDiagnostics.Outcome.EXPECTED_STATE:StudioDiagnostics.Outcome.SUCCESS,alternativesStarted);alternativeRows.removeAll();
             if(owned.observedAt==0){alternativeRows.add(info("Open your Bank to see owned alternatives.",2));refreshAlternativeRows();return;}
             String date=java.time.Instant.ofEpochMilli(owned.observedAt).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
             alternativeRows.add(info((owned.bankOpen?"Bank observed now":"Last Bank observation "+date)+". Other storage is not included. Review requirements before replacing.",4));
@@ -987,7 +1000,7 @@ public final class StudioPanel extends PluginPanel
             }
             if(proposals.isEmpty())alternativeRows.add(info("No supported owned alternatives found. Missing gear is not automatically replaced.",3));
             else alternativeRows.add(button("Use selected alternatives",()->attempt(()->{if(!token.equals(session)||revision!=draftRevision)throw new IllegalStateException("Setup changed. Check your Bank again.");Map<OwnedGear.Proposal,ItemInfo> selected=new java.util.LinkedHashMap<>();choices.forEach((proposal,select)->{ItemInfo item=(ItemInfo)select.getSelectedItem();if(item!=null&&item.id>0)selected.put(proposal,item);});host.availableGear(draft.deepCopy(),fresh->{if(disposed||!token.equals(session)||revision!=draftRevision)return;attempt(()->{for(ItemInfo item:selected.values())if(fresh.count(item.id)<1)throw new IllegalStateException("An alternative is no longer observed. Check your Bank again.");if(host.settings().checkAlternativeStock())fresh.requireReplacementStock(draft,selected);applyAlternatives(selected);});},this::failure);})));showAlternativesOnce(!proposals.isEmpty());refreshAlternativeRows();
-        },error->{if(!disposed&&token.equals(session)){alternativeRows.removeAll();alternativeRows.add(info(error,2));refreshAlternativeRows();}});
+        },error->{if(!disposed&&token.equals(session)&&request==alternativeRequestVersion){alternativeRows.removeAll();alternativeRows.add(info(error,2));refreshAlternativeRows();}});
     }
     void applyAlternatives(Map<OwnedGear.Proposal,ItemInfo> selected)
     {
@@ -1197,7 +1210,7 @@ public final class StudioPanel extends PluginPanel
 		}
 		wikiPageStatus.setText(presets.size() + " setups. Review first choices before Save.");themeForm(wikiPresetRows);wikiPresetRows.invalidate(); if (wikiPresetRows.getParent() != null) wikiPresetRows.getParent().invalidate(); wikiPresetRows.revalidate(); wikiPresetRows.repaint();
 	}
-	private void openWikiPreset(JsonObject original)
+    void openWikiPreset(JsonObject original)
 	{
         long choice = ++wikiChoiceRevision, page = wikiPageRevision; String token = session;
         message("Loading game items for this Wiki setup...");
@@ -1211,7 +1224,8 @@ public final class StudioPanel extends PluginPanel
                 JsonObject item = entry.getAsJsonObject(); String label = WikiParser.defaultName(item); ItemInfo exact = host.defaultItem(label);
                 if (exact != null) { item.addProperty("id", exact.id); item.addProperty("label",exact.name); itemCache.put(exact.id, exact); } else unresolved++;
             }
-            SetupCodec.rebuildLayout(preset); String previousSession = session; newDraft(preset,true);
+            preset=LoadoutDefaults.created(preset,host.settings());String previousSession = session;newDraft(preset,true);
+            if(!previousSession.equals(session)){editorLayout=host.settings().defaultLayout()==LoadoutStudioConfig.DefaultLayout.ZIGZAG?BankLayouts.Mode.ZIGZAG:BankLayouts.Mode.PRESET;editorBottom=host.settings().defaultZigzagBottom();persistRecovery();renderBuilder();}
             if (!previousSession.equals(session)) message("Wiki draft loaded. " + unresolved + " unresolved slot(s): click '?' to choose an item. Review quantities and Spellbook before export.");
         });
 	}

@@ -7,7 +7,7 @@ import net.runelite.client.config.*;
 public interface LoadoutStudioConfig extends Config
 {
     String GROUP = "loadout-studio";
-    @ConfigSection(name="Default loadouts",description="Defaults for new blank setups and captured gear; saved and imported setups keep their own values",position=0,closedByDefault=true)
+    @ConfigSection(name="Default loadouts",description="Defaults for new blank, captured and Wiki loadouts; saved and explicitly imported setups keep their own values",position=0,closedByDefault=true)
     String defaults="defaults";
     @ConfigSection(name="Comparison",description="General gear comparison preferences",position=1,closedByDefault=true)
     String comparison="comparison";
@@ -25,12 +25,12 @@ public interface LoadoutStudioConfig extends Config
     @ConfigItem(keyName="wikiFreshDays",name="Refresh source after days",description="On opening a source, refresh if its stored copy is older than this many days. No background polling",section=wiki,position=0)
     @Range(min=1,max=30)
     default int wikiFreshDays(){return 7;}
-    @ConfigItem(keyName="autoAlternatives",name="Find owned alternatives",description="Determine local, setup-specific alternatives after opening a setup or Bank change; never contacts the Wiki",section=bank,position=1)
+    @ConfigItem(keyName="autoAlternatives",name="Auto-find alternatives",description="Automatically determine local alternatives after opening a setup or Bank change. Off keeps manual Refresh alternatives available; never contacts the Wiki",section=bank,position=1)
     default boolean autoAlternatives(){return true;}
     @ConfigItem(keyName="maxAlternatives",name="Alternatives per item",description="Maximum number of ranked source or bundled alternatives shown per missing item",section=bank,position=2)
     @Range(min=1,max=5)
     default int maxAlternatives(){return 3;}
-    @ConfigItem(keyName="autoShowAlternatives",name="Show owned alternatives",description="Expand the compact alternatives list once per setup when compatible owned options exist",section=bank,position=3)
+    @ConfigItem(keyName="autoShowAlternatives",name="Auto-expand alternatives",description="Automatically expand the list when owned options exist; manual expansion remains available when off",section=bank,position=3)
     default boolean autoShowAlternatives(){return true;}
     @ConfigItem(keyName="defaultHighlight",name="Default highlighting",description="Highlight differences in new setups; use each setup's marker button to override",section=defaults,position=6)
     default boolean defaultHighlight(){return true;}
@@ -59,15 +59,15 @@ public interface LoadoutStudioConfig extends Config
         NONE("None","Ignore amount"),EXACT("Standard","Exactly"),MINIMUM("Less_Than","At least"),MAXIMUM("Greater_Than","At most");
         final String code,label;StackRule(String code,String label){this.code=code;this.label=label;}public String toString(){return label;}
     }
-    @ConfigItem(keyName="defaultLayout",name="Default layout",description="Initial Bank layout for new blank or captured setups",section=defaults,position=0)
+    @ConfigItem(keyName="defaultLayout",name="Default layout",description="Initial Bank layout for new blank, captured or Wiki loadouts",section=defaults,position=0)
     default DefaultLayout defaultLayout(){return DefaultLayout.PRESET;}
     @ConfigItem(keyName="defaultZigzagBottom",name="Zigzag bottom row first",description="Starting direction for new Zigzag layouts",section=defaults,position=1)
     default boolean defaultZigzagBottom(){return false;}
-    @ConfigItem(keyName="defaultFilterBank",name="Default Filter Bank",description="Enable Bank filtering for new blank and captured setups",section=defaults,position=2)
+    @ConfigItem(keyName="defaultFilterBank",name="Default Filter Bank",description="Enable Bank filtering for new blank, captured and Wiki loadouts",section=defaults,position=2)
     default boolean defaultFilterBank(){return true;}
-    @ConfigItem(keyName="defaultFuzzy",name="Default Fuzzy",description="Allow supported item variants in newly captured gear; imports keep their own rules",section=defaults,position=3)
+    @ConfigItem(keyName="defaultFuzzy",name="Default Fuzzy",description="Initial Fuzzy rule for new slots, captures and Wiki items; existing and imported slot rules are retained",section=defaults,position=3)
     default boolean defaultFuzzy(){return false;}
-    @ConfigItem(keyName="defaultStackRule",name="Default amount rule",description="Initial quantity comparison rule for newly captured items",section=defaults,position=4)
+    @ConfigItem(keyName="defaultStackRule",name="Default amount rule",description="Initial amount comparison for newly captured and Wiki items; entering a quantity is an explicit slot edit",section=defaults,position=4)
     default StackRule defaultStackRule(){return StackRule.NONE;}
     @ConfigItem(keyName="captureAttackOption",name="Capture attack option",description="Include the current attack option in new gear captures; existing setups are unchanged",section=defaults,position=5)
     default boolean captureAttackOption(){return true;}

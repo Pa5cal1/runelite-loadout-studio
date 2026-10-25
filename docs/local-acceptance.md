@@ -1,6 +1,6 @@
-# Testclient acceptance — 0.9.1-rc.11
+# Testclient acceptance — 0.9.1-rc.12
 
-The candidate passed 238 offline tests. Before stable publication, also complete the account and real Bank scenarios in [the release-readiness report](release-readiness.md#manual-acceptance-before-submission). A previous pass on another version does not cover newly changed native integrations.
+The candidate passed 249 offline tests. Before stable publication, also complete the account and real Bank scenarios in [the release-readiness report](release-readiness.md#manual-acceptance-before-submission). A previous pass on another version does not cover newly changed native integrations.
 
 Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 
@@ -118,3 +118,41 @@ Clicking an ordinary Bank tab or choosing Show bank temporarily pauses the loado
 A player reported an injected-client assertion/freeze in rc.10. Its exact native cause is not established by the obfuscated stack. The timing/menu corrections and containment above remain pending an in-game retest; offline success is not proof that the reported freeze is eliminated. Plugin Hub submission remains blocked on that acceptance.
 
 Blood Torva and radiant Oathplate are explicitly recognised cosmetic counterparts for Bank membership and owned alternatives. Missing ornament-specific Equipment stats fall back to their known base piece; exact saved/exported IDs remain unchanged. Builder > Setup details now creates a section inline and selects it, reusing an existing case-insensitive name. Saving the setup remains explicit and unsaved Notes are retained.
+
+
+### Settings applicability correction (0.9.1-rc.12)
+
+Audited all 23 configuration items. New Wiki drafts now receive creation defaults, including highlighting, color, missing-only, filtering, Fuzzy, amount rule and layout. Previously only blank/captured setup creation used this policy. Explicit imports and saved setups retain their own options; defaults are not global overrides. New manual/catalogue/captured-slot insertions receive item defaults while replacements retain existing slot rules. Entering an explicit amount can enable exact comparison; zero remains unlimited.
+
+Live sidebar preferences rebuild the affected controls without losing Notes/caret. Automatic alternative timers and stale callbacks are invalidated when preferences change. Auto-find and auto-expand labels clarify automatic versus manual operation without changing configuration keys. Respect-other-filter changes schedule a safe live reassessment. Freshness duration is read at the next user request, with no background traffic. Existing native Bank freeze acceptance remains open; the settings audit does not close that blocker.
+
+
+## Settings applicability audit — rc.12
+
+Code paths and offline boundaries below are checked separately from native client acceptance. Defaults intentionally do not rewrite imported or saved setups.
+
+| Setting | Scope and evidence |
+| --- | --- |
+| Refresh source after days (`wikiFreshDays`) | Live supplier on next source request; 30-to-1-day change tested without background requests. |
+| Auto-find alternatives (`autoAlternatives`) | Automatic local requests/timer only; manual refresh remains available; stale results rejected. |
+| Alternatives per item (`maxAlternatives`) | Choice cap; updated on auto-refresh or explicit manual refresh when automation is off. |
+| Auto-expand alternatives (`autoShowAlternatives`) | Automatic expansion only; user-triggered expansion remains available. |
+| Default highlighting (`defaultHighlight`) | New setups including Wiki; disabled border tested in the real Wiki-open route. |
+| Default highlight color (`defaultHighlightColor`) | Initial setup color including Wiki; does not recolor saved setups. |
+| Default missing items only (`defaultMissingOnly`) | Initial Inventory missing/order rule including Wiki. |
+| Empty quantity input (`emptyQuantityInput`) | Read at amount entry; both empty and previous-value states tested. |
+| Show attack option (`showAttackOption`) | Live display toggle, preserving the stored attack option and Notes/caret. |
+| Record local diagnostics (`localDiagnostics`) | Live off clears and stops recording; verified through the sidebar report. |
+| Bank layout menu (`bankLayoutMenu`) | Auto Layout submenu; native menu retest required. |
+| Respect other Bank filters (`respectOtherBankFilters`) | Live reassessment at tick end; explicit takeover remains allowed; native coexistence retest required. |
+| Default layout (`defaultLayout`) | New blank, captured and Wiki setups; existing layouts remain unchanged. |
+| Zigzag bottom row first (`defaultZigzagBottom`) | Direction for new Zigzag layouts; no effect on Preset. |
+| Default Filter Bank (`defaultFilterBank`) | Initial setup flag, now including Wiki creation; not a global off switch. |
+| Default Fuzzy (`defaultFuzzy`) | New generated items and empty-slot insertions; existing/imported rules retained. |
+| Default amount rule (`defaultStackRule`) | New generated items and empty-slot insertions; explicit amount entry is a slot edit. |
+| Capture attack option (`captureAttackOption`) | Capture gear only; display and source-provided options are independent. |
+| Ignore Ammo quantities (`ignoreAmmoQuantities`) | Live comparison/export policy; Rune Pouch amounts remain checked. |
+| Check replacement stock (`checkAlternativeStock`) | Read on Apply; enabled/disabled action paths tested with insufficient stock. |
+| Library order (`libraryOrder`) | Live Library sorting; item/setup contents retained. |
+| Toggle Bank filter (`filterHotkey`) | RuneLite keybind supplier while Bank is open; native keyboard retest required. |
+| Bank setup shortcuts (`bankMenu`) | Saved setup shortcuts in the next opened Bank menu; not every Bank action. |
