@@ -520,7 +520,7 @@ public final class StudioPanel extends PluginPanel
                     () -> attempt(() -> setLibraryFavorite(entry.id, !entry.favorite)),
                     () -> attempt(() -> commit(l -> l.find(entry.id).archived = !entry.archived)),
                     () -> confirmDeleteArchived(entry.id));
-                installLibrarySource((JButton)setupRow.getComponent(0),entry.id);installLibraryTarget(setupRow,group.id);String rowOwner=recoveryOwner;javax.swing.JPopupMenu ordering=new javax.swing.JPopupMenu();for(int direction:new int[]{-1,1}){javax.swing.JMenuItem move=new javax.swing.JMenuItem(direction<0?"Move up":"Move down");move.addActionListener(e->{if(rowOwner.equals(recoveryOwner))attempt(()->moveSetup(entry.id,direction));});ordering.add(move);}themeMenu(ordering);((JButton)setupRow.getComponent(0)).setComponentPopupMenu(ordering);libraryRows.add(setupRow);
+                installLibrarySource((JButton)setupRow.getComponent(0),entry.id,group.id);installLibraryTarget(setupRow,group.id);String rowOwner=recoveryOwner;javax.swing.JPopupMenu ordering=new javax.swing.JPopupMenu();for(int direction:new int[]{-1,1}){javax.swing.JMenuItem move=new javax.swing.JMenuItem(direction<0?"Move up":"Move down");move.addActionListener(e->{if(rowOwner.equals(recoveryOwner))attempt(()->moveSetup(entry.id,direction));});ordering.add(move);}themeMenu(ordering);((JButton)setupRow.getComponent(0)).setComponentPopupMenu(ordering);libraryRows.add(setupRow);
 			}
 		}
 		if (matching == 0)
@@ -1057,7 +1057,9 @@ public final class StudioPanel extends PluginPanel
         @Override public boolean canImport(TransferSupport support){try{return support.isDataFlavorSupported(DataFlavor.stringFlavor)&&libraryDraggedId((String)support.getTransferable().getTransferData(DataFlavor.stringFlavor),target)!=null;}catch(Exception error){return false;}}
         @Override public boolean importData(TransferSupport support){try{return canImport(support)&&moveLibraryDrop((String)support.getTransferable().getTransferData(DataFlavor.stringFlavor),target);}catch(Exception error){failure("Could not move setup to section.");return false;}}
     });}
-    private void installLibrarySource(JButton button,String id){button.setTransferHandler(new TransferHandler(){
+    private void installLibrarySource(JButton button,String id,String target){button.setTransferHandler(new TransferHandler(){
+        @Override public boolean canImport(TransferSupport support){try{return support.isDataFlavorSupported(DataFlavor.stringFlavor)&&libraryDraggedId((String)support.getTransferable().getTransferData(DataFlavor.stringFlavor),target)!=null;}catch(Exception error){return false;}}
+        @Override public boolean importData(TransferSupport support){try{return canImport(support)&&moveLibraryDrop((String)support.getTransferable().getTransferData(DataFlavor.stringFlavor),target);}catch(Exception error){failure("Could not move setup to section.");return false;}}
         @Override public int getSourceActions(javax.swing.JComponent source){return MOVE;}
         @Override protected Transferable createTransferable(javax.swing.JComponent source){String payload=libraryDragPayload(id);return payload==null?null:new StringSelection(payload);}
     });java.awt.event.MouseAdapter drag=new java.awt.event.MouseAdapter(){private java.awt.Point start;private boolean started;

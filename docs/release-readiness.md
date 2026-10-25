@@ -1,6 +1,6 @@
 # Loadout Studio release readiness
 
-Version: **0.9.1-rc.17**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
+Version: **0.9.1-rc.18**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
 
 Reviewed candidate source commit: `eebb594c22497fe7e899500270ea68ab777199ca`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
 
@@ -248,3 +248,12 @@ The player confirmed that Withdraw-5 produces five real food items. The supplied
 - No new network calls were added. The supplied console extract contains DEBUG entries and no ERROR entries, assertions or exception types.
 
 Validation: 288 offline Java 11 tests passed. New coverage checks anchored Wiki capes, exact versus fuzzy max-cape matching, the live slot marker and saved flag, and section-drop persistence/profile isolation. Native drag gestures and the corrected cape/helmet behavior still require player acceptance in rc.17.
+
+
+### Drop a setup onto another setup (0.9.1-rc.18)
+
+Library setup-name buttons now accept drops as well as starting drags. Dropping on another setup moves the dragged setup into the destination setup's section, including Unfiled. The destination setup is not changed and no copy is created. Existing section-heading and row-area drop targets remain available. Profile isolation and autosave use the same validated move operation.
+
+Player acceptance: food and potion withdrawals are confirmed working. The screenshots also show visible fuzzy stars and section changes. The new name-button drop gesture still needs player confirmation.
+
+Validation: 289 offline tests passed. The new regression test delivers a real Swing TransferSupport to a destination setup-name button, checks persisted section membership and unchanged target/favorite, retains MOVE as its source action and rejects unrelated payloads.
