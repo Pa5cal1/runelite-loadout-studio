@@ -2,9 +2,10 @@
 package com.loadoutstudio;
 import java.awt.*;
 import javax.swing.*;
-/** Loadout Studio's own palette. Applied locally; never changes RuneLite UI defaults. */
+import net.runelite.client.ui.ColorScheme;
+/** Native RuneLite neutrals with restrained gold accents; applied to this sidebar only. */
 final class StudioTheme {
-    static final Color BACKGROUND=new Color(28,26,23),SURFACE=new Color(39,35,29),CONTROL=new Color(23,21,18),BORDER=new Color(91,77,52),TEXT=new Color(241,234,220),MUTED=new Color(188,174,148),ACCENT=new Color(232,188,99),SELECTED=new Color(64,49,25),FAVORITE=new Color(247,207,117),ERROR=new Color(230,139,134);
+    static final Color BACKGROUND=ColorScheme.DARK_GRAY_COLOR,SURFACE=ColorScheme.DARK_GRAY_HOVER_COLOR,CONTROL=ColorScheme.CONTROL_COLOR,BORDER=ColorScheme.MEDIUM_GRAY_COLOR,TEXT=ColorScheme.TEXT_COLOR,MUTED=ColorScheme.LIGHT_GRAY_COLOR,ACCENT=new Color(232,188,99),SELECTED=ColorScheme.DARKER_GRAY_HOVER_COLOR,FAVORITE=new Color(247,207,117),ERROR=new Color(230,139,134);
     static final Font BODY=new Font(Font.SANS_SERIF,Font.PLAIN,12),ACTION=new Font(Font.SANS_SERIF,Font.BOLD,12),SMALL=new Font(Font.SANS_SERIF,Font.PLAIN,11),SECTION=new Font(Font.SANS_SERIF,Font.BOLD,11),CODE=new Font(Font.MONOSPACED,Font.PLAIN,11);
     private StudioTheme(){}
     static JToolTip tooltip(JToolTip tip){tip.setFont(SMALL);tip.setBackground(SURFACE);tip.setForeground(TEXT);tip.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER),BorderFactory.createEmptyBorder(5,7,5,7)));return tip;}

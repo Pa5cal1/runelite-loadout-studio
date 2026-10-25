@@ -123,7 +123,10 @@ public final class WikiParser
             JsonArray alternatives=SetupCodec.setup(ranked).getAsJsonArray("eq");
             for(int i=0;i<alternatives.size();i++) {
                 JsonElement current=s.getAsJsonArray("eq").get(i), row=alternatives.get(i);
-                if(!current.isJsonNull()&&!row.isJsonNull())current.getAsJsonObject().add("choices",row.getAsJsonObject().getAsJsonArray("choices").deepCopy());
+                if(!row.isJsonNull()){
+                    if(!current.isJsonNull())current.getAsJsonObject().add("choices",row.getAsJsonObject().getAsJsonArray("choices").deepCopy());
+                    else if(nodes.stream().noneMatch(n->n.kind.equals("equipment")))s.getAsJsonArray("eq").set(i,row.deepCopy());
+                }
             }
             String conditions=SetupCodec.setup(ranked).get("notes").getAsString().lines().skip(3).collect(java.util.stream.Collectors.joining("\n"));
             String notes=s.get("notes").getAsString()+"\nWiki recommendation order (most to least effective); conditions:\n"+conditions;
@@ -199,11 +202,13 @@ public final class WikiParser
 			if (!group.isEmpty() && (!variant.equals(nextVariant) || group.stream().anyMatch(n -> n.kind.equals(node.kind))))
 			{
 				if (group.stream().anyMatch(n -> n.kind.equals("inventory") || n.kind.equals("equipment"))) result.add(fill(title, namedVariant(variant,text,node.start,tierName(result.size())), source, group));
+                else result.addAll(recommendations(group,title,source));
 				group = new ArrayList<>();
 			}
 			variant = nextVariant; group.add(node);
 		}
 		if (group.stream().anyMatch(n -> n.kind.equals("inventory") || n.kind.equals("equipment"))) result.add(fill(title, namedVariant(variant,text,text.length(),tierName(result.size())), source, group));
+        else result.addAll(recommendations(group,title,source));
 		if (result.size() > 100) throw new IllegalArgumentException("Too many presets on this page.");
 		if(result.isEmpty())result.addAll(recommendations(nodes(text),title,source));
         if(result.isEmpty())throw new IllegalArgumentException("No Equipment, Inventory or Recommended equipment templates found. Use the Builder or import a setup.");

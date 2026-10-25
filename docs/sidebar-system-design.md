@@ -8,7 +8,7 @@ This design applies the supplied System Design template topics to the requested 
 
 ## 1 Abstract
 
-Use a fixed two-by-two navigation grid with the component-local Loadout Studio font and warm charcoal/gold palette. Native settings keep RuneLite fonts. Give each view one main task. Keep Save visible during Builder scrolling. Wiki searching is always available without a permission checkbox; network traffic begins only when the user searches or requests a page.
+Use a fixed two-by-two navigation grid with the component-local Loadout Studio font and RuneLite neutral gray palette with gold accents. Native settings keep RuneLite fonts. Give each view one main task. Keep Save visible during Builder scrolling. Wiki searching is always available without a permission checkbox; network traffic begins only when the user searches or requests a page.
 
 ## 2 Goals and non goals
 
@@ -150,7 +150,7 @@ Show worn items gets a distinct Loadout Studio submenu. Layout/filter actions ca
 
 ## Independent visual identity in 0.9.0
 
-StudioTheme owns the sidebar palette: background #1C1A17, surfaces #27231D, controls #171512, gold accent #E8BC63 and muted text #BCAE94. Logical SansSerif 12 is the UI body font; small uppercase section labels and a two-line LOADOUT/STUDIO wordmark distinguish the chrome from Inventory Setups' presentation. Route glyphs, an active underline, card rails and clear primary actions provide redundant visual cues. Favorites retain a warm secondary star.
+StudioTheme uses RuneLite ColorScheme neutrals: background #282828, surfaces #232323, controls #1E1E1E, borders #4D4D4D, text #C6C6C6, muted text #A5A5A5 and selection #3C3C3C. Gold #E8BC63 remains an accent, rather than a brown background treatment. Logical SansSerif 12 is the UI body font; small uppercase section labels and a two-line LOADOUT/STUDIO wordmark distinguish the chrome from Inventory Setups' presentation. Route glyphs, an active underline, card rails and clear primary actions provide redundant visual cues. Favorites retain a warm secondary star.
 
 The change is limited to this component tree and locally created popup menus/tooltips. Native RuneLite settings and in-game menu rendering are owned by the host and remain unchanged. UIManager values are never modified by StudioTheme. Item art and count fonts remain OSRS-style, with existing grid dimensions and drag/drop semantics. Settings/export/diagnostic flags and stored data receive no migration or rewrite.
 

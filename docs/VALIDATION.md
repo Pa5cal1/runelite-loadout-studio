@@ -1,4 +1,11 @@
-# Current validation — 0.9.1-rc.9
+# Current validation — 0.9.1-rc.10
+
+- Full Java 11 test/jar/shadowJar build: **233 tests, zero failures/errors/skipped**.
+- Existing contrast, narrow sidebar and host-default isolation tests retained for the RuneLite gray palette.
+- Three new mixed-source regressions cover Inventory plus recommended Equipment, standalone recommendation styles and preservation of explicit empty Equipment slots.
+- Screenshots are offline component renders; gameplay acceptance is pending.
+
+# Previous validation — 0.9.1-rc.9
 
 - Full Java 11 test/jar/shadowJar build: **230 tests, zero failures/errors/skipped**.
 - One Bank rendering path with both Bank Tags states. Refresh is scheduled from Bank pre-events and coalesced outside the VM. Incomplete runtime layouts retain all requested items.
