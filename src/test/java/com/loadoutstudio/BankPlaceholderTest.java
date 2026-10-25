@@ -7,6 +7,15 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class BankPlaceholderTest {
+ @Test public void repeatedFoodCellsKeepRealStockAndNeverMultiplyOrInventIt(){
+  int[] layout={391,391,391,391};int[] ids={391,391,385,-1};int[] amounts={1499,1499,5,999};Map<Integer,Integer> stock=BankViewPlan.stock(ids,amounts,id->id);
+  assertEquals(Integer.valueOf(1499),stock.get(391));assertFalse(stock.containsKey(-1));assertNull(stock.get(999));int[] occupied=BankViewPlan.positions(new int[]{391},layout,id->id);assertArrayEquals(new int[]{-1,391,391,391},BankViewPlan.placeholders(layout,occupied));
+ }
+ @Test public void repeatedFoodQuantitiesArePaintedInsideEveryVisibleCopy(){
+  BufferedImage target=new BufferedImage(240,75,BufferedImage.TYPE_INT_ARGB);Graphics2D g=target.createGraphics();java.util.List<Integer> ids=new ArrayList<>();
+  BankPlaceholderOverlay.paint(g,new Rectangle(0,0,240,72),0,new int[]{391,391,-1,391},id->{ids.add(id);return null;},id->1499);assertEquals(Arrays.asList(391,391,391),ids);
+  for(int x:new int[]{51,99,195}){boolean visible=false;for(int px=x;px<x+32;px++)for(int y=0;y<12;y++)visible|=(target.getRGB(px,y)>>>24)>0;assertTrue("Stock label at "+x,visible);}g.dispose();
+ }
  @Test public void missingItemsAndRepeatedFoodRemainVisibleWithoutFillingLayoutHoles(){
   int[] layout={10,-1,20,20,30},bank={20};int[] positions=BankViewPlan.positions(bank,layout,id->id);
   assertArrayEquals(new int[]{10,-1,-1,20,30},BankViewPlan.placeholders(layout,positions));

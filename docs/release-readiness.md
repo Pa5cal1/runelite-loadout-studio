@@ -1,6 +1,6 @@
 # Loadout Studio release readiness
 
-Version: **0.9.1-rc.12**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
+Version: **0.9.1-rc.13**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
 
 Reviewed candidate source commit: `a183a3f30fa8d5dc72da7139bb7395ade559fec6`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
 
@@ -183,3 +183,14 @@ Blood Torva and radiant Oathplate are explicitly recognised cosmetic counterpart
 Audited all 23 configuration items. New Wiki drafts now receive creation defaults, including highlighting, color, missing-only, filtering, Fuzzy, amount rule and layout. Previously only blank/captured setup creation used this policy. Explicit imports and saved setups retain their own options; defaults are not global overrides. New manual/catalogue/captured-slot insertions receive item defaults while replacements retain existing slot rules. Entering an explicit amount can enable exact comparison; zero remains unlimited.
 
 Live sidebar preferences rebuild the affected controls without losing Notes/caret. Automatic alternative timers and stale callbacks are invalidated when preferences change. Auto-find and auto-expand labels clarify automatic versus manual operation without changing configuration keys. Respect-other-filter changes schedule a safe live reassessment. Freshness duration is read at the next user request, with no background traffic. Existing native Bank freeze acceptance remains open; the settings audit does not close that blocker.
+
+
+### Native menu and owned cosmetic variants (0.9.1-rc.13)
+
+The native menu assertion was traced to opening a submenu whose parent was not the root menu. Loadout Studio now uses one submenu level: Show worn items → Loadout Studio → Layout: Preset / Layout: Zigzag (top first) / Layout: Zigzag (bottom first). Saved shortcuts appear as Open: setup name in the same menu. Show bank, Return to loadout and Clear filter remain available. Regression coverage enforces the native depth constraint and exercises real Builder dispatch; player acceptance of hovering and switching remains required.
+
+Owned alternatives recognise usable combined max capes, locked variants, Masori assembler capes and reviewed ornamented weapons, including the ornamented Voidwaker. Exact chosen IDs survive saving and export. Broken/mangled capes and uncharged downgrades are not treated as equivalent usable gear. Explicit locked-cape Bank requirements remain exact until the player selects an alternative.
+
+Repeated visual Bank cells now show the real observed stock count. These dim copies remain visual-only and do not create additional items or withdraw actions. The original Bank widget keeps its native quantity and actions.
+
+Validation: 259 offline Java 11 tests passed. Native Bank/menu acceptance remains a release gate. No new networking is introduced.

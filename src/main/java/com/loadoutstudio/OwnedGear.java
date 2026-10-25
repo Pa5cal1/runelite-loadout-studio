@@ -44,17 +44,17 @@ final class OwnedGear
                 JsonElement raw=array.get(i);int id=SetupCodec.id(raw);if(id<1 || count(id)>0)continue;
                 JsonObject expected=raw.getAsJsonObject();if(expected.has("f") && expected.get("f").getAsBoolean() && amounts.keySet().stream().anyMatch(other->SetupVariationMapping.map(other)==SetupVariationMapping.map(id)))continue;
                 LinkedHashMap<Integer,StudioPanel.ItemInfo> candidates=new LinkedHashMap<>();
-                for(StudioPanel.ItemInfo owned:items.values())if(owned.id!=id&&count(owned.id)>0&&EquipmentVariants.same(owned.id,id)&&(!key.equals("eq")||owned.slot==i))candidates.put(owned.id,owned);
+                for(StudioPanel.ItemInfo owned:items.values())if(owned.id!=id&&count(owned.id)>0&&EquipmentVariants.alternative(owned.id,id)&&(!key.equals("eq")||owned.slot==i))candidates.put(owned.id,owned);
                 if(expected.has("choices") && expected.get("choices").isJsonArray())for(JsonElement choice:expected.getAsJsonArray("choices")){
                     StudioPanel.ItemInfo item=resolve.apply(choice.getAsString());if(item!=null && count(item.id)>0 && item.id!=id && (!key.equals("eq") || item.slot==i))candidates.put(item.id,item);
                     // Equal-name variants may have different IDs; offer the one actually observed.
-                    for(StudioPanel.ItemInfo owned:items.values())if((owned.name.equalsIgnoreCase(choice.getAsString())||item!=null&&EquipmentVariants.same(owned.id,item.id)) && count(owned.id)>0 && owned.id!=id && (!key.equals("eq") || owned.slot==i))candidates.put(owned.id,owned);
+                    for(StudioPanel.ItemInfo owned:items.values())if((owned.name.equalsIgnoreCase(choice.getAsString())||item!=null&&EquipmentVariants.alternative(owned.id,item.id)) && count(owned.id)>0 && owned.id!=id && (!key.equals("eq") || owned.slot==i))candidates.put(owned.id,owned);
                 }
                 String reason="Wiki recommendation order (most to least effective); review source conditions";
                 if(candidates.isEmpty() && (!expected.has("choices") || expected.getAsJsonArray("choices").size()==0)){
                     StudioPanel.ItemInfo missing=items.get(id);String name=expected.has("label")?expected.get("label").getAsString():missing==null?"":missing.name;
                     List<String> family=family(name);
-                    for(String ranked:family)for(StudioPanel.ItemInfo owned:items.values())if(count(owned.id)>0 && owned.id!=id && ranked.equals(owned.name.toLowerCase(Locale.ROOT)) && (!key.equals("eq") || owned.slot==i))candidates.put(owned.id,owned);
+                    for(String ranked:family){StudioPanel.ItemInfo rankedItem=resolve.apply(ranked);for(StudioPanel.ItemInfo owned:items.values())if(count(owned.id)>0 && owned.id!=id && (ranked.equals(owned.name.toLowerCase(Locale.ROOT))||rankedItem!=null&&EquipmentVariants.alternative(owned.id,rankedItem.id)) && (!key.equals("eq") || owned.slot==i))candidates.put(owned.id,owned);}
                     reason="Same gear/supply group; review requirements and healing";
                 }
                 if(!candidates.isEmpty())result.add(new Proposal(key,i,raw,new ArrayList<>(candidates.values()).subList(0,Math.min(5,candidates.size())),reason));

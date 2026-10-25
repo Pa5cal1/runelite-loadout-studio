@@ -1,4 +1,4 @@
-# Testclient acceptance — 0.9.1-rc.12
+# Testclient acceptance — 0.9.1-rc.13
 
 The candidate passed 249 offline tests. Before stable publication, also complete the account and real Bank scenarios in [the release-readiness report](release-readiness.md#manual-acceptance-before-submission). A previous pass on another version does not cover newly changed native integrations.
 
@@ -156,3 +156,14 @@ Code paths and offline boundaries below are checked separately from native clien
 | Library order (`libraryOrder`) | Live Library sorting; item/setup contents retained. |
 | Toggle Bank filter (`filterHotkey`) | RuneLite keybind supplier while Bank is open; native keyboard retest required. |
 | Bank setup shortcuts (`bankMenu`) | Saved setup shortcuts in the next opened Bank menu; not every Bank action. |
+
+
+### Native menu and owned cosmetic variants (0.9.1-rc.13)
+
+The native menu assertion was traced to opening a submenu whose parent was not the root menu. Loadout Studio now uses one submenu level: Show worn items → Loadout Studio → Layout: Preset / Layout: Zigzag (top first) / Layout: Zigzag (bottom first). Saved shortcuts appear as Open: setup name in the same menu. Show bank, Return to loadout and Clear filter remain available. Regression coverage enforces the native depth constraint and exercises real Builder dispatch; player acceptance of hovering and switching remains required.
+
+Owned alternatives recognise usable combined max capes, locked variants, Masori assembler capes and reviewed ornamented weapons, including the ornamented Voidwaker. Exact chosen IDs survive saving and export. Broken/mangled capes and uncharged downgrades are not treated as equivalent usable gear. Explicit locked-cape Bank requirements remain exact until the player selects an alternative.
+
+Repeated visual Bank cells now show the real observed stock count. These dim copies remain visual-only and do not create additional items or withdraw actions. The original Bank widget keeps its native quantity and actions.
+
+Validation: 259 offline Java 11 tests passed. Native Bank/menu acceptance remains a release gate. No new networking is introduced.

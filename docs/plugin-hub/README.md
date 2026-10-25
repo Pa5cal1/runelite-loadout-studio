@@ -1,6 +1,6 @@
 # Plugin Hub submission manifest
 
-Current preparation: **0.9.1-rc.12**, checked on **25 October 2026**. The candidate is not submitted or approved. See [the proposed listing and description](submission-description.md) and [release gates](../release-readiness.md).
+Current preparation: **0.9.1-rc.13**, checked on **25 October 2026**. The candidate is not submitted or approved. See [the proposed listing and description](submission-description.md) and [release gates](../release-readiness.md).
 
 ## Submission sequence
 

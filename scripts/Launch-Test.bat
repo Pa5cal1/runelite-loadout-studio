@@ -8,10 +8,10 @@ if not exist "%STUDIO_JAVA%" (
   pause
   exit /b 1
 )
-if not exist "build\libs\runelite-loadout-studio-0.9.1-rc.12-all.jar" (
+if not exist "build\libs\runelite-loadout-studio-0.9.1-rc.13-all.jar" (
   echo Build the test client first. See README.md.
   pause
   exit /b 1
 )
-"%STUDIO_JAVA%" -ea -jar "build\libs\runelite-loadout-studio-0.9.1-rc.12-all.jar" --developer-mode --debug
+"%STUDIO_JAVA%" -ea -jar "build\libs\runelite-loadout-studio-0.9.1-rc.13-all.jar" --developer-mode --debug
 pause

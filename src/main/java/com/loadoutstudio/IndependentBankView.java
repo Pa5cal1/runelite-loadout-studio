@@ -18,17 +18,19 @@ final class IndependentBankView {
     
     private boolean active,rebuildQueued;private int[] cells=new int[0],placeholders=new int[0];private IntPredicate matches=id->false;private Runnable changed=()->{};
     private Consumer<Throwable> failed=error->{};
+    private final Map<Integer,Integer> displayedStock=new HashMap<>();
+    int stock(int id){return displayedStock.getOrDefault(canonical.applyAsInt(id),0);}
     void onFailure(Consumer<Throwable> failed){this.failed=failed;}
     IndependentBankView(Client client,ClientThread thread,BankSearch search,IntUnaryOperator canonical){this.client=client;this.thread=thread;this.search=search;this.canonical=canonical;}
     boolean active(){return active;}int[] layout(){return cells.clone();}int[] placeholders(){return active?placeholders.clone():new int[0];}void onChanged(Runnable changed){this.changed=changed;}
-    void select(int[] layout,IntPredicate predicate){cells=layout.clone();placeholders=new int[0];matches=predicate;active=true;rebuild();}
-    void clear(){boolean wasActive=active;active=false;placeholders=new int[0];if(wasActive)rebuild();}
+    void select(int[] layout,IntPredicate predicate){cells=layout.clone();placeholders=new int[0];displayedStock.clear();matches=predicate;active=true;rebuild();}
+    void clear(){boolean wasActive=active;active=false;placeholders=new int[0];displayedStock.clear();if(wasActive)rebuild();}
     private void rebuild(){if(rebuildQueued)return;rebuildQueued=true;thread.invokeAtTickEnd(()->{rebuildQueued=false;try{search.layoutBank();}catch(RuntimeException|AssertionError error){active=false;placeholders=new int[0];failed.accept(error);}});}
     void callback(ScriptCallbackEvent event){Widget bank=client.getWidget(InterfaceID.Bankmain.ITEMS);if(!active||bank==null||bank.isHidden())return;BankViewPlan.callback(event.getEventName(),client.getIntStack(),client.getIntStackSize(),matches);}
 
     void arrange(){
         if(!active)return;Widget container=client.getWidget(InterfaceID.Bankmain.ITEMS);if(container==null||container.isHidden()||container.getChildren()==null)return;
-        Widget[] children=container.getChildren();int[] ids=new int[children.length];for(int i=0;i<children.length;i++){Widget item=children[i];ids[i]=item!=null&&!item.isHidden()&&matches.test(item.getItemId())?item.getItemId():-1;}int[] positions=BankViewPlan.positions(ids,cells,canonical);int last=-1;
+        Widget[] children=container.getChildren();int[] ids=new int[children.length],amounts=new int[children.length];for(int i=0;i<children.length;i++){Widget item=children[i];ids[i]=item!=null&&!item.isHidden()&&matches.test(item.getItemId())?item.getItemId():-1;amounts[i]=item==null?0:item.getItemQuantity();}displayedStock.clear();displayedStock.putAll(BankViewPlan.stock(ids,amounts,canonical));int[] positions=BankViewPlan.positions(ids,cells,canonical);int last=-1;
         for(int child=0;child<children.length;child++){Widget item=children[child];
             if(item==null||item.getItemId()<1||item.isHidden()||!matches.test(item.getItemId()))continue;
             int pos=positions[child];if(pos<0)continue;last=Math.max(last,pos);item.setOriginalX(51+(pos%8)*48);item.setOriginalY((pos/8)*36);item.revalidate();

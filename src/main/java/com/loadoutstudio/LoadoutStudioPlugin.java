@@ -162,23 +162,8 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
         if(java.util.Arrays.stream(entries).noneMatch(e->e.getParam1()==InterfaceID.Bankmain.WORNITEMS_BUTTON&&e.getType()==net.runelite.api.MenuAction.CC_OP&&e.getIdentifier()==1))return;
         String owner=recoveryOwner(),token=panel.bankMenuToken();
         if(token==null&&(!config.bankMenu()||quickLinks.isEmpty()))return;
-        net.runelite.api.Menu menu=client.getMenu().createMenuEntry(-1).setOption("Loadout Studio").setType(net.runelite.api.MenuAction.RUNELITE).createSubMenu();
-        if(token!=null){
-            menu.createMenuEntry(-1).setOption("Show bank").setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->runBankMenu(owner,token,StudioPanel::showBankFromMenu));
-            menu.createMenuEntry(-1).setOption("Return to loadout").setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->runBankMenu(owner,token,StudioPanel::activateFromBankMenu));
-            menu.createMenuEntry(-1).setOption("Filter Bank").setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->runBankMenu(owner,token,StudioPanel::activateFromBankMenu));
-            menu.createMenuEntry(-1).setOption("Clear filter").setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->runBankMenu(owner,token,StudioPanel::clearFromBankMenu));
-            if(config.bankLayoutMenu()){
-                net.runelite.api.Menu layouts=menu.createMenuEntry(-1).setOption("Auto Layout").setType(net.runelite.api.MenuAction.RUNELITE).createSubMenu();
-                layouts.createMenuEntry(-1).setOption("Preset").setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->runBankMenu(owner,token,p->p.layoutFromBankMenu(BankLayouts.Mode.PRESET,false)));
-                layouts.createMenuEntry(-1).setOption("Zigzag (top first)").setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->runBankMenu(owner,token,p->p.layoutFromBankMenu(BankLayouts.Mode.ZIGZAG,false)));
-                layouts.createMenuEntry(-1).setOption("Zigzag (bottom first)").setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->runBankMenu(owner,token,p->p.layoutFromBankMenu(BankLayouts.Mode.ZIGZAG,true)));
-            }
-        }
-        if(config.bankMenu()&&!quickLinks.isEmpty()){
-            net.runelite.api.Menu setups=menu.createMenuEntry(-1).setOption("Open setup").setType(net.runelite.api.MenuAction.RUNELITE).createSubMenu();
-            for(StudioPanel.QuickLink link:quickLinks)setups.createMenuEntry(-1).setOption(link.name.replace("<","").replace(">","")).setType(net.runelite.api.MenuAction.RUNELITE).onClick(e->SwingUtilities.invokeLater(()->{if(active&&panel!=null&&owner.equals(recoveryOwner())){if(navigation!=null)toolbar.openPanel(navigation);panel.openSaved(link.id);}}));
-        }
+        StudioBankMenu.add(client.getMenu(),token!=null,config.bankLayoutMenu(),config.bankMenu()?quickLinks:java.util.Collections.emptyList(),
+            action->runBankMenu(owner,token,action),id->SwingUtilities.invokeLater(()->{if(active&&panel!=null&&owner.equals(recoveryOwner())){if(navigation!=null)toolbar.openPanel(navigation);panel.openSaved(id);}}));
     }
     private void runBankMenu(String owner,String token,Consumer<StudioPanel> action){SwingUtilities.invokeLater(()->{StudioPanel current=panel;if(active&&current!=null&&owner.equals(recoveryOwner())&&token.equals(current.bankMenuToken())){if(navigation!=null)toolbar.openPanel(navigation);action.accept(current);}});}
     @Override public void pauseBankFilter(){clientThread.invoke(()->{if(active&&bankFilter!=null)bankFilter.pause();});}
@@ -390,7 +375,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 			if (nextItem < client.getItemCount()) return false; indexing = false;catalogue.indexed();return true;
 		});
 	}
-    private ItemStats equipmentStats(int id){ItemStats stats=itemManager.getItemStats(id);int base=EquipmentVariants.base(id);return (stats==null||stats.getEquipment()==null)&&base!=id?itemManager.getItemStats(base):stats;}
+    private ItemStats equipmentStats(int id){ItemStats stats=itemManager.getItemStats(id);int base=EquipmentVariants.combatBase(id);return (stats==null||stats.getEquipment()==null)&&base!=id?itemManager.getItemStats(base):stats;}
 	@Override public void describe(int id, Consumer<StudioPanel.ItemInfo> callback)
 	{
 		clientThread.invoke(() ->

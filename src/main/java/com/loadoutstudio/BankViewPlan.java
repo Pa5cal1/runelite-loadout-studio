@@ -4,6 +4,10 @@ import java.util.*;
 import java.util.function.IntUnaryOperator;
 /** Positions refer to the original child index; no item data is rewritten. */
 final class BankViewPlan {
+    /** Duplicate visual cells show real observed stock, never a fabricated stack. */
+    static Map<Integer,Integer> stock(int[] ids,int[] quantities,IntUnaryOperator canonical){
+        Map<Integer,Integer> result=new HashMap<>();for(int i=0;i<ids.length;i++)if(ids[i]>0)result.merge(canonical.applyAsInt(ids[i]),Math.max(0,quantities[i]),Math::max);return result;
+    }
     static int[] positions(int[] ids,int[] layout,IntUnaryOperator canonical){int[] result=new int[ids.length];Arrays.fill(result,-1);Set<Integer> occupied=new HashSet<>();int next=layout.length;
         for(int source=0;source<ids.length;source++){if(ids[source]<1)continue;int id=canonical.applyAsInt(ids[source]),pos=-1;for(int i=0;i<layout.length;i++)if(layout[i]>0&&canonical.applyAsInt(layout[i])==id&&!occupied.contains(i)){pos=i;break;}if(pos<0){while(occupied.contains(next))next++;pos=next++;}occupied.add(pos);result[source]=pos;}
         return result;
