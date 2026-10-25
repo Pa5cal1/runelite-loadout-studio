@@ -2,7 +2,7 @@
 
 Version: **0.9.1-rc.5**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
 
-Previous reviewed candidate source commit: `63e97ee703d03cfd0f36931118cd30abbb19996b`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
+Reviewed candidate source commit: `c3ad4798ed5fbe605427816a4043430cc7f62ffd`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
 
 ## Startup follow-up
 
@@ -97,7 +97,7 @@ External I/O and Bank widget/layout changes deserve explicit reviewer attention.
 1. Complete the manual acceptance list below on the exact candidate build.
 2. Keep the current low-request design. Consider cross-process request coordination only if actual usage or Wiki maintainers identify a need; do not add periodic refresh or per-item services.
 3. Review encounter conditions and item requirements on every ironman/HCIM adaptation. Do not describe alternatives as automatic best-in-slot or safe-to-use recommendations.
-4. After acceptance, use a stable **1.0.0** release and a newly pinned source commit for submission. Fixes before acceptance increment the candidate number, such as **0.9.1-rc.4**.
+4. After acceptance, use a stable **1.0.0** release and a newly pinned source commit for submission. Fixes before acceptance increment the candidate number, such as **0.9.1-rc.6**.
 
 ## Manual acceptance before submission
 
