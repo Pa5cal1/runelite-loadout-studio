@@ -566,7 +566,7 @@ public final class StudioPanel extends PluginPanel
 
 	void open(SetupLibrary.Entry entry)
 	{
-		if (!discard()) return; final SetupLibrary.Entry source=library.find(entry.id)==null?entry:library.find(entry.id); host.cancelItemInput();ignoreAmmo.setSelected(host.settings().ignoreAmmoQuantities()); draft = source.portable.deepCopy(); editorLayout = source.bankLayout == null ? BankLayouts.infer(draft) : source.bankLayout; editorBottom = source.bankLayout == null ? BankLayouts.inferBottom(draft) : source.zigzagBottomToTop; editingId = source.id; editorSection = source.section; editorFavorite = source.favorite; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); message("Opened saved setup. Changes are saved automatically."); alternativeRows.removeAll();alternativeUndo=null;if(library.find(source.id)!=null)attempt(()->commit(l->l.find(source.id).lastOpened=System.currentTimeMillis()));host.requestGear();scheduleAlternatives();resolveDraftDefaults();
+		if (!discard()) return; final SetupLibrary.Entry source=library.find(entry.id)==null?entry:library.find(entry.id); host.cancelItemInput();ignoreAmmo.setSelected(host.settings().ignoreAmmoQuantities()); draft = source.portable.deepCopy(); editorLayout = source.bankLayout == null ? BankLayouts.infer(draft) : source.bankLayout; editorBottom = source.bankLayout == null ? BankLayouts.inferBottom(draft) : source.zigzagBottomToTop; editingId = source.id; editorSection = source.section; editorFavorite = source.favorite; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); String compactNotes=WikiParser.compactGeneratedNotes(notes.getText());if(!compactNotes.equals(notes.getText()))notes.setText(compactNotes);message("Opened saved setup. Changes are saved automatically."); alternativeRows.removeAll();alternativeUndo=null;if(library.find(source.id)!=null)attempt(()->commit(l->l.find(source.id).lastOpened=System.currentTimeMillis()));host.requestGear();scheduleAlternatives();resolveDraftDefaults();
 	}
     private void setLibraryFavorite(String id, boolean selected)
     {
@@ -992,8 +992,9 @@ public final class StudioPanel extends PluginPanel
         host.availableGear(draft.deepCopy(),owned->{
             if(disposed||!token.equals(session)||revision!=draftRevision||request!=alternativeRequestVersion)return;diagnostics.completed(StudioDiagnostics.Operation.ALTERNATIVES,owned.observedAt==0?StudioDiagnostics.Outcome.EXPECTED_STATE:StudioDiagnostics.Outcome.SUCCESS,alternativesStarted);alternativeRows.removeAll();
             if(owned.observedAt==0){alternativeRows.add(info("Open your Bank to see owned alternatives.",2));refreshAlternativeRows();return;}
+            if(preferDivinePouch(owned)){refreshAlternatives();return;}
             String date=java.time.Instant.ofEpochMilli(owned.observedAt).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
-            alternativeRows.add(info((owned.bankOpen?"Bank observed now":"Last Bank observation "+date)+". Other storage is not included. Review requirements before replacing.",4));
+            alternativeRows.add(info((owned.bankOpen?"Bank observed now; available potion storage included":"Last Bank observation "+date)+". Other storage is not included. Review requirements before replacing.",4));
             List<OwnedGear.Proposal> proposals=owned.alternatives(draft,host::defaultItem);Map<OwnedGear.Proposal,JComboBox<ItemInfo>> choices=new java.util.LinkedHashMap<>();
             for(List<OwnedGear.Proposal> group:OwnedGear.grouped(proposals)){
                 OwnedGear.Proposal proposal=group.get(0);
@@ -1006,6 +1007,14 @@ public final class StudioPanel extends PluginPanel
             if(proposals.isEmpty())alternativeRows.add(info("No supported owned alternatives found. Missing gear is not automatically replaced.",3));
             else alternativeRows.add(button("Use selected alternatives",()->attempt(()->{if(!token.equals(session))throw new IllegalStateException("Another setup is open. Check its Bank alternatives.");Map<OwnedGear.Proposal,ItemInfo> selected=new java.util.LinkedHashMap<>();choices.forEach((proposal,select)->{ItemInfo item=(ItemInfo)select.getSelectedItem();if(item!=null&&item.id>0)selected.put(proposal,item);});host.availableGear(draft.deepCopy(),fresh->{if(disposed||!token.equals(session))return;attempt(()->{for(ItemInfo item:selected.values())if(fresh.count(item.id)<1)throw new IllegalStateException("An alternative is no longer observed. Check your Bank again.");if(host.settings().checkAlternativeStock())fresh.requireReplacementStock(draft,selected);applyAlternatives(selected);});},this::failure);})));showAlternativesOnce(!proposals.isEmpty());refreshAlternativeRows();
         },error->{if(!disposed&&token.equals(session)&&request==alternativeRequestVersion){alternativeRows.removeAll();alternativeRows.add(info(error,2));refreshAlternativeRows();}});
+    }
+    private boolean preferDivinePouch(OwnedGear owned){
+        int normal=net.runelite.api.gameval.ItemID.BH_RUNE_POUCH,divine=net.runelite.api.gameval.ItemID.DIVINE_RUNE_POUCH;if(owned.count(divine)<1)return false;
+        JsonArray inventory=SetupCodec.setup(draft).getAsJsonArray("inv");for(JsonElement item:inventory)if(SetupCodec.id(item)==divine)return false;for(int i=0;i<inventory.size();i++)if(SetupCodec.id(inventory.get(i))==normal){
+            JsonObject replacement=inventory.get(i).getAsJsonObject().deepCopy();replacement.addProperty("id",divine);replacement.addProperty("label","Divine rune pouch");inventory.set(i,replacement);if(owned.items.containsKey(divine))itemCache.put(divine,owned.items.get(divine));
+            if(editorLayout==BankLayouts.Mode.CUSTOM&&BankLayouts.items(draft).stream().noneMatch(item->SetupCodec.id(item)==normal))for(int pos=0;pos<draft.getAsJsonArray("layout").size();pos++)if(draft.getAsJsonArray("layout").get(pos).getAsInt()==normal)draft.getAsJsonArray("layout").set(pos,new com.google.gson.JsonPrimitive(divine));
+            rebuildDraftLayout();markDirty();renderBuilder();syncBankFilter();message("Using your owned Divine rune pouch. Rune contents are retained; the fourth slot is available.");return true;
+        }return false;
     }
     void applyAlternatives(Map<OwnedGear.Proposal,ItemInfo> selected)
     {

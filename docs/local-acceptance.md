@@ -1,6 +1,6 @@
-# Testclient acceptance — 0.9.1-rc.14
+# Testclient acceptance — 0.9.1-rc.15
 
-The candidate passed 267 offline tests. Before stable publication, also complete the account and real Bank scenarios in [the release-readiness report](release-readiness.md#manual-acceptance-before-submission). A previous pass on another version does not cover newly changed native integrations.
+The candidate passed 278 offline tests. Before stable publication, also complete the account and real Bank scenarios in [the release-readiness report](release-readiness.md#manual-acceptance-before-submission). A previous pass on another version does not cover newly changed native integrations.
 
 Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 
@@ -180,3 +180,18 @@ Builder changes autosave after a 400 ms edit pause. Switching setups flushes pen
 Rune Pouch planning preserves the entered amount, including 16001. Actual-pouch comparison and Inventory Setups export use min(planned amount, 16000); Loadout Studio backups retain the requested amount. Inventory has no 16k cap. Four pouch runes use a centred two-by-two block below Equipment in regenerated Preset layouts.
 
 Validation: 267 offline tests passed. Clicks on every duplicate, Bank Tags enable/disable, menu hover and native layout rendering still require player acceptance on this exact version. No new Wiki traffic is introduced.
+
+
+### Native slot reuse, potion storage and compact Wiki Notes (0.9.1-rc.15)
+
+The player confirmed rc.14 autosave works, but appended duplicate Bank widgets still lacked native Withdraw menus. Duplicates now borrow and restore existing server-configured Bank widget slots. Their native action labels are rebuilt for the current Bank quantity setting, and user-triggered operations point to the real source slot. No input injection or direct action invocation is used. The additional Widget contract test covers native-slot reuse, action availability, restore behavior and the failure of merely copying labels to unconfigured appended widgets. Real-client acceptance remains required.
+
+The sibling menu labels are now exactly Loadout setups: and Loadout layout:.
+
+An independent local potion-storage adapter reads RuneLite's game-cache potion enums and local dose scripts at tick end, outside the script VM. Observations are invalidated by relevant local varp changes and profile changes. Exact Bank stock is used first; when unavailable, storage supplies the currently selected dose, with native Doses choices. Withdrawals route through the game's existing potion-store widgets and native operation IDs. There is no automatic multi-source withdrawal and no new HTTP/Wiki request. Bank Tags does not need to be enabled. Storage failures leave normal Bank filtering available.
+
+Owned Divine rune pouches replace an ordinary planned Rune pouch when local gear is checked, even if both types are owned. The existing rune types and planned quantities remain intact. Only one owned pouch is substituted; extra planned copies are not fabricated.
+
+New Wiki Notes contain only Source and Preset. Recognisable legacy generated rank dumps are compacted when opening a saved setup, preserving personal additions and the ordered item-choice metadata. Source conditions remain accessible on the linked Wiki page.
+
+Validation: 278 offline Java 11 tests passed. Native duplicate clicks and potion-storage actions remain release gates; source compilation is not in-game acceptance.

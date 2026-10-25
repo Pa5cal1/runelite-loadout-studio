@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.9.1-rc.14.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.9.1-rc.15.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. Both Bank Tags states now use the same Loadout Studio view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
@@ -147,9 +147,9 @@ Write instructions in **Notes** below the items. The notes area grows with the t
 
 ### Owned Gear Alternatives
 
-Owned alternatives are determined locally after opening a setup and after Bank/gear changes. There is no Check my Bank step by default. Open **My gear alternatives** to review the compact list; compatible owned choices expand once per setup when enabled in settings. Open the Bank at least once in the current session first. The plugin reads local Bank, Inventory and Equipment data; Bank placeholders do not count as owned items. Closed-Bank results show the observation time and can be out of date. Other storage is not included.
+Owned alternatives are determined locally after opening a setup and after Bank/gear changes. There is no Check my Bank step by default. Open **My gear alternatives** to review the compact list; compatible owned choices expand once per setup when enabled in settings. Open the Bank at least once in the current session first. The plugin reads local Bank, Inventory and Equipment data; Bank placeholders do not count as owned items. Closed-Bank results show the observation time and can be out of date. Available potion-storage counts are included; other storage is not included.
 
-Concrete Equipment/Inventory setups also keep the adjacent Recommended equipment table for their own tab or table column. Its items are offered in Wiki order from most to least effective, restricted to locally observed items. Melee and Ranged choices stay separate. If a source list exists, items outside it are not suggested; footnotes and combination conditions remain in Notes. The selected concrete gear and Inventory are preserved. No additional Wiki request is needed.
+Concrete Equipment/Inventory setups also keep the adjacent Recommended equipment table for their own tab or table column. Its items are offered in Wiki order from most to least effective, restricted to locally observed items. Melee and Ranged choices stay separate. If a source list exists, items outside it are not suggested; Notes remain compact; consult the linked source for footnotes and combination conditions. The selected concrete gear and Inventory are preserved. No additional Wiki request is needed.
 
 Missing items without a source list offer a small compatible bundled gear/supply family, such as Torva platebody, Bandos chestplate and Fighter torso. Arbitrary items for the same slot are not suggested. At most three choices are shown by default, configurable from one to five. Requirements and source conditions still need review. The first Wiki choice remains the default; each replacement starts at **Keep original**. Select the replacements you want, then click **Use selected alternatives**. Availability is checked again before applying. By default, **Check replacement stock** also reserves combined amounts across Inventory and Equipment, including unchanged slots using a replacement item. A shortage keeps the draft unchanged and appears near the Builder actions. Explicit zero still requires at least one observed item per slot. Pouch contents and other storage are not counted in this check. Disable this check in **plugin settings → Comparison** if you want to plan beyond observed amounts; each selected replacement must still be observed. Review and Save; **Undo alternatives** is available until another draft edit makes it unsafe. Rune types are never freely substituted. No Wiki request is needed for this operation.
 
@@ -526,3 +526,18 @@ Builder changes autosave after a 400 ms edit pause. Switching setups flushes pen
 Rune Pouch planning preserves the entered amount, including 16001. Actual-pouch comparison and Inventory Setups export use min(planned amount, 16000); Loadout Studio backups retain the requested amount. Inventory has no 16k cap. Four pouch runes use a centred two-by-two block below Equipment in regenerated Preset layouts.
 
 Validation: 267 offline tests passed. Clicks on every duplicate, Bank Tags enable/disable, menu hover and native layout rendering still require player acceptance on this exact version. No new Wiki traffic is introduced.
+
+
+### Native slot reuse, potion storage and compact Wiki Notes (0.9.1-rc.15)
+
+The player confirmed rc.14 autosave works, but appended duplicate Bank widgets still lacked native Withdraw menus. Duplicates now borrow and restore existing server-configured Bank widget slots. Their native action labels are rebuilt for the current Bank quantity setting, and user-triggered operations point to the real source slot. No input injection or direct action invocation is used. The additional Widget contract test covers native-slot reuse, action availability, restore behavior and the failure of merely copying labels to unconfigured appended widgets. Real-client acceptance remains required.
+
+The sibling menu labels are now exactly Loadout setups: and Loadout layout:.
+
+An independent local potion-storage adapter reads RuneLite's game-cache potion enums and local dose scripts at tick end, outside the script VM. Observations are invalidated by relevant local varp changes and profile changes. Exact Bank stock is used first; when unavailable, storage supplies the currently selected dose, with native Doses choices. Withdrawals route through the game's existing potion-store widgets and native operation IDs. There is no automatic multi-source withdrawal and no new HTTP/Wiki request. Bank Tags does not need to be enabled. Storage failures leave normal Bank filtering available.
+
+Owned Divine rune pouches replace an ordinary planned Rune pouch when local gear is checked, even if both types are owned. The existing rune types and planned quantities remain intact. Only one owned pouch is substituted; extra planned copies are not fabricated.
+
+New Wiki Notes contain only Source and Preset. Recognisable legacy generated rank dumps are compacted when opening a saved setup, preserving personal additions and the ordered item-choice metadata. Source conditions remain accessible on the linked Wiki page.
+
+Validation: 278 offline Java 11 tests passed. Native duplicate clicks and potion-storage actions remain release gates; source compilation is not in-game acceptance.

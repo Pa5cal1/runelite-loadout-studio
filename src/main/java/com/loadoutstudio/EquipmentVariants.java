@@ -48,7 +48,7 @@ final class EquipmentVariants {
         default:return id;
     }}
     /** Charged/blessed may replace an uncharged quiver, never the reverse. */
-    static boolean alternative(int owned,int expected){return owned>0&&expected>0&&(combatBase(owned)==combatBase(expected)||combatBase(expected)==DIZANAS_QUIVER_UNCHARGED&&combatBase(owned)==DIZANAS_QUIVER_INFINITE);}
+    static boolean alternative(int owned,int expected){return owned>0&&expected>0&&(owned==DIVINE_RUNE_POUCH&&expected==BH_RUNE_POUCH||combatBase(owned)==combatBase(expected)||combatBase(expected)==DIZANAS_QUIVER_UNCHARGED&&combatBase(owned)==DIZANAS_QUIVER_INFINITE);}
     /** Locked cape requirements remain exact unless the player chooses a replacement. */
     static int base(int id){switch(id){
         case TORVA_HELM_SANGUINE:return TORVA_HELM;

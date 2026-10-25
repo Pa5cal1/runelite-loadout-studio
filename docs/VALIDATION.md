@@ -1,4 +1,12 @@
-# Current validation — 0.9.1-rc.14
+# Current validation — 0.9.1-rc.15
+
+- Full suite: **278 tests, zero failures/errors/skipped**.
+- Eleven new tests cover native Widget slot reuse and restoration, the separate server-permission contract, missing source action labels, potion dose aliases/counts/native operation IDs, cache invalidation, Divine pouch preference and compact Notes preserving personal additions.
+- Potion enumeration follows RuneLite's local PotionStorage implementation and is independent of Bank Tags enablement. A BSD-2 notice is bundled with the adapter.
+- The player confirmed autosave works in rc.14 and reported duplicate Withdraw menus still missing. Native copy clicks and storage withdrawals remain unconfirmed until rc.15 is tested in-game.
+- The supplied console extract contains no ERROR entries or client assertions; its three connection failures are World Hopper ping timeouts. No original log content is included here.
+
+# Previous validation — 0.9.1-rc.14
 
 - Full suite: **267 tests, zero failures/errors/skipped**.
 - Eight new tests cover autosave on setup switch, save failure/retry, profile boundaries, empty alternative collapse, delayed alternative stock callbacks, repeated owned-item routing plans, four-rune alignment and planned/effective pouch quantities.

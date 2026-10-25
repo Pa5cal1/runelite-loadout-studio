@@ -19,15 +19,38 @@ final class IndependentBankView {
     private boolean active,rebuildQueued;private int[] cells=new int[0],placeholders=new int[0];private IntPredicate matches=id->false;private Runnable changed=()->{};
     private Consumer<Throwable> failed=error->{};
     private final Map<Integer,Integer> displayedStock=new HashMap<>();
-    private final Set<Widget> copies=Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Map<Widget,CopyState> copies=new IdentityHashMap<>();
     private final Map<Integer,Integer> copyIds=new HashMap<>();
-    void removeCopies(){
-        Widget container=client.getWidget(InterfaceID.Bankmain.ITEMS);if(container!=null&&container.getChildren()!=null){Widget[] children=container.getChildren();for(Widget copy:copies){copy.setHidden(true);copy.clearActions();}int length=children.length;while(length>0&&copies.contains(children[length-1]))length--;if(length!=children.length)container.setChildren(Arrays.copyOf(children,length));}copies.clear();copyIds.clear();
+    private final Map<Integer,StudioPotionStorage.Potion> storageCopies=new HashMap<>();
+    private StudioPotionStorage potions;
+    void potions(StudioPotionStorage value){potions=value;}
+    /** Borrow server-configured native slots rather than append unconfigured widgets. */
+    private static final class CopyState {
+        final int id,quantity,mode,x,y,opacity,border;final boolean hidden;final String name;final String[] actions;final Object[] op;
+        CopyState(Widget w){id=w.getItemId();quantity=w.getItemQuantity();mode=w.getItemQuantityMode();x=w.getOriginalX();y=w.getOriginalY();opacity=w.getOpacity();border=w.getBorderType();hidden=w.isSelfHidden();name=w.getName();actions=w.getActions()==null?null:w.getActions().clone();op=w.getOnOpListener();}
+        void restore(Widget w){w.setItemId(id);w.setItemQuantity(quantity);w.setItemQuantityMode(mode);w.setOriginalX(x);w.setOriginalY(y);w.setOpacity(opacity);w.setBorderType(border);w.setName(name);w.clearActions();if(actions!=null)for(int i=0;i<actions.length;i++)if(actions[i]!=null)w.setAction(i,actions[i]);w.setOnOpListener(op);w.setHidden(hidden);w.revalidate();}
+    }
+    void removeCopies(){for(Map.Entry<Widget,CopyState> copy:copies.entrySet())copy.getValue().restore(copy.getKey());copies.clear();copyIds.clear();storageCopies.clear();}
+    Widget proxy(Widget[] children,int[] ids,Widget source,int position,int id,int quantity,String name,String[] actions){
+        for(int index=0;index<children.length;index++){
+            Widget w=children[index];if(w==null||ids[index]>0||copies.containsKey(w)||w.getType()!=net.runelite.api.widgets.WidgetType.GRAPHIC||w.getOriginalHeight()!=32)continue;
+            copies.put(w,new CopyState(w));copyIds.put(w.getIndex(),id);w.setItemId(id);w.setItemQuantity(quantity);w.setItemQuantityMode(net.runelite.api.widgets.ItemQuantityMode.STACKABLE);w.setName(name);w.setOpacity(0);w.clearActions();if(actions!=null)for(int i=0;i<actions.length;i++)if(actions[i]!=null)w.setAction(i,actions[i]);
+            // Retain this native slot's server-provided operation permissions.
+            w.setOriginalX(51+(position%8)*48);w.setOriginalY((position/8)*36);w.setHidden(false);if(source!=null){w.setOnOpListener(source.getOnOpListener());w.setBorderType(source.getBorderType());}
+            w.setOnDragCompleteListener((JavaScriptCallback)e->drop(client.getWidget(InterfaceID.Bankmain.ITEMS),position,id));w.revalidate();return w;
+        }return null;
     }
     void rewrite(net.runelite.api.events.MenuOptionClicked event){
         if(!active||event.getParam1()!=InterfaceID.Bankmain.ITEMS||!copyIds.containsKey(event.getParam0()))return;
         if(event.getMenuAction()!=net.runelite.api.MenuAction.CC_OP&&event.getMenuAction()!=net.runelite.api.MenuAction.CC_OP_LOW_PRIORITY)return;
-        int id=copyIds.get(event.getParam0());net.runelite.api.ItemContainer bank=client.getItemContainer(net.runelite.api.gameval.InventoryID.BANK);int index=bank==null?-1:bank.find(id);
+        int id=copyIds.get(event.getParam0());StudioPotionStorage.Potion potion=storageCopies.get(event.getParam0());
+        if(potion!=null){
+            if(potions==null||!potions.current(potion)||!potions.prepareWidgets()){event.consume();rebuild();return;}
+            event.getMenuEntry().setParam1(InterfaceID.Bankmain.POTIONSTORE_ITEMS).setItemId(id);
+            if(event.getId()>0xffff)event.getMenuEntry().setParam0(potion.dosesChild()).setIdentifier((event.getId()>>16)-1);else {if(potion.count()<1){event.consume();return;}event.getMenuEntry().setParam0(potion.withdrawChild());}
+            return;
+        }
+        net.runelite.api.ItemContainer bank=client.getItemContainer(net.runelite.api.gameval.InventoryID.BANK);int index=bank==null||bank.count(id)<1?-1:bank.find(id);
         if(index<0){event.consume();rebuild();return;}event.getMenuEntry().setParam0(index).setItemId(id);
     }
     int stock(int id){return displayedStock.getOrDefault(canonical.applyAsInt(id),0);}
@@ -51,16 +74,19 @@ final class IndependentBankView {
         placeholders=BankViewPlan.placeholders(cells,positions);
         int[] duplicateSources=BankViewPlan.duplicateSources(ids,amounts,cells,positions,canonical);
         for(int pos=0;pos<duplicateSources.length;pos++)if(duplicateSources[pos]>=0){
-            Widget source=children[duplicateSources[pos]],copy=container.createChild(-1,source.getType());copies.add(copy);copyIds.put(copy.getIndex(),source.getItemId());
-            copy.setItemId(source.getItemId());copy.setItemQuantity(source.getItemQuantity());copy.setItemQuantityMode(source.getItemQuantityMode());copy.setName(source.getName());copy.setClickMask(source.getClickMask());copy.setOnOpListener(source.getOnOpListener());copy.setHasListener(true);copy.setBorderType(source.getBorderType());
-            copy.setOriginalWidth(source.getOriginalWidth());copy.setOriginalHeight(source.getOriginalHeight());copy.setOriginalX(51+(pos%8)*48);copy.setOriginalY((pos/8)*36);copy.setHidden(false);
-            String[] actions=source.getActions();if(actions!=null)for(int i=0;i<actions.length;i++)if(actions[i]!=null)copy.setAction(i,actions[i]);
-            final int position=pos;copy.setDragDeadTime(source.getDragDeadTime());copy.setDragDeadZone(source.getDragDeadZone());copy.setDragParent(source.getDragParent());copy.setOnDragCompleteListener((JavaScriptCallback)e->drop(container,position,copy.getItemId()));copy.revalidate();placeholders[pos]=-1;
+            Widget source=children[duplicateSources[pos]];String[] actions=BankViewPlan.bankActions(client.getVarbitValue(net.runelite.api.gameval.VarbitID.BANK_QUANTITY_TYPE),client.getVarbitValue(net.runelite.api.gameval.VarbitID.BANK_REQUESTEDQUANTITY),source.getActions());if(proxy(children,ids,source,pos,source.getItemId(),source.getItemQuantity(),source.getName(),actions)!=null)placeholders[pos]=-1;
+        }
+        if(potions!=null)for(int pos=0;pos<cells.length;pos++)if(cells[pos]>0){
+            boolean real=false;for(int source=0;source<positions.length;source++)if(positions[source]==pos&&amounts[source]>0){real=true;break;}if(real||duplicateSources[pos]>=0)continue;
+            StudioPotionStorage.Potion potion=potions.forItem(cells[pos]);if(potion==null)continue;
+            for(int source=0;source<positions.length;source++)if(positions[source]==pos&&amounts[source]==0){children[source].setHidden(true);ids[source]=-1;}
+            int actual=potion.itemId(),quantity=potion.count();Widget copy=proxy(children,ids,null,pos,actual,quantity,potions.name(actual),StudioPotionStorage.actions(client.getVarbitValue(net.runelite.api.gameval.VarbitID.BANK_QUANTITY_TYPE),client.getVarbitValue(net.runelite.api.gameval.VarbitID.BANK_REQUESTEDQUANTITY),quantity>0));
+            if(copy!=null){storageCopies.put(copy.getIndex(),potion);for(int dose=1;dose<=4;dose++)if(potion.ids[dose-1]>0)copy.setSubOp(10,5+dose,dose+" Dose"+(dose==1?"":"s"));placeholders[pos]=-1;displayedStock.put(canonical.applyAsInt(cells[pos]),quantity);}
         }
         int height=Math.max(container.getHeight(),((Math.max(last,cells.length-1)/8)+1)*36);container.setScrollHeight(height);container.setScrollY(Math.max(0,Math.min(container.getScrollY(),height-container.getHeight())));container.revalidate();
     }
     private void drop(Widget container,int from,int realId){
-        if(!active)return;net.runelite.api.Point mouse=client.getMouseCanvasPosition();Rectangle bounds=container.getBounds();
+        if(!active||container==null)return;net.runelite.api.Point mouse=client.getMouseCanvasPosition();Rectangle bounds=container.getBounds();
         if(mouse==null||!bounds.contains(mouse.getX(),mouse.getY()))return;
         int relativeX=mouse.getX()-bounds.x-51+6;if(relativeX<0)return;int column=relativeX/48,row=(mouse.getY()-bounds.y+container.getScrollY())/36;
         if(column<0||column>7||row<0||row*8+column>8191)return;int to=row*8+column;if(from==to)return;

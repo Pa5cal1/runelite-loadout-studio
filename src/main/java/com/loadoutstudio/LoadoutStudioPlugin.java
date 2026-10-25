@@ -64,6 +64,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     @Inject private net.runelite.client.plugins.bank.BankSearch bankSearch;
     private BankBuildRefresh bankBuildRefresh;
     private IndependentBankView independentBank;
+    private StudioPotionStorage potionStorage;
     @Inject private net.runelite.client.ui.overlay.OverlayManager overlayManager;
     private BankPlaceholderOverlay placeholderOverlay;
     private java.util.function.IntPredicate activeBankMatches=id->false;
@@ -100,7 +101,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	@Override protected void startUp()
 	{
 		active = true;diagnostics.clear();diagnostics.enabled(config.localDiagnostics()); wiki = new WikiClient(http, gson, 2000, new WikiCacheFile(this::getPluginDirectory),config::wikiFreshDays);wiki.diagnostics(diagnostics);
-        independentBank=new IndependentBankView(client,clientThread,bankSearch,id->bankFilter==null?itemManager.canonicalize(id):bankFilter.layoutItemId(id));independentBank.onChanged(this::localBankLayoutChanged);
+        potionStorage=new StudioPotionStorage(client,itemManager);independentBank=new IndependentBankView(client,clientThread,bankSearch,id->bankFilter==null?itemManager.canonicalize(id):bankFilter.layoutItemId(id));independentBank.potions(potionStorage);independentBank.onChanged(this::localBankLayoutChanged);
         independentBank.onFailure(error->{diagnostics.failure(StudioDiagnostics.Operation.BANK_LAYOUT,error,0);if(bankFilter!=null)bankFilter.pause();reportBankStatus("Bank layout failed and was paused. Close and reopen the Bank, then review Diagnostics before retrying.");});
         placeholderOverlay=new BankPlaceholderOverlay(client,independentBank,itemManager);overlayManager.add(placeholderOverlay);
         bankBuildRefresh=new BankBuildRefresh(task->clientThread.invokeAtTickEnd(task),this::refreshAfterBankBuild);
@@ -158,7 +159,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     {
         if(!active||panel==null||(!config.bankMenu()&&!config.bankLayoutMenu()))return;
         net.runelite.api.MenuEntry[] entries=client.getMenu().getMenuEntries();
-        if(java.util.Arrays.stream(entries).anyMatch(e->e.getOption().startsWith("Loadout Studio")))return;
+        if(java.util.Arrays.stream(entries).anyMatch(e->(e.getOption().equals("Loadout setups:")||e.getOption().equals("Loadout layout:"))))return;
         if(java.util.Arrays.stream(entries).noneMatch(e->e.getParam1()==InterfaceID.Bankmain.WORNITEMS_BUTTON&&e.getType()==net.runelite.api.MenuAction.CC_OP&&e.getIdentifier()==1))return;
         String owner=recoveryOwner(),token=panel.bankMenuToken();
         if(token==null&&(!config.bankMenu()||quickLinks.isEmpty()))return;
@@ -173,7 +174,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
         String option=event.getMenuEntry().getOption();
         if(option.startsWith("View tab")||option.equals("View tag tab")||option.equals("View all items")||event.getParam1()==InterfaceID.Bankmain.POTIONSTORE_BUTTON)bankFilter.pause();
     }
-    @Subscribe public void onWidgetLoaded(net.runelite.api.events.WidgetLoaded event){if(active&&bankFilter!=null&&event.getGroupId()==InterfaceID.BANKMAIN){bankFilter.bankOpened();bankBuildRefresh.request(true);}}
+    @Subscribe public void onWidgetLoaded(net.runelite.api.events.WidgetLoaded event){if(active&&bankFilter!=null&&event.getGroupId()==InterfaceID.BANKMAIN){potionStorage.invalidate();bankFilter.bankOpened();bankBuildRefresh.request(true);}}
 
     @Override public void observeGear(Consumer<JsonObject> observer) { gearObserver=observer;gearDirty=true; }
     @Override public void requestGear() { clientThread.invoke(()->{lastGear=null;gearDirty=true;}); }
@@ -185,6 +186,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     }
     @Subscribe public void onVarbitChanged(VarbitChanged event)
     {
+        if(active&&potionStorage!=null&&potionStorage.changed(event.getVarpId())&&bankBuildRefresh!=null)bankBuildRefresh.request(false);
         if(gearVarps.contains(event.getVarpId()))gearDirty=true;
         if(event.getVarpId()==VarPlayerID.COM_MODE || event.getVarpId()==VarPlayerID.DIZANAS_QUIVER_TEMP_AMMO || event.getVarpId()==VarPlayerID.DIZANAS_QUIVER_TEMP_AMMO_AMOUNT)gearDirty=true;
         int bit=event.getVarbitId();if(bit==VarbitID.SPELLBOOK || bit==VarbitID.COMBAT_WEAPON_CATEGORY || bit==VarbitID.AUTOCAST_DEFMODE || bit==VarbitID.RUNE_POUCH_TYPE_1 || bit==VarbitID.RUNE_POUCH_TYPE_2 || bit==VarbitID.RUNE_POUCH_TYPE_3 || bit==VarbitID.RUNE_POUCH_TYPE_4 || bit==VarbitID.RUNE_POUCH_QUANTITY_1 || bit==VarbitID.RUNE_POUCH_QUANTITY_2 || bit==VarbitID.RUNE_POUCH_QUANTITY_3 || bit==VarbitID.RUNE_POUCH_QUANTITY_4 || GearContainers.isBoltVarbit(bit))gearDirty=true;
@@ -201,7 +203,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
         if(active&&LoadoutStudioConfig.GROUP.equals(event.getGroup())&&event.getKey().equals("respectOtherBankFilters"))clientThread.invokeAtTickEnd(()->{if(active&&bankFilter!=null)reportBankStatus(bankFilter.apply());});
         if(active && LoadoutStudioConfig.GROUP.equals(event.getGroup()) && LoadoutStudioConfig.isPreferenceKey(event.getKey())){SwingUtilities.invokeLater(()->{if(active&&panel!=null)panel.preferencesChanged();});return;}
     }
-    private void clearBankObservation(){clientThread.invoke(()->{observedBank.clear();bankObservedAt=0;});}
+    private void clearBankObservation(){clientThread.invoke(()->{observedBank.clear();bankObservedAt=0;if(potionStorage!=null)potionStorage.clear();});}
     private void observeBank()
     {
         net.runelite.api.widgets.Widget widget=client.getWidget(InterfaceID.Bankmain.ITEMS);ItemContainer bank=client.getItemContainer(InventoryID.BANK);
@@ -212,7 +214,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     {
         String owner=recoveryOwner();clientThread.invoke(()->{
             if(!active||!owner.equals(recoveryOwner()))return;if(client.getGameState()!=GameState.LOGGED_IN){SwingUtilities.invokeLater(()->error.accept("Log in and open your Bank to check owned alternatives."));return;}
-            observeBank();java.util.Map<Integer,Integer> amounts=new java.util.LinkedHashMap<>(observedBank);java.util.Map<Integer,StudioPanel.ItemInfo> details=new java.util.LinkedHashMap<>();
+            observeBank();java.util.Map<Integer,Integer> amounts=new java.util.LinkedHashMap<>(observedBank);if(potionStorage!=null)potionStorage.counts().forEach((id,count)->amounts.merge(id,count,(a,b)->(int)Math.min(Integer.MAX_VALUE,(long)a+b)));java.util.Map<Integer,StudioPanel.ItemInfo> details=new java.util.LinkedHashMap<>();
             for(int container:new int[]{InventoryID.INV,InventoryID.WORN}){ItemContainer items=client.getItemContainer(container);if(items!=null)for(Item item:items.getItems())if(item.getId()>0&&item.getQuantity()>0)amounts.merge(itemManager.canonicalize(item.getId()),item.getQuantity(),(a,b)->(int)Math.min(Integer.MAX_VALUE,(long)a+b));}
             java.util.Set<Integer> ids=new java.util.LinkedHashSet<>(amounts.keySet());for(com.google.gson.JsonElement e:BankLayouts.items(expected))if(SetupCodec.id(e)>0)ids.add(SetupCodec.id(e));
             for(int id:ids){ItemComposition item=itemManager.getItemComposition(id);ItemStats stats=equipmentStats(id);details.put(id,new StudioPanel.ItemInfo(id,item.getMembersName(),item.isStackable(),stats!=null&&stats.getEquipment()!=null?stats.getEquipment().getSlot():-1,null));}
@@ -226,6 +228,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
         if(independentBank!=null&&(event.getScriptId()==ScriptID.BANKMAIN_BUILD||event.getScriptId()==ScriptID.BANKMAIN_INIT))independentBank.removeCopies();
 		if (event.getScriptId() == ScriptID.BANKMAIN_INIT)
 		{
+            if(potionStorage!=null)potionStorage.invalidate();
 			observeBank();
 			if(bankBuildRefresh!=null)bankBuildRefresh.request(true);
 		}
@@ -234,6 +237,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     private void refreshAfterBankBuild(boolean opening){
         if(!active||bankFilter==null)return;
         try{
+            if(potionStorage!=null)try{potionStorage.refresh();}catch(RuntimeException|AssertionError error){potionStorage.unavailable();diagnostics.failure(StudioDiagnostics.Operation.BANK_LAYOUT,error,0);reportBankStatus("Potion storage could not be read. Bank items remain available; reopen the Bank to retry.");}
             observeBank();
             BankTagsPlugin tags=coreBankTags();
             if(opening||bankFilter.waiting()||independentBank.active()&&tags!=null&&tags.getActiveTag()!=null)reportBankStatus(bankFilter.apply(independentBank.active()));

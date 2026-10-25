@@ -6,7 +6,7 @@ import java.util.*;
 
 /** Bounded session-only diagnostics. No free text, identifiers, files or network transport. */
 final class StudioDiagnostics {
-    static final String VERSION="0.9.1-rc.14";
+    static final String VERSION="0.9.1-rc.15";
     static final String ISSUE_URL="https://github.com/Pa5cal1/runelite-loadout-studio/issues/new?template=bug_report.yml";
     enum Operation { UI_ACTION,SAVE,IMPORT,EXPORT_PREVIEW,EXPORT_COPY,ITEM_EDIT,ITEM_SEARCH,WIKI_SEARCH,WIKI_PAGE,WIKI_HTTP,WIKI_CACHE_HIT,WIKI_CACHE_FALLBACK,WIKI_CACHE_IO,WIKI_COALESCED,BANK_FILTER,BANK_LAYOUT,ALTERNATIVES }
     enum Outcome { SUCCESS,VALIDATION,EXPECTED_STATE,IO_FAILURE,SERVICE_FAILURE,UNEXPECTED }

@@ -29,3 +29,6 @@ Settings previews use RuneLite fonts, styling and the section-arrow resource fro
 The 0.9 sidebar wordmark treatment, route glyphs and checkbox controls are locally drawn Java UI code. They introduce no downloaded fonts or image requests. Settings documentation continues to represent the native RuneLite configuration style.
 
 `src/main/resources/com/loadoutstudio/combat-achievements.png` is the previous OSRS Combat Achievements Character Summary icon, retained as a legacy asset. Source: [OSRS Wiki asset page](https://oldschool.runescape.wiki/w/File:Combat_achievements_icon.png), image URL https://oldschool.runescape.wiki/images/Combat_achievements_icon.png. Artwork copyright Jagex. Bundled locally; no runtime image requests.
+
+
+Potion-storage enumeration and native operation routing follow RuneLite PotionStorage.java and LayoutManager.java (Adam, 2024; BSD-2-Clause). The notice is bundled as src/main/resources/com/loadoutstudio/runelite-potion-storage-LICENSE.txt. This local adapter does not require Bank Tags to be enabled and introduces no external requests.

@@ -105,7 +105,7 @@ public final class WikiParser
     }
 	private static JsonObject fill(String title, String variant, String source, List<Node> nodes)
 	{
-		JsonObject p = SetupCodec.blank(title.isEmpty() ? variant : title), s = SetupCodec.setup(p); s.addProperty("notes", "Source: " + source + "\nPreset: " + variant + "\nReview Item IDs, quantities and Spellbook before use.");
+		JsonObject p = SetupCodec.blank(title.isEmpty() ? variant : title), s = SetupCodec.setup(p); s.addProperty("notes", "Source: " + source + "\nPreset: " + variant + "");
 		String[] keys = {"head", "cape", "neck", "weapon", "body", "shield", "", "legs", "", "hands", "feet", "", "ring", "ammo"};
 		for (Node node : nodes)
 		{
@@ -128,9 +128,7 @@ public final class WikiParser
                     else if(nodes.stream().noneMatch(n->n.kind.equals("equipment")))s.getAsJsonArray("eq").set(i,row.deepCopy());
                 }
             }
-            String conditions=SetupCodec.setup(ranked).get("notes").getAsString().lines().skip(3).collect(java.util.stream.Collectors.joining("\n"));
-            String notes=s.get("notes").getAsString()+"\nWiki recommendation order (most to least effective); conditions:\n"+conditions;
-            s.addProperty("notes",notes.length()>10000?notes.substring(0,9900)+"\nSee the source page for remaining conditions.":notes);
+
         }
         SetupCodec.rebuildLayout(p); return p;
 	}
@@ -220,6 +218,16 @@ public final class WikiParser
 	}
     private static void setupName(JsonObject preset,String name){SetupCodec.setup(preset).addProperty("name",name);}
     private static String tierName(int index){return index==0?"Max gear":index==1?"High-tier gear":index==2?"Mid-game gear":index==3?"Budget gear":"Gear option "+(index+1);}
+    /** Remove only recognisable generated rank lines, preserving personal additions. */
+    static String compactGeneratedNotes(String text){
+        if(text==null||!text.startsWith("Source: ")||!text.contains("\nPreset: "))return text;
+        String marker="\nWiki recommendation order (most to least effective); conditions:";int start=text.indexOf(marker),tail;
+        if(start<0){start=text.indexOf("\nFirst listed items are selected by default. Gear alternatives only:");if(start<0)return text;tail=text.indexOf('\n',start+1);if(tail<0)tail=text.length();}else tail=start+marker.length();
+        String head=text.substring(0,start).replace("\nReview Item IDs, quantities and Spellbook before use.","");
+        StringBuilder result=new StringBuilder(head);
+        for(String line:text.substring(tail).split("\\R"))if(!line.isBlank()&&!line.matches("(?i)^(head|cape|neck|weapon|body|shield|legs|hands|feet|ring|ammo) rank [0-9]+:.*")&&!line.equals("See the source page for remaining conditions."))result.append('\n').append(line);
+        return result.toString();
+    }
     /** The first listed recommendation is the default; conditions and alternatives remain editable. */
     private static List<JsonObject> recommendations(List<Node> tables,String title,String source)
     {
@@ -227,16 +235,16 @@ public final class WikiParser
         for(Node table:tables)if(table.kind.equals("recommended equipment"))
         {
             if(result.size()>=100)throw new IllegalArgumentException("Too many recommendation tables.");
-            String style=plain(table.fields.getOrDefault("style","Gear"));if(style.length()>80)style=style.substring(0,80);JsonObject p=SetupCodec.blank(title);JsonObject setup=SetupCodec.setup(p);StringBuilder notes=new StringBuilder("Source: "+source+"\nPreset: Recommended "+style+" (first choices)\nFirst listed items are selected by default. Gear alternatives only: Inventory, quantities and Spellbook must be reviewed. Conditions and combinations from the source are retained below.\n");
+            String style=plain(table.fields.getOrDefault("style","Gear"));if(style.length()>80)style=style.substring(0,80);JsonObject p=SetupCodec.blank(title);JsonObject setup=SetupCodec.setup(p);StringBuilder notes=new StringBuilder("Source: "+source+"\nPreset: Recommended "+style+" (first choices)");
             int populated=0;
             for(int i=0;i<keys.length;i++)if(!keys[i].isEmpty())
             {
-                JsonArray choices=new JsonArray();java.util.Set<String> names=new java.util.LinkedHashSet<>();StringBuilder hints=new StringBuilder();
+                JsonArray choices=new JsonArray();java.util.Set<String> names=new java.util.LinkedHashSet<>();boolean hasRecommendation=false;
                 for(int rank=1;rank<=10;rank++)
                 {
                     String value=table.fields.get(keys[i]+rank);if(value==null || value.isBlank() || value.matches("(?i)none|empty|-"))continue;
-                    hints.append(keys[i]).append(" rank ").append(rank).append(": ").append(plain(value)).append('\n');
-                    // The first component represents this slot; keep the full combination in Notes.
+                    hasRecommendation=true;
+                    // The first component represents this slot; read the linked source for the full combination.
                     boolean combination=value.contains("+");int before=names.size();
                     List<Node> nested=nodes(value);
                     for(Node item:nested)if(item.kind.equals("plink") && nested.stream().noneMatch(parent->parent!=item && parent.start<item.start && parent.end>item.end && (parent.kind.equals("efn") || parent.kind.equals("refn"))))
@@ -245,9 +253,9 @@ public final class WikiParser
                     }
                     if(names.size()==before && !value.contains("{{")){for(String name:plain(value).split(combination?"\\s*\\+\\s*":"\\s+/\\s+")){if(!name.isBlank() && name.length()<150)names.add(name.trim());if(combination)break;}}
                 }
-                if(hints.length()==0)continue;
+                if(!hasRecommendation)continue;
                 for(String name:names)if(choices.size()<40)choices.add(name);
-                JsonObject item=SetupCodec.item(0,1);item.addProperty("label",choices.size()>0?choices.get(0).getAsString():"Choose "+keys[i]+" · "+style);item.add("choices",choices);if(i==13)item.add("q",JsonNull.INSTANCE);setup.getAsJsonArray("eq").set(i,item);populated++;notes.append(hints);
+                JsonObject item=SetupCodec.item(0,1);item.addProperty("label",choices.size()>0?choices.get(0).getAsString():"Choose "+keys[i]+" · "+style);item.add("choices",choices);if(i==13)item.add("q",JsonNull.INSTANCE);setup.getAsJsonArray("eq").set(i,item);populated++;
             }
             if(populated>0){String detail=notes.toString();setup.addProperty("notes",detail.length()>10000?detail.substring(0,9900)+"\nSee the source page for remaining conditions.":detail);SetupCodec.rebuildLayout(p);result.add(p);}
         }

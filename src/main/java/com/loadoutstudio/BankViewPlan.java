@@ -4,6 +4,8 @@ import java.util.*;
 import java.util.function.IntUnaryOperator;
 /** Positions refer to the original child index; no item data is rewritten. */
 final class BankViewPlan {
+    /** Native operation IDs, including when a hidden source has no action labels yet. */
+    static String[] bankActions(int type,int requested,String[] original){String[] result=StudioPotionStorage.actions(type,requested);result[10]="Examine";if(original!=null){if(original.length>8)result[8]=original[8];if(original.length>9)result[9]=original[9];}return result;}
     static int[] duplicateSources(int[] ids,int[] amounts,int[] cells,int[] occupied,IntUnaryOperator canonical){
         int[] result=new int[cells.length];Arrays.fill(result,-1);Set<Integer> used=new HashSet<>();for(int position:occupied)if(position>=0)used.add(position);
         for(int pos=0;pos<cells.length;pos++)if(cells[pos]>0&&!used.contains(pos))for(int source=0;source<ids.length;source++)if(ids[source]>0&&amounts[source]>0&&canonical.applyAsInt(ids[source])==canonical.applyAsInt(cells[pos])){result[pos]=source;break;}
