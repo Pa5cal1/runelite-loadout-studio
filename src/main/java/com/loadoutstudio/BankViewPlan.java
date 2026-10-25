@@ -9,4 +9,8 @@ final class BankViewPlan {
         return result;
     }
     static void callback(String name,int[] stack,int size,java.util.function.IntPredicate matches){if(name.equals("bankSearchFilter")&&size>=2){int id=stack[size-1];stack[size-2]=id>0&&matches.test(id)?1:0;}else if((name.equals("bankBuildTab")||name.equals("getSearchingTagTab"))&&size>0)stack[size-1]=1;}
+    /** Every unoccupied requested cell gets a visual-only item; holes remain empty. */
+    static int[] placeholders(int[] layout,int[] occupiedPositions){
+        int[] result=layout.clone();for(int position:occupiedPositions)if(position>=0&&position<result.length)result[position]=-1;return result;
+    }
 }

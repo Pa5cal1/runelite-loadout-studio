@@ -69,6 +69,8 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     @Inject private net.runelite.client.plugins.bank.BankSearch bankSearch;
     private BankTagsPlugin nativeOwner;
     private IndependentBankView independentBank;
+    @Inject private net.runelite.client.ui.overlay.OverlayManager overlayManager;
+    private BankPlaceholderOverlay placeholderOverlay;
     private java.util.function.IntPredicate activeBankMatches=id->false;
     private volatile Runnable bankObserver;
 	private TagManager nativeTagManager;
@@ -105,6 +107,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	{
 		active = true;diagnostics.clear();diagnostics.enabled(config.localDiagnostics()); wiki = new WikiClient(http, gson, 2000, new WikiCacheFile(this::getPluginDirectory),config::wikiFreshDays);wiki.diagnostics(diagnostics);
         independentBank=new IndependentBankView(client,clientThread,bankSearch,id->bankFilter==null?itemManager.canonicalize(id):bankFilter.layoutItemId(id));independentBank.onChanged(this::localBankLayoutChanged);
+        placeholderOverlay=new BankPlaceholderOverlay(client,independentBank,itemManager);overlayManager.add(placeholderOverlay);
         filterHotkey=new net.runelite.client.util.HotkeyListener(config::filterHotkey){@Override public void hotkeyPressed(){clientThread.invoke(()->{net.runelite.api.widgets.Widget bank=client.getWidget(InterfaceID.Bankmain.ITEMS);if(!active||bank==null||bank.isHidden())return;String owner=recoveryOwner();SwingUtilities.invokeLater(()->{if(active&&panel!=null&&owner.equals(recoveryOwner()))panel.toggleBankFilter();});});}};keyManager.registerKeyListener(filterHotkey);
         importWorker=java.util.concurrent.Executors.newSingleThreadExecutor(r->{Thread t=new Thread(r,"loadout-local-import");t.setDaemon(true);return t;});
 		bankFilter = new StudioBankFilter(new StudioBankFilter.Gateway()
@@ -140,6 +143,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	@Override protected void shutDown()
 	{
 		active = false; importRevision.incrementAndGet(); cancelItemInput(); if (wiki != null) wiki.close(); if(importWorker!=null)importWorker.shutdownNow();
+        if(placeholderOverlay!=null)overlayManager.remove(placeholderOverlay);placeholderOverlay=null;
         if(filterHotkey!=null)keyManager.unregisterKeyListener(filterHotkey);filterHotkey=null;quickLinks=java.util.Collections.emptyList();
         gearObserver=null;layoutObserver=null;bankObserver=null;lastGear=null;clearBankObservation();
 		bankRevision.incrementAndGet(); StudioBankFilter previousFilter = bankFilter; bankFilter = null; clientThread.invoke(() -> { if (previousFilter != null) previousFilter.clear(); });

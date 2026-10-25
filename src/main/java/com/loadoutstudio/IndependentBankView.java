@@ -16,11 +16,11 @@ import net.runelite.client.plugins.bank.BankSearch;
 final class IndependentBankView {
     private final Client client;private final ClientThread thread;private final BankSearch search;private final IntUnaryOperator canonical;
     
-    private boolean active,rebuildQueued;private int[] cells=new int[0];private IntPredicate matches=id->false;private Runnable changed=()->{};
+    private boolean active,rebuildQueued;private int[] cells=new int[0],placeholders=new int[0];private IntPredicate matches=id->false;private Runnable changed=()->{};
     IndependentBankView(Client client,ClientThread thread,BankSearch search,IntUnaryOperator canonical){this.client=client;this.thread=thread;this.search=search;this.canonical=canonical;}
-    boolean active(){return active;}int[] layout(){return cells.clone();}void onChanged(Runnable changed){this.changed=changed;}
-    void select(int[] layout,IntPredicate predicate){cells=layout.clone();matches=predicate;active=true;rebuild();}
-    void clear(){boolean wasActive=active;active=false;if(wasActive)rebuild();}
+    boolean active(){return active;}int[] layout(){return cells.clone();}int[] placeholders(){return active?placeholders.clone():new int[0];}void onChanged(Runnable changed){this.changed=changed;}
+    void select(int[] layout,IntPredicate predicate){cells=layout.clone();placeholders=new int[0];matches=predicate;active=true;rebuild();}
+    void clear(){boolean wasActive=active;active=false;placeholders=new int[0];if(wasActive)rebuild();}
     private void rebuild(){if(rebuildQueued)return;rebuildQueued=true;thread.invokeLater(()->{rebuildQueued=false;search.layoutBank();});}
     void callback(ScriptCallbackEvent event){Widget bank=client.getWidget(InterfaceID.Bankmain.ITEMS);if(!active||bank==null||bank.isHidden())return;BankViewPlan.callback(event.getEventName(),client.getIntStack(),client.getIntStackSize(),matches);}
 
@@ -33,6 +33,7 @@ final class IndependentBankView {
             final int source=pos;
             item.setOnDragCompleteListener((JavaScriptCallback)e->drop(container,source,item.getItemId()));
         }
+        placeholders=BankViewPlan.placeholders(cells,positions);
         int height=Math.max(container.getHeight(),((Math.max(last,cells.length-1)/8)+1)*36);container.setScrollHeight(height);container.setScrollY(Math.max(0,Math.min(container.getScrollY(),height-container.getHeight())));container.revalidate();
     }
     private void drop(Widget container,int from,int realId){

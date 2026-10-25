@@ -1,4 +1,10 @@
-# Current validation — 0.9.1-rc.7
+# Current validation — 0.9.1-rc.8
+
+- Full Java 11 test/jar/shadowJar build: **226 tests, zero failures/errors/skipped**.
+- Added missing and duplicate cell planning, existing canonical Bank placeholder occupancy, dimmed sprite painting, clipping, scroll offsets and unchanged Graphics state checks.
+- In-game Bank Tags on/off comparison remains pending user acceptance.
+
+# Previous validation — 0.9.1-rc.7
 
 - Full Java 11 test/jar/shadowJar build: **222 tests, zero failures/errors/skipped**.
 - New regression coverage: twenty repeated food slots share one choice, Keep original, apply/save/undo, combined insufficient stock without partial replacement, and distinct source rankings remaining separate.
