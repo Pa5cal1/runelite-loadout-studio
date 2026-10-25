@@ -5,8 +5,8 @@ Current preparation: **0.9.1-rc.18**, checked on **25 October 2026**. The candid
 ## Submission sequence
 
 1. Complete and record the manual acceptance pass on the exact candidate. Keep source code and version metadata in sync.
-2. Approve public access to the source repository before submission; this preparation does not change repository visibility.
-3. Choose the stable version after acceptance, normally **1.0.0**, then run the source checks and build again. The root `icon.png` is a bundled 32 by 32 pixel PNG, within the Hub's 48 by 72 maximum.
+2. Make the source repository public before submission. Public submission is authorised; the connected GitHub tool cannot change repository visibility.
+3. Retain the exact reviewed **0.9.1-rc.18** candidate for initial review; a stable **1.0.0** follows acceptance. The root `icon.png` is a bundled 32 by 32 pixel PNG, within the Hub's 48 by 72 maximum.
 4. Fork `runelite/plugin-hub`, create a branch and add `plugins/loadout-studio` containing the source repository, full reviewed commit hash and proposed network warning. Use the commit from the source that will actually be reviewed.
 5. Open one pull request with the prepared description and acceptance evidence. Respond to Hub checks and reviewers; update the same PR's pinned commit when fixes are required.
 6. Wait for review and merge. Do not advertise the plugin as approved or available until it actually appears in the Hub.
@@ -17,7 +17,7 @@ For later updates, change the manifest's commit to the tested source revision; c
 
 `loadout-studio.example` is a preparation template, not a submitted release manifest. Its pin identifies the reviewed candidate source; replace it after any further source change or stable-version update before using the manifest as `plugins/loadout-studio` in a Plugin Hub submission. The current repository must be made public before review.
 
-The `warning` line describes Loadout Studio's actual network behavior: queries and requested page titles go to OSRS Wiki, which receives the connection's IP address. Gear, saved setups and account credentials are not uploaded. The user explicitly rejected a generic warning suggesting account-data submission.
+The `warning` line describes Loadout Studio's actual network behavior: queries and requested page titles go to OSRS Wiki, which receives the connection's IP address. Gear and saved setups are not uploaded. The user explicitly rejected a generic warning suggesting account-data submission.
 
 RuneLite's [PluginHubPanel](https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/config/PluginHubPanel.java) adds the installation title, confirmation question, warning icon and Yes/No buttons. Do not duplicate that question in the warning line. Wiki requests are always available in the sidebar; there is no opt-in checkbox. No requests are sent merely by opening the plugin.
 

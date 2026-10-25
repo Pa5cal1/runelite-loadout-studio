@@ -1,8 +1,14 @@
 # Loadout Studio release readiness
 
-Version: **0.9.1-rc.18**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
+Version: **0.9.1-rc.18**. Review date: **25 October 2026**. Status: **submission candidate; user acceptance recorded for the corrected flows; external review pending**.
 
 Reviewed candidate source commit: `173d7036b941d61932a56441d80b0d5f8b4cdc1e`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
+
+## Current submission assessment
+
+Final rc.18 review found no new concrete release-blocking regression. The user confirmed the final setup-name drop gesture as well as food/potion withdrawals and autosave. Refreshed documentation previews use the current sidebar and configuration declarations with example data. Public repository access and a Plugin Hub pull request remain submission steps, not completed review outcomes. The exact candidate is submitted as rc.18; a stable version follows acceptance and any reviewer fixes.
+
+Cross-account live switching, all native combinations and all scaling settings are not exhaustively proven. No claim of RuneLite/Jagex approval is made. The remainder of this report preserves development-stage findings and test gates; later candidate records supersede earlier counts and corrected native bugs.
 
 ## Startup follow-up
 
@@ -23,10 +29,10 @@ One concrete defect was corrected during the review: useful `Slayer task/…` ar
 | Gate | Evidence | State |
 | --- | --- | --- |
 | Java compatibility | Java 11 compilation and class version 55 | Locally checked |
-| Regression suite | 249 tests, zero failures, errors or skips | Locally passed |
+| Regression suite | 289 tests, zero failures, errors or skips | Locally passed |
 | Account separation | Three-account save/reopen/favorite test, draft recovery and delayed callback guards | Offline passed; live switching pending |
 | Wiki request restraint | Interceptor tests, persisted cache, explicit actions, rolling request budget | Offline passed |
-| Sidebar appearance | Gold theme, 220/260 px layout checks and example-data previews | Offline checked; live scaling pending |
+| Sidebar appearance | RuneLite gray with gold accents, 220/260 px layout checks and example-data previews | Offline checked; live scaling pending |
 | Public listing | Name, author, description, candidate version and bundled icon | Prepared |
 | Plugin Hub submission | Public source access, final acceptance and manifest pin | Pending |
 
@@ -97,7 +103,7 @@ External I/O and Bank widget/layout changes deserve explicit reviewer attention.
 1. Complete the manual acceptance list below on the exact candidate build.
 2. Keep the current low-request design. Consider cross-process request coordination only if actual usage or Wiki maintainers identify a need; do not add periodic refresh or per-item services.
 3. Review encounter conditions and item requirements on every ironman/HCIM adaptation. Do not describe alternatives as automatic best-in-slot or safe-to-use recommendations.
-4. After acceptance, use a stable **1.0.0** release and a newly pinned source commit for submission. Fixes before acceptance increment the candidate number, such as **0.9.1-rc.6**.
+4. Submit the exact tested **0.9.1-rc.18** candidate for review; do not rename it stable solely for publication. Any code fixes require a new candidate and verification. A later stable **1.0.0** uses its own tested, pinned commit.
 
 ## Manual acceptance before submission
 

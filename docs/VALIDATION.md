@@ -7,7 +7,7 @@ Full suite: **289 tests, zero failures/errors/skipped**.
 
 Library setup-name buttons now accept drops as well as starting drags. Dropping on another setup moves the dragged setup into the destination setup's section, including Unfiled. The destination setup is not changed and no copy is created. Existing section-heading and row-area drop targets remain available. Profile isolation and autosave use the same validated move operation.
 
-Player acceptance: food and potion withdrawals are confirmed working. The screenshots also show visible fuzzy stars and section changes. The new name-button drop gesture still needs player confirmation.
+Player acceptance: food and potion withdrawals are confirmed working. The screenshots also show visible fuzzy stars and section changes. The user subsequently confirmed the new name-button drop gesture works.
 
 Validation: 289 offline tests passed. The new regression test delivers a real Swing TransferSupport to a destination setup-name button, checks persisted section membership and unchanged target/favorite, retains MOVE as its source action and rejects unrelated payloads.
 # Previous validation — 0.9.1-rc.17

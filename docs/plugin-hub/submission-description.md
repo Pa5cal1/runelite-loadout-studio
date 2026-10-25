@@ -1,30 +1,36 @@
-# Proposed Plugin Hub listing
+# Plugin Hub submission — Loadout Studio
 
 **Name:** Loadout Studio  
 **Author:** Pa5cal1  
-**Candidate:** 0.9.1-rc.18  
-**First stable release after acceptance:** 1.0.0
+**Version:** 0.9.1-rc.18  
+**Description:** Create and organise gear loadouts with Wiki presets and owned alternatives
 
-**Short description:** Create and organise gear loadouts with Wiki presets and owned alternatives
+## Pull request title
 
-This is original wording in the concise, feature-led style of the reference listings. It does not copy their descriptions or imply affiliation.
+Add Loadout Studio
 
-## Proposed submission description
+## Pull request body
 
-Loadout Studio lets players create, capture and organise gear loadouts in a character-specific sidebar library. Players can search an OSRS Wiki activity, choose a preset and review source-ranked alternatives from their observed Bank and gear before saving a personal copy.
+Loadout Studio creates, captures and organises gear loadouts in a character-specific sidebar library. Players can load an OSRS Wiki preset, review source-ranked alternatives from their locally observed gear and save their adapted setup.
 
-The Builder includes Inventory, Equipment, Rune Pouch, Quiver, Notes, manual chatbox item editing and drag-and-drop. Preset and Zigzag Bank views, favorites, sections, comparison flags, recovery and portable backups support repeated gearing. Inventory Setups JSON and Bank Tag formats are supported with conversion-loss warnings.
+Features include Inventory/Equipment editing, Rune Pouch and Quiver planning, sections/favorites, native chatbox item selection, drag-and-drop, comparison/highlighting, autosave and portable backups. Inventory Setups JSON, native Bank Tags and legacy Bank Tag Layouts exports are supported, with warnings about data lost during conversion.
 
-Inventory Setups and Bank Tag Layouts are not runtime dependencies. Built-in Bank Tags integration is optional; an independent Bank view handles its disabled state. Wiki traffic is explicit and cached, with a single bounded request queue, no startup polling and no image/per-item Wiki service. Diagnostics stay local and are copied only after user review. Support donations do not unlock functionality.
+The plugin does not depend on Inventory Setups or Bank Tag Layouts. Its independent Bank layout supports built-in Bank Tags enabled or disabled, Preset/Zigzag/custom positions and native item operations. Normal Bank stock is preferred; native Potion Storage widgets provide available selected-dose potions. No automatic withdrawal/equipping, injected input or direct action invocation is used. Bank menu entries that select setups/layouts are local controls; item interactions retain native operation routing.
 
-Please review the Wiki network disclosure, chatbox inputs, Bank widget/layout integration, cross-plugin data import and plugin-owned temporary Bank Tag lifecycle. The acceptance record and precise source revision should be supplied with the actual submission. This document is preparation, not an open PR or approval claim.
+Wiki access occurs only after explicit search/page actions. Responses are cached across restarts; refresh-on-expiry happens only on a later user open. The request queue has one in-flight request, minimum two-second spacing, a rolling ten-start/minute limit, bounded pending work and error backoff. Startup, typing, saved-setup opens, item images and gear checks make no Wiki requests. Gear and setups are not uploaded. Diagnostics are bounded, session-local and manually copied only. Donations unlock no features.
 
-## Version policy
+Validation: 289 Java 11 regression tests pass locally. The repository's Java 11 GitHub Actions checks passed for the reviewed rc.18 source. The player confirmed real food Withdraw-5, potion withdrawal/dose selection, autosave and the final Library section-drop flow. Documentation screenshots are refreshed offline renders using example data, clearly labeled as previews; they are not automated gameplay evidence. Cross-profile live races, every item variant and all third-party Bank-filter combinations are not exhaustively proven.
 
-Use `0.9.1-rc.18` for this candidate. Increment the `rc` number for fixes and retest before stable release. After manual acceptance, update build metadata, diagnostics, User-Agent, launcher, changelog and manifest pin together to `1.0.0`. Later compatible features increment the minor number; fixes increment the patch number. A version label alone does not trigger a Hub update: the manifest must point to the reviewed commit.
+Please review the native Bank widget/operation integration, potion-storage adapter, cross-plugin read-only imports, network disclosure and the lifetime/cleanup of plugin-owned temporary tags. No new runtime dependency is requested; build type is standard. Bundled compatibility data retains the corresponding BSD notices.
 
-## Installation warning proposal
+Documentation and previews: https://github.com/Pa5cal1/runelite-loadout-studio#screenshots
+
+Validation and limitations: https://github.com/Pa5cal1/runelite-loadout-studio/blob/main/docs/release-readiness.md
+
+Generated-by: Codex
+
+## Installation warning
 
 This plugin sends your IP address, search queries and requested page titles to the OSRS Wiki. It does not upload your gear or saved setups.
 
-The Hub owns the warning dialog and final wording. No extra installation dialog is added to the client.
+The Hub controls the installation dialog and final warning wording. Submission is not approval. Reviewer changes will update the same pull request; a stable 1.0.0 will use its own tested source commit.
