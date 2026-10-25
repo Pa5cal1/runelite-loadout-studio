@@ -2,7 +2,7 @@
 
 Version: **0.9.1-rc.18**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
 
-Reviewed candidate source commit: `eebb594c22497fe7e899500270ea68ab777199ca`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
+Reviewed candidate source commit: `173d7036b941d61932a56441d80b0d5f8b4cdc1e`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
 
 ## Startup follow-up
 
