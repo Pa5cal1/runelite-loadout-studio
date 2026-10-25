@@ -42,7 +42,7 @@ import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import okhttp3.OkHttpClient;
 
-@PluginDescriptor(name = "Loadout Studio", description = "Create and organise gear loadouts with Wiki presets and owned alternatives", tags = {"inventory", "setup", "bank", "loadout", "wiki"}, enabledByDefault = false, internalName = "loadout-studio")
+@PluginDescriptor(name = "Loadout Studio", description = "Create and organise gear loadouts with Wiki presets and owned alternatives", tags = {"inventory", "setup", "bank", "loadout", "wiki"}, internalName = "loadout-studio")
 
 public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 {
