@@ -1,4 +1,10 @@
-# Current validation — 0.9.1-rc.8
+# Current validation — 0.9.1-rc.9
+
+- Full Java 11 test/jar/shadowJar build: **230 tests, zero failures/errors/skipped**.
+- One Bank rendering path with both Bank Tags states. Refresh is scheduled from Bank pre-events and coalesced outside the VM. Incomplete runtime layouts retain all requested items.
+- Added four regressions for these boundaries. In-game bank behavior remains pending user acceptance.
+
+# Previous validation — 0.9.1-rc.8
 
 - Full Java 11 test/jar/shadowJar build: **226 tests, zero failures/errors/skipped**.
 - Added missing and duplicate cell planning, existing canonical Bank placeholder occupancy, dimmed sprite painting, clipping, scroll offsets and unchanged Graphics state checks.

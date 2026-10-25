@@ -68,6 +68,11 @@ public class BankFilterTest
 		FakeBank bank = new FakeBank(); StudioBankFilter filter = new StudioBankFilter(bank, "studio"); JsonObject p = setup(); assertTrue(filter.select(p).contains("Open your Bank"));
 		SetupCodec.setup(p).getAsJsonArray("inv").set(0, SetupCodec.item(999, 1)); bank.open = true; filter.apply(); assertTrue(bank.matches.test(100)); assertFalse(bank.matches.test(999)); assertEquals(1, bank.opened);
 	}
+    @Test public void incompleteStoredLayoutStillIncludesEveryRequestedItemWithoutChangingTheDraft(){
+        FakeBank bank=new FakeBank();bank.open=true;JsonObject p=setup();JsonArray incomplete=new JsonArray();incomplete.add(3);p.add("layout",incomplete);JsonObject original=p.deepCopy();new StudioBankFilter(bank,"studio").select(p);
+        for(com.google.gson.JsonElement item:BankLayouts.items(p)){int id=SetupCodec.id(item);assertTrue(java.util.Arrays.stream(bank.layout).anyMatch(cell->cell==id));}
+        assertEquals(p,original);assertEquals(3,bank.layout[0]);
+    }
 	@Test public void exactAndFuzzyMembershipIncludeAllSetupContainers()
 	{
 		FakeBank bank = new FakeBank(); bank.open = true; StudioBankFilter filter = new StudioBankFilter(bank, "studio"); JsonObject p = setup(); filter.select(p);

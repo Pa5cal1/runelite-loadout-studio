@@ -59,7 +59,9 @@ public final class StudioBankFilter
 		SetupCodec.validate(portable, false);
 		if (BankLayouts.items(portable).isEmpty()) return "Add items before filtering the Bank.";
 		if(BankLayouts.items(portable).stream().noneMatch(item->SetupCodec.id(item)>0))return "No resolved items yet. Choose an item to start Bank filtering.";
-		selected = portable.deepCopy(); return apply(explicit);
+		selected = portable.deepCopy();
+        selected.add("layout",BankLayouts.generate(selected,BankLayouts.Mode.CUSTOM,false));
+        return apply(explicit);
 	}
 	public String apply(){return apply(false);}
     public String apply(boolean explicit)

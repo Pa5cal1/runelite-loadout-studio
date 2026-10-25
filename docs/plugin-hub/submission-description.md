@@ -2,7 +2,7 @@
 
 **Name:** Loadout Studio  
 **Author:** Pa5cal1  
-**Candidate:** 0.9.1-rc.8  
+**Candidate:** 0.9.1-rc.9  
 **First stable release after acceptance:** 1.0.0
 
 **Short description:** Create and organise gear loadouts with Wiki presets and owned alternatives
@@ -21,7 +21,7 @@ Please review the Wiki network disclosure, chatbox inputs, Bank widget/layout in
 
 ## Version policy
 
-Use `0.9.1-rc.8` for this candidate. Increment the `rc` number for fixes and retest before stable release. After manual acceptance, update build metadata, diagnostics, User-Agent, launcher, changelog and manifest pin together to `1.0.0`. Later compatible features increment the minor number; fixes increment the patch number. A version label alone does not trigger a Hub update: the manifest must point to the reviewed commit.
+Use `0.9.1-rc.9` for this candidate. Increment the `rc` number for fixes and retest before stable release. After manual acceptance, update build metadata, diagnostics, User-Agent, launcher, changelog and manifest pin together to `1.0.0`. Later compatible features increment the minor number; fixes increment the patch number. A version label alone does not trigger a Hub update: the manifest must point to the reviewed commit.
 
 ## Installation warning proposal
 
