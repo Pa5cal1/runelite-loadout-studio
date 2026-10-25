@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.9.1-rc.6.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.9.1-rc.7.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. When it is active, Loadout Studio can use its native layout service; otherwise it uses an independent view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
@@ -460,3 +460,8 @@ Corrects false rejection of real imbued items such as Salve amulet(ei). Native m
 ### Trouver variant checks
 
 The rc.6 offline suite includes all 145 declared Trouver-related IDs from the pinned API fixture, including locked, broken/mangled definitions and the parchment itself. Explicit selection and both export round trips preserve their IDs. Dedicated cape cases cover Infernal max cape (l), Fire max cape (l), Fire cape (l) and Infernal cape (l): exact-name lookup resolves them, exact Bank filtering retains the selected locked item and its layout reference, and does not silently substitute another cape. This tests identity policy and offline boundaries; it does not prove every definition is wearable or owned. Confirm locked cape selection, sprite, save/reopen and filtering in the actual client.
+
+
+### Grouped owned alternatives (0.9.1-rc.7)
+
+Repeated Inventory items with the same ranked alternatives share one choice, for example Inventory ×20: Manta ray. Apply replaces all matching slots together; Keep original leaves the group untouched. Existing quantities and per-slot matching options remain intact. Different source recommendations and Equipment positions stay separate. Combined stock is rechecked before applying; insufficient stock leaves the draft intact. Undo restores the complete group. Confirm this behavior in the test client before release.

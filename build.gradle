@@ -28,7 +28,7 @@ dependencies {
 }
 
 group = 'com.loadoutstudio'
-version = '0.9.1-rc.6'
+version = '0.9.1-rc.7'
 
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'

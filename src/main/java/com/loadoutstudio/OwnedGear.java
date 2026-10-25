@@ -22,6 +22,19 @@ final class OwnedGear
         final String container;final int index;final JsonElement before;final List<StudioPanel.ItemInfo> choices;final String reason;
         Proposal(String key,int index,JsonElement before,List<StudioPanel.ItemInfo> choices,String reason){this.container=key;this.index=index;this.before=before.deepCopy();this.choices=Collections.unmodifiableList(choices);this.reason=reason;}
     }
+    /** Share one choice only when the same item has the same ranked replacements. */
+    static List<List<Proposal>> grouped(List<Proposal> proposals)
+    {
+        Map<String,List<Proposal>> groups=new LinkedHashMap<>();
+        for(Proposal proposal:proposals){
+            StringBuilder key=new StringBuilder(proposal.container).append(':').append(SetupCodec.id(proposal.before));
+            // Equipment positions remain independent; supplies can fill many Inventory slots.
+            if(proposal.container.equals("eq"))key.append(':').append(proposal.index);
+            for(StudioPanel.ItemInfo choice:proposal.choices)key.append(':').append(choice.id);
+            groups.computeIfAbsent(key.toString(),ignored->new ArrayList<>()).add(proposal);
+        }
+        return new ArrayList<>(groups.values());
+    }
     List<Proposal> alternatives(JsonObject portable,Function<String,StudioPanel.ItemInfo> resolve)
     {
         List<Proposal> result=new ArrayList<>();JsonObject setup=SetupCodec.setup(portable);

@@ -1,4 +1,10 @@
-# Current validation — 0.9.1-rc.6
+# Current validation — 0.9.1-rc.7
+
+- Full Java 11 test/jar/shadowJar build: **222 tests, zero failures/errors/skipped**.
+- New regression coverage: twenty repeated food slots share one choice, Keep original, apply/save/undo, combined insufficient stock without partial replacement, and distinct source rankings remaining separate.
+- Manual client acceptance remains pending.
+
+# Previous validation — 0.9.1-rc.6
 
 - Full Java 11 test/jar/shadowJar result: **219 tests, zero failures/errors/skipped**.
 - Reproduced a 42-slot difference case. Its tooltip is grouped by container, bounded in width and height, and contains no item labels or raw slot keys. The individual slot details remain available.
