@@ -1,4 +1,21 @@
-# Current validation — 0.9.1-rc.16
+# Current validation — 0.9.1-rc.17
+
+Full suite: **288 tests, zero failures/errors/skipped**.
+
+
+
+### Fuzzy controls, cape links and Library section drops (0.9.1-rc.17)
+
+The player confirmed that Withdraw-5 produces five real food items. The supplied test evidence includes repeated food menus with Bank Tags disabled and native potion-storage dose controls. These results supersede the earlier unconfirmed food-menu gate for the tested flows.
+
+- Slayer helmet cosmetic variants now require the slot's Toggle Fuzzy flag for Bank membership and shared layout placement. With fuzzy off, the selected helmet ID is used. Imbued capability is retained in fuzzy comparisons. Owned alternatives may still offer an explicitly chosen cosmetic replacement.
+- Fuzzy slots display a yellow star in the upper-right corner, independent of sprites and quantity labels. Toggling rerenders the marker and autosaves the flag.
+- Wiki plink references to page anchors use their concrete pic/txt item where provided. This resolves the God capes#Imbuing recommendation to the depicted imbued cape. Existing unresolved generic labels receive the documented first concrete choice. Fuzzy comparisons understand supported imbued combined/max capes across god variants while keeping the exact saved ID.
+- Drag a Library setup name onto a section heading or row area to move it. Empty and collapsed sections accept drops; Unfiled remains a destination. Changes persist without creating copies, preserve the open Builder's section, and reject stale character/profile payloads. Favorite/archive buttons retain their own actions.
+- No new network calls were added. The supplied console extract contains DEBUG entries and no ERROR entries, assertions or exception types.
+
+Validation: 288 offline Java 11 tests passed. New coverage checks anchored Wiki capes, exact versus fuzzy max-cape matching, the live slot marker and saved flag, and section-drop persistence/profile isolation. Native drag gestures and the corrected cape/helmet behavior still require player acceptance in rc.17.
+# Previous validation — 0.9.1-rc.16
 
 Full suite: **284 tests, zero failures/errors/skipped**.
 

@@ -117,7 +117,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 			public String activeTag() { return independentBank.active()?ownedTag():coreBankTags()==null?null:coreBankTags().getActiveTag(); }
             public int[] currentLayout() { return independentBank.active()?independentBank.layout():null; }
 			public int canonicalize(int id) { return itemManager.canonicalize(id); }
-			public int variation(int id) { return SetupVariationMapping.map(id); }
+			public int variation(int id) { return SetupVariationMapping.fuzzy(id); }
 			public void register(String tag, java.util.function.IntPredicate matches) { activeBankMatches=matches; }
 			public void open(String tag, int[] layout)
 			{
@@ -308,7 +308,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     }
     @Override public void compareSetup(JsonObject expected,boolean ignoreAmmo,Consumer<java.util.Set<String>> success,Consumer<String> error)
     {
-        capture(actual->clientThread.invoke(()->{if(!active)return;java.util.Set<String> result=SetupComparison.differences(expected,actual,ignoreAmmo,id->SetupVariationMapping.map(itemManager.canonicalize(id)));SwingUtilities.invokeLater(()->{if(active)success.accept(result);});}),error);
+        capture(actual->clientThread.invoke(()->{if(!active)return;java.util.Set<String> result=SetupComparison.differences(expected,actual,ignoreAmmo,id->SetupVariationMapping.fuzzy(itemManager.canonicalize(id)));SwingUtilities.invokeLater(()->{if(active)success.accept(result);});}),error);
     }
     @Override public void existingSetups(Consumer<ExistingSetupReader.Result> success,Consumer<String> error)
     {

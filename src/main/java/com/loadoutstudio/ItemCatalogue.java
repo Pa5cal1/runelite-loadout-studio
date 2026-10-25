@@ -61,6 +61,7 @@ final class ItemCatalogue
     static String normalize(String name) {
         String result=name.replace('_',' ').trim().replaceAll("\\s+"," ");
         if(result.equalsIgnoreCase("Teleport to house (tablet)"))return "Teleport to house";
+        if(result.equalsIgnoreCase("God capes#Imbuing")||result.equalsIgnoreCase("Imbued god cape"))return "Imbued Guthix cape";
         if(result.equalsIgnoreCase("Void top"))return "Void knight top";
         return result;
     }

@@ -113,7 +113,7 @@ final class EquipmentVariants {
         return net.runelite.client.game.ItemVariationMapping.map(actual)==net.runelite.client.game.ItemVariationMapping.map(wanted);
     }
     /** Locked cape requirements remain exact unless the player chooses a replacement. */
-    static int base(int id){int slayer=slayerBase(id);if(slayer!=id)return slayer;if(runePouch(id))return BH_RUNE_POUCH;if(divinePouch(id))return DIVINE_RUNE_POUCH;switch(id){
+    static int base(int id){if(runePouch(id))return BH_RUNE_POUCH;if(divinePouch(id))return DIVINE_RUNE_POUCH;switch(id){
         case TORVA_HELM_SANGUINE:return TORVA_HELM;
         case TORVA_CHEST_SANGUINE:return TORVA_CHEST;
         case TORVA_LEGS_SANGUINE:return TORVA_LEGS;

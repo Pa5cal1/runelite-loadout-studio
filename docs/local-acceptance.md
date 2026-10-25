@@ -1,6 +1,6 @@
-# Testclient acceptance — 0.9.1-rc.16
+# Testclient acceptance — 0.9.1-rc.17
 
-The candidate passed 284 offline tests. Before stable publication, also complete the account and real Bank scenarios in [the release-readiness report](release-readiness.md#manual-acceptance-before-submission). A previous pass on another version does not cover newly changed native integrations.
+The candidate passed 288 offline tests. Before stable publication, also complete the account and real Bank scenarios in [the release-readiness report](release-readiness.md#manual-acceptance-before-submission). A previous pass on another version does not cover newly changed native integrations.
 
 Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 
@@ -208,3 +208,16 @@ The player confirmed native potion-dose selection and compact Wiki Notes work in
 - Other owned alternatives can use RuneLite's bundled item-variation groups in addition to the existing explicit cosmetic/max-cape mappings. Charged quiver direction and fortified ward distinctions remain guarded. Broad variation groups are recommendations requiring player review, not a claim that every variant has identical requirements or benefits. No Wiki image or per-item HTTP requests were added.
 
 Validation: 284 offline tests passed, including every bundled Slayer-helmet variant, exact Bank-slot matching, protected Divine-pouch autosave and preserved rune quantity. Actual game behavior remains a user acceptance gate.
+
+
+### Fuzzy controls, cape links and Library section drops (0.9.1-rc.17)
+
+The player confirmed that Withdraw-5 produces five real food items. The supplied test evidence includes repeated food menus with Bank Tags disabled and native potion-storage dose controls. These results supersede the earlier unconfirmed food-menu gate for the tested flows.
+
+- Slayer helmet cosmetic variants now require the slot's Toggle Fuzzy flag for Bank membership and shared layout placement. With fuzzy off, the selected helmet ID is used. Imbued capability is retained in fuzzy comparisons. Owned alternatives may still offer an explicitly chosen cosmetic replacement.
+- Fuzzy slots display a yellow star in the upper-right corner, independent of sprites and quantity labels. Toggling rerenders the marker and autosaves the flag.
+- Wiki plink references to page anchors use their concrete pic/txt item where provided. This resolves the God capes#Imbuing recommendation to the depicted imbued cape. Existing unresolved generic labels receive the documented first concrete choice. Fuzzy comparisons understand supported imbued combined/max capes across god variants while keeping the exact saved ID.
+- Drag a Library setup name onto a section heading or row area to move it. Empty and collapsed sections accept drops; Unfiled remains a destination. Changes persist without creating copies, preserve the open Builder's section, and reject stale character/profile payloads. Favorite/archive buttons retain their own actions.
+- No new network calls were added. The supplied console extract contains DEBUG entries and no ERROR entries, assertions or exception types.
+
+Validation: 288 offline Java 11 tests passed. New coverage checks anchored Wiki capes, exact versus fuzzy max-cape matching, the live slot marker and saved flag, and section-drop persistence/profile isolation. Native drag gestures and the corrected cape/helmet behavior still require player acceptance in rc.17.

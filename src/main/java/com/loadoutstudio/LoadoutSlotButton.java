@@ -13,6 +13,8 @@ final class LoadoutSlotButton extends JButton
 {
     @Override public javax.swing.JToolTip createToolTip(){javax.swing.JToolTip tip=super.createToolTip();tip.putClientProperty("html.disable",true);return StudioTheme.tooltip(tip);}
     private String amount = "";
+    private boolean fuzzy;
+    void fuzzy(boolean value){fuzzy=value;putClientProperty("fuzzy",value);repaint();}
     java.util.function.Function<Boolean,javax.swing.JPopupMenu> menuFactory;
     @Override protected void processMouseEvent(java.awt.event.MouseEvent event){if(menuFactory!=null&&(event.isPopupTrigger()||javax.swing.SwingUtilities.isRightMouseButton(event)))setComponentPopupMenu(menuFactory.apply(event.isShiftDown()));super.processMouseEvent(event);}
     LoadoutSlotButton(String text) { super(text); putClientProperty("html.disable", true); }
@@ -27,10 +29,11 @@ final class LoadoutSlotButton extends JButton
     @Override protected void paintComponent(Graphics graphics)
     {
         super.paintComponent(graphics);
-        if (amount.isEmpty()) return;
+        if (amount.isEmpty()&&!fuzzy) return;
         Graphics2D g=(Graphics2D)graphics.create(); g.setClip(0,0,getWidth(),getHeight());
         g.setFont(amount.equals("∞") ? new Font(Font.SANS_SERIF,Font.BOLD,12) : FontManager.getRunescapeSmallFont());
         int baseline=Math.min(getHeight()-2,g.getFontMetrics().getAscent()+1);
+        if(fuzzy){g.setFont(new Font(Font.SANS_SERIF,Font.BOLD,12));int x=Math.max(2,getWidth()-11);g.setColor(Color.BLACK);g.drawString("*",x+1,13);g.setColor(Color.YELLOW);g.drawString("*",x,12);g.setFont(FontManager.getRunescapeSmallFont());}
         g.setColor(Color.BLACK); g.drawString(amount,3,baseline+1); g.setColor(Color.YELLOW); g.drawString(amount,2,baseline); g.dispose();
     }
 }

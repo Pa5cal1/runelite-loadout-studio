@@ -88,7 +88,7 @@ public final class WikiParser
         String value=plain(raw).replaceAll("(?s)<ref.*?</ref>","").trim();
         for(Node node:nodes(raw)) if(node.kind.equals("plink")||node.kind.equals("item")||node.kind.equals("icon")||node.kind.equals("rune")) {
             String first=node.fields.getOrDefault("1","");
-            if(!first.isBlank()) {value=first;if(node.kind.equals("rune")&&!value.toLowerCase(Locale.ROOT).endsWith(" rune"))value+=" rune";break;}
+            if(!first.isBlank()) {value=first.contains("#")?node.fields.getOrDefault("pic",node.fields.getOrDefault("txt",first)):first;if(node.kind.equals("rune")&&!value.toLowerCase(Locale.ROOT).endsWith(" rune"))value+=" rune";break;}
         }
         value=value.replaceAll("(?i)\\s*\\((tablet|tab)\\)$", "").replaceAll("\\s*\\[.*?]", "").trim();
         return ItemCatalogue.normalize(value);
@@ -249,7 +249,7 @@ public final class WikiParser
                     List<Node> nested=nodes(value);
                     for(Node item:nested)if(item.kind.equals("plink") && nested.stream().noneMatch(parent->parent!=item && parent.start<item.start && parent.end>item.end && (parent.kind.equals("efn") || parent.kind.equals("refn"))))
                     {
-                        String name=itemName(item.fields.getOrDefault("1",""));if(!name.isEmpty() && name.length()<150){names.add(name);if(combination)break;}
+                        String name=itemName(value.substring(item.start,item.end));if(!name.isEmpty() && name.length()<150){names.add(name);if(combination)break;}
                     }
                     if(names.size()==before && !value.contains("{{")){for(String name:plain(value).split(combination?"\\s*\\+\\s*":"\\s+/\\s+")){if(!name.isBlank() && name.length()<150)names.add(name.trim());if(combination)break;}}
                 }

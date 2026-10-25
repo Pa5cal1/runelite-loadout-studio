@@ -56,7 +56,7 @@ public class BankFilterTest
 		public String activeTag() { return active; }
         public int[] currentLayout(){return layout==null?null:layout.clone();}
 		public int canonicalize(int id) { return id == 1000 ? 100 : id; }
-		public int variation(int id) { return id == 150 ? 100 : id; }
+		public int variation(int id) { return id == 150 ? 100 : SetupVariationMapping.fuzzy(id); }
 		public void register(String tag, IntPredicate matches) { this.matches = matches; }
 		public void open(String tag, int[] layout) { active = tag; opened++; this.layout = layout; }
 		public void close() { active = null; closed++; }

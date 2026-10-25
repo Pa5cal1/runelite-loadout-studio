@@ -13,6 +13,13 @@ final class SetupVariationMapping
 {
     private static final Map<Integer,Integer> mappings=new HashMap<>();
     static int map(int id){int base=ItemVariationMapping.map(id);return base==id?mappings.getOrDefault(id,id):base;}
+    /** Fuzzy matching also includes supported combat-equivalent combined capes. */
+    static int fuzzy(int id){
+        int combat=EquipmentVariants.combatBase(id);
+        if(combat==SLAYER_HELM_I)return SLAYER_HELM_I;
+        int base=ItemVariationMapping.map(combat);
+        return mappings.getOrDefault(combat,mappings.getOrDefault(base,base));
+    }
     static
     {
 		// Granite Cannonball -> Cannonball

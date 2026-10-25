@@ -17,7 +17,7 @@ public class VariantOwnershipTest {
             assertTrue(base==ItemID.SLAYER_HELM||base==ItemID.SLAYER_HELM_I);
             assertTrue(EquipmentVariants.alternative(id,base));
             assertFalse(EquipmentVariants.alternative(id,base==ItemID.SLAYER_HELM?ItemID.SLAYER_HELM_I:ItemID.SLAYER_HELM));
-            assertTrue(EquipmentVariants.same(id,base));
+            assertEquals(id==base,EquipmentVariants.same(id,base));
         }
         assertEquals(ItemID.SLAYER_HELM_I,EquipmentVariants.slayerBase(ItemID.SLAYER_HELM_I_ARAXYTE));
         assertEquals(ItemID.SLAYER_HELM_I,EquipmentVariants.slayerBase(ItemID.SW_SLAYER_HELM_I_HOODED));
@@ -40,6 +40,8 @@ public class VariantOwnershipTest {
     @Test public void bankFilteringPlacesAnOwnedImbuedColourInTheRequestedHelmetCell(){
         JsonObject p=SetupCodec.blank("Helmet filter");SetupCodec.setup(p).getAsJsonArray("eq").set(0,SetupCodec.item(ItemID.SLAYER_HELM_I,1));SetupCodec.rebuildLayout(p);
         BankFilterTest.FakeBank bank=new BankFilterTest.FakeBank();bank.open=true;StudioBankFilter filter=new StudioBankFilter(bank,"studio");filter.select(p);
+        assertFalse(bank.matches.test(ItemID.SLAYER_HELM_I_VERZIK));
+        SetupCodec.setup(p).getAsJsonArray("eq").get(0).getAsJsonObject().addProperty("f",true);filter.select(p);
         assertTrue(bank.matches.test(ItemID.SLAYER_HELM_I_VERZIK));assertTrue(bank.matches.test(ItemID.PVPA_SLAYER_HELM_I_ARAXYTE));
         assertFalse(bank.matches.test(ItemID.SLAYER_HELM_VERZIK));
         assertEquals(ItemID.SLAYER_HELM_I,filter.layoutItemId(ItemID.SLAYER_HELM_I_VERZIK));

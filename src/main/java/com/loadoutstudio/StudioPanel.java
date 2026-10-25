@@ -507,11 +507,11 @@ public final class StudioPanel extends PluginPanel
 			if(libraryOrder.ordinal()==1)records.sort(Comparator.comparingLong((SetupLibrary.Entry e)->e.lastOpened).reversed());
 			if(libraryOrder.ordinal()==2)records.sort(Comparator.comparing((SetupLibrary.Entry e)->!e.favorite).thenComparing(e->SetupCodec.name(e.portable),String.CASE_INSENSITIVE_ORDER));
 			matching += records.size();
-			if (records.isEmpty() && (group.id == null || !query.isEmpty() || favorites.isSelected())) continue;
+			if (records.isEmpty() && (!query.isEmpty() || favorites.isSelected())) continue;
 			String groupId = group.id == null ? "" : group.id;
 			boolean filtering = !query.isEmpty() || favorites.isSelected();
 			boolean folded = collapsed.contains(groupId) && !filtering;
-			JButton heading = button((folded ? "+ " : "- ") + group.name + " (" + records.size() + ")", () -> { if (!collapsed.add(groupId)) collapsed.remove(groupId); renderLibrary(); }); heading.setName("libraryGroup:"+groupId);heading.setForeground(GOLD); heading.setAlignmentX(LEFT_ALIGNMENT); heading.setEnabled(!filtering); if (filtering) heading.setToolTipText("Matching sections stay expanded while filtering."); libraryRows.add(heading);
+			JButton heading = button((folded ? "+ " : "- ") + group.name + " (" + records.size() + ")", () -> { if (!collapsed.add(groupId)) collapsed.remove(groupId); renderLibrary(); }); heading.setName("libraryGroup:"+groupId);heading.setForeground(GOLD); heading.setAlignmentX(LEFT_ALIGNMENT); heading.setEnabled(!filtering); if (filtering) heading.setToolTipText("Matching sections stay expanded while filtering."); installLibraryTarget(heading,group.id); libraryRows.add(heading);
 			if (folded) continue;
 			for (SetupLibrary.Entry entry : records)
 			{
@@ -520,7 +520,7 @@ public final class StudioPanel extends PluginPanel
                     () -> attempt(() -> setLibraryFavorite(entry.id, !entry.favorite)),
                     () -> attempt(() -> commit(l -> l.find(entry.id).archived = !entry.archived)),
                     () -> confirmDeleteArchived(entry.id));
-                String rowOwner=recoveryOwner;javax.swing.JPopupMenu ordering=new javax.swing.JPopupMenu();for(int direction:new int[]{-1,1}){javax.swing.JMenuItem move=new javax.swing.JMenuItem(direction<0?"Move up":"Move down");move.addActionListener(e->{if(rowOwner.equals(recoveryOwner))attempt(()->moveSetup(entry.id,direction));});ordering.add(move);}themeMenu(ordering);((JButton)setupRow.getComponent(0)).setComponentPopupMenu(ordering);libraryRows.add(setupRow);
+                installLibrarySource((JButton)setupRow.getComponent(0),entry.id);installLibraryTarget(setupRow,group.id);String rowOwner=recoveryOwner;javax.swing.JPopupMenu ordering=new javax.swing.JPopupMenu();for(int direction:new int[]{-1,1}){javax.swing.JMenuItem move=new javax.swing.JMenuItem(direction<0?"Move up":"Move down");move.addActionListener(e->{if(rowOwner.equals(recoveryOwner))attempt(()->moveSetup(entry.id,direction));});ordering.add(move);}themeMenu(ordering);((JButton)setupRow.getComponent(0)).setComponentPopupMenu(ordering);libraryRows.add(setupRow);
 			}
 		}
 		if (matching == 0)
@@ -764,6 +764,7 @@ public final class StudioPanel extends PluginPanel
 		JsonElement entry = get(key, index); int id = SetupCodec.id(entry); String empty = ""; String container = key.equals("eq") ? EQUIPMENT[index] : key.equals("inv") ? "Inventory" : key.equals("rp") ? "Rune Pouch" : key.equals("bp") ? "Bolt Pouch" : key.equals("qv") ? "Quiver" : "Additional filtered items";
 		LoadoutSlotButton button = new LoadoutSlotButton(id > 0 ? String.valueOf(id) : id == 0 ? "?" : empty); button.addActionListener(e -> editSlot(key, index)); button.setName("itemSlot"); button.putClientProperty("slotContainer", key); button.putClientProperty("slotIndex", index); button.setPreferredSize(new Dimension(44, 44)); button.setMinimumSize(new Dimension(44, 44)); button.setBackground(SLOT); button.setFont(FontManager.getRunescapeSmallFont()); button.setMargin(new Insets(1, 1, 1, 1)); button.setForeground(GOLD);
 		button.setBorder(BorderFactory.createLineBorder(slotDifferent(key + ":" + index) ? highlightColor() : BG, slotDifferent(key + ":" + index) ? 2 : 1));
+        button.fuzzy(!entry.isJsonNull()&&entry.getAsJsonObject().has("f")&&entry.getAsJsonObject().get("f").getAsBoolean());
         button.setRolloverEnabled(true); button.setContentAreaFilled(true);
         button.getModel().addChangeListener(e -> button.setBorder(BorderFactory.createLineBorder(slotDifferent(key + ":" + index) ? highlightColor() : button.getModel().isRollover() ? OUTLINE : BG)));
         button.getAccessibleContext().setAccessibleName((container + " slot " + (index + 1)) + (id < 0 ? " - empty" : " - edit item"));
@@ -979,7 +980,7 @@ public final class StudioPanel extends PluginPanel
         if(SetupCodec.id(expected)==0)return name+": unresolved item";if(expected.isJsonObject()&&expected.getAsJsonObject().has("q")&&expected.getAsJsonObject().get("q").isJsonNull())return name+": quantity unknown";
         if(container.equals("inv")&&SetupCodec.setup(draft).has("uh")&&SetupCodec.setup(draft).get("uh").getAsBoolean())return name+": required item or amount missing";
         if(SetupCodec.id(present)<1)return name+": missing item";if(SetupCodec.id(expected)<1)return name+": extra item";
-        if(SetupCodec.id(expected)!=SetupCodec.id(present)&&!(expected.getAsJsonObject().has("f")&&expected.getAsJsonObject().get("f").getAsBoolean()&&SetupVariationMapping.map(SetupCodec.id(expected))==SetupVariationMapping.map(SetupCodec.id(present))))return name+": different item or slot";
+        if(SetupCodec.id(expected)!=SetupCodec.id(present)&&!(expected.getAsJsonObject().has("f")&&expected.getAsJsonObject().get("f").getAsBoolean()&&SetupVariationMapping.fuzzy(SetupCodec.id(expected))==SetupVariationMapping.fuzzy(SetupCodec.id(present))))return name+": different item or slot";
         return name+": quantity differs";
     }
     private void scheduleAlternatives(){if(alternativeUndo!=null&&draftRevision!=alternativeUndoRevision)alternativeUndo=null;if(!disposed&&draft!=null&&host.settings().autoAlternatives()&&alternativeUndo==null)alternativeTimer.restart();}
@@ -1038,6 +1039,31 @@ public final class StudioPanel extends PluginPanel
     {
         if(alternativeUndo==null||draftRevision!=alternativeUndoRevision)throw new IllegalStateException("The draft changed after replacement. Undo is no longer available.");draft=alternativeUndo;alternativeUndo=null;alternativeRows.removeAll();markDirty();syncBankFilter();renderBuilder();
     }
+    String libraryDragPayload(String id){
+        if(library.find(id)==null)return null;JsonObject data=new JsonObject();data.addProperty("owner",recoveryOwner);data.addProperty("id",id);return "studio-library:"+gson.toJson(data);
+    }
+    private String libraryDraggedId(String payload,String target){
+        if(disposed||payload==null||!payload.startsWith("studio-library:")||!Objects.equals(recoveryOwner,host.recoveryOwner()))return null;
+        if(target!=null&&library.sections.stream().noneMatch(group->group.id.equals(target)))return null;
+        try{JsonObject data=gson.fromJson(payload.substring(15),JsonObject.class);if(!Objects.equals(recoveryOwner,data.get("owner").getAsString()))return null;String id=data.get("id").getAsString();return library.find(id)==null?null:id;}catch(RuntimeException error){return null;}
+    }
+    boolean moveLibraryDrop(String payload,String target){
+        String id=libraryDraggedId(payload,target);if(id==null)return false;if(!autoSaveNow())return false;
+        commit(next->next.find(id).section=target);
+        if(id.equals(editingId)){editorSection=target;renderBuilder();}
+        message("Setup moved to section. Changes are saved automatically.");return true;
+    }
+    private void installLibraryTarget(javax.swing.JComponent component,String target){component.setTransferHandler(new TransferHandler(){
+        @Override public boolean canImport(TransferSupport support){try{return support.isDataFlavorSupported(DataFlavor.stringFlavor)&&libraryDraggedId((String)support.getTransferable().getTransferData(DataFlavor.stringFlavor),target)!=null;}catch(Exception error){return false;}}
+        @Override public boolean importData(TransferSupport support){try{return canImport(support)&&moveLibraryDrop((String)support.getTransferable().getTransferData(DataFlavor.stringFlavor),target);}catch(Exception error){failure("Could not move setup to section.");return false;}}
+    });}
+    private void installLibrarySource(JButton button,String id){button.setTransferHandler(new TransferHandler(){
+        @Override public int getSourceActions(javax.swing.JComponent source){return MOVE;}
+        @Override protected Transferable createTransferable(javax.swing.JComponent source){String payload=libraryDragPayload(id);return payload==null?null:new StringSelection(payload);}
+    });java.awt.event.MouseAdapter drag=new java.awt.event.MouseAdapter(){private java.awt.Point start;private boolean started;
+        @Override public void mousePressed(MouseEvent event){start=event.getPoint();started=false;}
+        @Override public void mouseDragged(MouseEvent event){if(!started&&start!=null&&(event.getModifiersEx()&MouseEvent.BUTTON1_DOWN_MASK)!=0&&start.distance(event.getPoint())>=5){started=true;button.getModel().setArmed(false);button.getModel().setPressed(false);button.getTransferHandler().exportAsDrag(button,event,TransferHandler.MOVE);}}
+    };button.addMouseListener(drag);button.addMouseMotionListener(drag);}
     void moveSetup(String id,int direction)
     {
         SetupLibrary.Entry entry=library.find(id);if(entry==null)return;
