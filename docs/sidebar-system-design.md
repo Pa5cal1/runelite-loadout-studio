@@ -150,7 +150,7 @@ StudioTheme owns the sidebar palette: background #1C1A17, surfaces #27231D, cont
 
 The change is limited to this component tree and locally created popup menus/tooltips. Native RuneLite settings and in-game menu rendering are owned by the host and remain unchanged. UIManager values are never modified by StudioTheme. Item art and count fonts remain OSRS-style, with existing grid dimensions and drag/drop semantics. Settings/export/diagnostic flags and stored data receive no migration or rewrite.
 
-The current header and toolbar share the bundled OSRS Combat Achievements icon. Gold accents restore the requested warmer identity while keeping distinct navigation, cards and disclosure treatments. Native settings retain RuneLite styling.
+The header and toolbar share the bundled OSRS Combat Tutor icon. Gold accents restore the requested warmer identity while keeping distinct navigation, cards and disclosure treatments. Native settings retain RuneLite styling.
 
 ## Candidate architecture review 0.9.1-rc.1
 
@@ -171,3 +171,7 @@ Request lifecycle: explicit UI action, token capture, validation, cache lookup, 
 Consistency: config profile plus RuneScape character scope identifies saved libraries; draft/owner revisions invalidate pending work. A saved copy is deep-cloned and duplicate names are numbered. Runtime observations are not durable inventory authority. Sharing a Bank Tag cannot recreate absent Equipment assignments or amounts.
 
 Tradeoff: source-ranked and bundled alternatives are explainable and avoid extra HTTP, but they cannot certify item requirements, unlocks or HCIM safety. The per-client rate budget does not coordinate separate client processes. Keep these limitations visible and test native service transitions before stable release. Future background refresh, telemetry endpoints or automatic game actions require a new design and policy review.
+
+## Combat Tutor icon correction 0.9.1-rc.4
+
+The requested Combat Tutor image is bundled and cropped to nontransparent artwork. Native navigation renders directly at 16 px because RuneLite ClientUI enforces that tab size. The header uses 24 px and the listing uses 32 px. This fills the available space without modifying RuneLite toolbar or core sidebar geometry. The current icon is Combat Tutor, replacing the earlier Combat Achievements selection.

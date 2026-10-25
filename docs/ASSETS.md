@@ -2,9 +2,9 @@
 
 `AutomaticItemExclusions.java` contains exclusion data adapted from Inventory Setups' search filter at revision `16f2c0a319672c2e19738276a17de63aea7216fa`. The existing bundled Inventory Setups BSD-2 notice applies; this is local source data, not a runtime dependency or download. The ID compatibility fixture records the declared constants from RuneLite API 1.13.3 and the inspected custom variation table for offline tests.
 
-The root `icon.png` is an unmodified copy of the bundled OSRS Combat Achievements icon, 18 by 17 pixels, prepared for the Plugin Hub listing. The same Jagex attribution below applies.
+The root `icon.png` is a 32 by 32 pixel nearest-neighbour render of the bundled OSRS Combat Tutor icon, prepared for the Plugin Hub listing. The same Jagex attribution below applies.
 
-The legacy bundled `src/main/resources/com/loadoutstudio/combat-tutor.png` is the OSRS Combat Tutor map icon. Source: [Combat Tutor icon on OSRS Wiki](https://oldschool.runescape.wiki/w/File:Combat_Tutor_icon.png), image URL https://oldschool.runescape.wiki/images/Combat_Tutor_icon.png. RuneScape artwork is copyright Jagex. The project license does not transfer ownership of Jagex artwork. Review artwork permissions before public distribution. The current sidebar and header use Combat Achievements instead.
+The bundled `src/main/resources/com/loadoutstudio/combat-tutor.png` is the OSRS Combat Tutor map icon. Source: [Combat Tutor icon on OSRS Wiki](https://oldschool.runescape.wiki/w/File:Combat_Tutor_icon.png), image URL https://oldschool.runescape.wiki/images/Combat_Tutor_icon.png. RuneScape artwork is copyright Jagex. The project license does not transfer ownership of Jagex artwork. Review artwork permissions before public distribution. The current sidebar and header use Combat Tutor.
 
 The small PNG is bundled in the plugin and scaled with nearest-neighbor rendering. Runtime code does not fetch it or other Wiki images. Other sidebar controls are locally drawn; item sprites use RuneLite ItemManager.
 
@@ -26,4 +26,4 @@ Settings previews use RuneLite fonts, styling and the section-arrow resource fro
 
 The 0.9 sidebar wordmark treatment, route glyphs and checkbox controls are locally drawn Java UI code. They introduce no downloaded fonts or image requests. Settings documentation continues to represent the native RuneLite configuration style.
 
-`src/main/resources/com/loadoutstudio/combat-achievements.png` is the OSRS Combat Achievements Character Summary icon used by the sidebar and header. Source: [OSRS Wiki asset page](https://oldschool.runescape.wiki/w/File:Combat_achievements_icon.png), image URL https://oldschool.runescape.wiki/images/Combat_achievements_icon.png. Artwork copyright Jagex. Bundled locally; no runtime image requests.
+`src/main/resources/com/loadoutstudio/combat-achievements.png` is the previous OSRS Combat Achievements Character Summary icon, retained as a legacy asset. Source: [OSRS Wiki asset page](https://oldschool.runescape.wiki/w/File:Combat_achievements_icon.png), image URL https://oldschool.runescape.wiki/images/Combat_achievements_icon.png. Artwork copyright Jagex. Bundled locally; no runtime image requests.

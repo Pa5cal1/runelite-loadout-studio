@@ -150,9 +150,9 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     private BankTagsPlugin coreBankTags(){for(Plugin plugin:pluginManager.getPlugins())if(plugin instanceof BankTagsPlugin&&pluginManager.isPluginActive(plugin))return (BankTagsPlugin)plugin;return null;}
     @Override public void observeBank(Runnable observer){bankObserver=observer;}
     private void localBankLayoutChanged(){if(bankFilter==null)return;JsonArray layout=bankFilter.readChangedLayout();Consumer<JsonArray> observer=layoutObserver;long revision=bankRevision.get();if(layout!=null&&observer!=null)SwingUtilities.invokeLater(()->{if(active&&revision==bankRevision.get())observer.accept(layout);});}
-    @Subscribe public void onBankScriptCallback(net.runelite.api.events.ScriptCallbackEvent event){if(active&&independentBank!=null)independentBank.callback(event);}
-    @Subscribe public void onOptionalPluginChanged(net.runelite.client.events.PluginChanged event){if(event.getPlugin() instanceof BankTagsPlugin)clientThread.invokeLater(()->{if(active&&bankFilter!=null)bankFilter.apply();});}
-	private static BufferedImage icon() { return StudioBrandIcon.create(); }
+    @Subscribe public void onScriptCallbackEvent(net.runelite.api.events.ScriptCallbackEvent event){if(active&&independentBank!=null)independentBank.callback(event);}
+    @Subscribe public void onPluginChanged(net.runelite.client.events.PluginChanged event){if(event.getPlugin() instanceof BankTagsPlugin)clientThread.invokeLater(()->{if(active&&bankFilter!=null)bankFilter.apply();});}
+	private static BufferedImage icon() { return StudioBrandIcon.navigation(); }
     @Override public void quickLinks(List<StudioPanel.QuickLink> links){quickLinks=java.util.Collections.unmodifiableList(new java.util.ArrayList<>(links));}
     @Subscribe public void onMenuEntryAdded(net.runelite.api.events.MenuEntryAdded event)
     {

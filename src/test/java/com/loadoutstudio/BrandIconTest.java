@@ -7,6 +7,11 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 public class BrandIconTest
 {
+    @Test public void nativeSidebarIconUsesTheFullRuneLiteTabSize(){
+        BufferedImage icon=StudioBrandIcon.navigation();assertEquals(16,icon.getWidth());assertEquals(16,icon.getHeight());
+        int minX=16,minY=16,maxX=-1,maxY=-1;for(int y=0;y<16;y++)for(int x=0;x<16;x++)if((icon.getRGB(x,y)>>>24)>0){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
+        assertEquals(0,minX);assertEquals(0,minY);assertEquals(15,maxX);assertEquals(15,maxY);
+    }
     @Test public void rendersDistinctiveIconAtSidebarSizes() throws Exception
     {
         BufferedImage icon=StudioBrandIcon.create(); assertEquals(32,icon.getWidth()); assertEquals(32,icon.getHeight());

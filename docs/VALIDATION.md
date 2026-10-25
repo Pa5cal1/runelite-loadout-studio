@@ -1,4 +1,17 @@
-# Current validation — 0.9.1-rc.2
+# Current validation — 0.9.1-rc.4
+
+- Full Java 11 test/jar/shadowJar build: **210 tests, zero failures/errors/skipped**. Native EventBus registration and all existing item, profile and Wiki checks remain included.
+- Combat Tutor is restored in navigation, header and listing assets. A new check verifies native 16 px dimensions and visible artwork reaching all image bounds; 16/24/32 px offline previews were inspected.
+- RuneLite ClientUI itself fixes sidebar tab images at 16 px. Render directly at that size with nearest-neighbour interpolation rather than changing the core UI. The header uses 24 px and listing artwork 32 px.
+- The already-open rc.3 client is retained for the user. The icon update requires the next user-controlled restart; no game interaction was automated.
+
+# Previous validation — 0.9.1-rc.3
+
+- The initial local client launch exposed EventBus naming errors that the earlier 208 tests did not exercise. Renamed the PluginChanged and ScriptCallbackEvent handlers to the native required names.
+- Added a test that registers and unregisters the full plugin instance with RuneLite EventBus. Full Java 11 test/jar/shadowJar build: **209 tests, zero failures/errors/skipped**.
+- On 25 October 2026 the corrected local client remained running with a responding visible window. The previous plugin registration error was absent. This verifies startup only; gameplay acceptance remains pending.
+
+# Previous validation — 0.9.1-rc.2
 
 - Native Java 11 test/jar/shadowJar: **208 tests, zero failures/errors/skipped**. Nine new checks cover the audited ID range, all positive declared constants, all explicit source-search exclusions, Bank-only canonical export, native Fuzzy base IDs, old temporary Wiki drafts, unknown-ID clipboard blocking and index readiness.
 - [Item identity audit](item-id-compatibility.md): all 83 custom mapping entries match the inspected upstream source. The 1.13.3 API fixture contains 19,996 positive IDs; fuzzy mapping is checked over zero through 34,731. This is snapshot compatibility and serialization evidence, not a proof of every live definition's semantic identity.

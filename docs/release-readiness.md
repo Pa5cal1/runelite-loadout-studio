@@ -1,21 +1,27 @@
 # Loadout Studio release readiness
 
-Version: **0.9.1-rc.2**. Review date: **24 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
+Version: **0.9.1-rc.4**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
 
-Reviewed candidate source commit: `d328c04f6f9f6b0db80c4868a601fce9a372ad49`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
+Previous reviewed candidate source commit: `d328c04f6f9f6b0db80c4868a601fce9a372ad49`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
+
+## Startup follow-up
+
+A real local startup exposed two EventBus subscriber-name errors missed by the prior offline tests. The third candidate corrects them and adds native EventBus registration coverage. The corrected local client remained running with a responding visible window on 25 October 2026. All 209 automated tests passed. This does not replace the remaining gameplay acceptance.
+
+The fourth candidate restores Combat Tutor artwork and validates a native-size 16 px sidebar image. All 210 offline tests pass. The already-running rc.3 client is left intact; the icon correction still needs the next user-controlled restart.
 
 ## Executive summary
 
 The candidate supports character-scoped libraries, manual loadout editing, local owned-item alternatives, interoperable exports and on-demand cached Wiki sources. Static inspection and offline tests support moving to the last manual acceptance pass. They do not establish that every RuneLite interaction works in a real client, and they do not constitute RuneLite or Jagex approval.
 
-One concrete defect was corrected during the review: useful `Slayer task/…` articles were hidden alongside technical subpages in search. Those activity pages now remain discoverable; technical descendants remain excluded. The README icon now matches the actual Combat Achievements asset.
+One concrete defect was corrected during the review: useful `Slayer task/…` articles were hidden alongside technical subpages in search. Those activity pages now remain discoverable; technical descendants remain excluded. The README icon now matches the requested Combat Tutor asset.
 
 ## At a glance
 
 | Gate | Evidence | State |
 | --- | --- | --- |
 | Java compatibility | Java 11 compilation and class version 55 | Locally checked |
-| Regression suite | 208 tests, zero failures, errors or skips | Locally passed |
+| Regression suite | 210 tests, zero failures, errors or skips | Locally passed |
 | Account separation | Three-account save/reopen/favorite test, draft recovery and delayed callback guards | Offline passed; live switching pending |
 | Wiki request restraint | Interceptor tests, persisted cache, explicit actions, rolling request budget | Offline passed |
 | Sidebar appearance | Gold theme, 220/260 px layout checks and example-data previews | Offline checked; live scaling pending |
@@ -54,7 +60,7 @@ The plugin does not require Inventory Setups or Bank Tag Layouts classes at runt
 Review target: the current candidate's production source and release metadata, with the final patch checked against the previous 0.9.0 source. The review phase was read-only; the documented fixes were applied afterwards.
 
 - **[P2] Preserve useful Slayer task search results — WikiClient.activityTitles.** Excluding every slash title hid activity-specific recommendation pages. The candidate allows one-level Slayer task articles while continuing to remove technical subpages. An offline regression covers both cases.
-- **[P3] Match the documented icon to the actual asset — README.** The getting-started image still referenced Combat Tutor. It now references the Combat Achievements image used by the plugin.
+- **[P3] Match the documented icon to the actual asset — README.** The getting-started image and plugin must refer to the same requested artwork. The fourth candidate restores Combat Tutor consistently in both.
 
 No additional qualifying findings in the final reviewed patch. This is not a claim that the entire plugin is defect-free. The service transitions, native UI lifecycle and game-facing interactions listed below remain material test gaps.
 
@@ -89,7 +95,7 @@ External I/O and Bank widget/layout changes deserve explicit reviewer attention.
 1. Complete the manual acceptance list below on the exact candidate build.
 2. Keep the current low-request design. Consider cross-process request coordination only if actual usage or Wiki maintainers identify a need; do not add periodic refresh or per-item services.
 3. Review encounter conditions and item requirements on every ironman/HCIM adaptation. Do not describe alternatives as automatic best-in-slot or safe-to-use recommendations.
-4. After acceptance, use a stable **1.0.0** release and a newly pinned source commit for submission. Fixes before acceptance increment the candidate number, such as **0.9.1-rc.3**.
+4. After acceptance, use a stable **1.0.0** release and a newly pinned source commit for submission. Fixes before acceptance increment the candidate number, such as **0.9.1-rc.4**.
 
 ## Manual acceptance before submission
 

@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.9.1-rc.2.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.9.1-rc.4.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. When it is active, Loadout Studio can use its native layout service; otherwise it uses an independent view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
@@ -40,9 +40,9 @@ Settings previews below are generated from the current configuration definitions
 
 ## Getting Started
 
-Build and launch the test client using the instructions under [Development](#development). Enable **Loadout Studio** in RuneLite, then click the Combat Achievements icon in the sidebar. Built-in Bank Tags is optional.
+Build and launch the test client using the instructions under [Development](#development). Enable **Loadout Studio** in RuneLite, then click the Combat Tutor icon in the sidebar. Built-in Bank Tags is optional.
 
-![Loadout Studio sidebar icon](src/main/resources/com/loadoutstudio/combat-achievements.png)
+![Loadout Studio sidebar icon](src/main/resources/com/loadoutstudio/combat-tutor.png)
 
 Item identity: [compatibility audit and limitations](docs/item-id-compatibility.md).
 
@@ -313,6 +313,16 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.9.1-rc.4
+
+- Restore the requested Combat Tutor sword icon, filling the native 16 px sidebar tab without extra transparent margin. Header and listing versions use larger local renders.
+- Keep RuneLite toolbar dimensions unchanged.
+
+### 0.9.1-rc.3
+
+- Fix startup: event subscribers must use RuneLite EventBus method names.
+- Add a regression that registers every plugin subscription with RuneLite EventBus before release.
 
 ### 0.9.1-rc.2
 
