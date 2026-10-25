@@ -8,7 +8,7 @@ import net.runelite.api.MenuAction;
 final class StudioBankMenu {
  static void add(Menu root,boolean selected,boolean layouts,List<StudioPanel.QuickLink> links,Consumer<Consumer<StudioPanel>> dispatch,Consumer<String> open){
   if(!selected&&links.isEmpty())return;
-  Menu menu=root.createMenuEntry(-1).setOption("Loadout Studio").setType(MenuAction.RUNELITE).createSubMenu();
+  Menu menu=selected?root.createMenuEntry(-1).setOption("Loadout Studio").setType(MenuAction.RUNELITE).createSubMenu():null;
   if(selected){
    action(menu,"Show bank",()->dispatch.accept(StudioPanel::showBankFromMenu));
    action(menu,"Return to loadout",()->dispatch.accept(StudioPanel::activateFromBankMenu));
@@ -20,7 +20,8 @@ final class StudioBankMenu {
     action(menu,"Layout: Zigzag (bottom first)",()->dispatch.accept(p->p.layoutFromBankMenu(BankLayouts.Mode.ZIGZAG,true)));
    }
   }
-  for(StudioPanel.QuickLink link:links)action(menu,"Open: "+link.name.replace("<","").replace(">",""),()->open.accept(link.id));
+  Menu saved=links.isEmpty()?null:root.createMenuEntry(-1).setOption("Loadout Studio setups").setType(MenuAction.RUNELITE).createSubMenu();
+  for(StudioPanel.QuickLink link:links)action(saved,"Open: "+link.name.replace("<","").replace(">",""),()->open.accept(link.id));
  }
  private static void action(Menu menu,String label,Runnable callback){menu.createMenuEntry(-1).setOption(label).setType(MenuAction.RUNELITE).onClick(e->callback.run());}
 }

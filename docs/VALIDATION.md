@@ -1,4 +1,12 @@
-# Current validation — 0.9.1-rc.13
+# Current validation — 0.9.1-rc.14
+
+- Full suite: **267 tests, zero failures/errors/skipped**.
+- Eight new tests cover autosave on setup switch, save failure/retry, profile boundaries, empty alternative collapse, delayed alternative stock callbacks, repeated owned-item routing plans, four-rune alignment and planned/effective pouch quantities.
+- Earlier tests now check the requested semantics: two sibling Bank submenus, retained planned rune amounts, non-destructive alternatives despite unrelated Notes edits, and autosaved existing setups on close.
+- Native duplicate widgets reuse existing Bank actions; no server action invocation or input injection is added. Real-client click behavior remains a manual gate.
+- The user confirmed the prior nested-menu freeze is absent in rc.13. This does not establish native acceptance of the new rc.14 integration.
+
+# Previous validation — 0.9.1-rc.13
 
 - Full suite: **259 tests, zero failures/errors/skipped**.
 - Ten new tests cover the native one-level menu constraint and action dispatch, cosmetic/max-cape alternatives and exact export IDs, charge/unusable-state boundaries, and repeated Bank stock labels.

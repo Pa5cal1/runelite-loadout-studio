@@ -33,7 +33,7 @@ public class StudioTest
 	@Test public void legacyBankRoundTrip() { JsonObject p = example(); assertEquals("Nechryael", SetupCodec.name(codec.importText(codec.bank(p, true)).get(0))); }
 	@Test public void quantitiesAcceptK() { assertEquals(16000, SetupCodec.parseQuantity("16k")); assertEquals(1500, SetupCodec.parseQuantity("1.5K")); }
 	@Test(expected = IllegalArgumentException.class) public void fractionalRuneRejected() { SetupCodec.parseQuantity("0.0001k"); }
-	@Test(expected = IllegalArgumentException.class) public void runeOverflowRejected() { JsonObject p = example(); SetupCodec.setup(p).getAsJsonArray("rp").set(0, SetupCodec.item(560, 16001)); codec.inventory(p); }
+	@Test public void plannedRuneOverflowExportsEffectivePouchCapacity() { JsonObject p = example(); SetupCodec.setup(p).getAsJsonArray("rp").set(0, SetupCodec.item(560, 16001)); JsonObject exported=RuneLiteAPI.GSON.fromJson(codec.inventory(p),JsonObject.class);assertEquals(16000,SetupCodec.quantity(SetupCodec.setup(exported).getAsJsonArray("rp").get(0)));assertEquals(16001,SetupCodec.quantity(SetupCodec.setup(p).getAsJsonArray("rp").get(0))); }
 	@Test(expected = IllegalArgumentException.class) public void incompleteDraftCannotExport() { JsonObject p = example(); SetupCodec.setup(p).getAsJsonArray("inv").set(3, SetupCodec.item(0, 1)); codec.inventory(p); }
 	@Test(expected = IllegalArgumentException.class) public void excessiveNestingRejected() { codec.parse("[".repeat(60) + "]".repeat(60)); }
 	@Test(expected = IllegalArgumentException.class) public void externalUrlRejected() { WikiClient.title("https://example.com/w/Vorkath"); }

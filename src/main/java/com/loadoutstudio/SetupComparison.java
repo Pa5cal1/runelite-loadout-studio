@@ -43,7 +43,7 @@ final class SetupComparison
                 // Maximum matching prevents a fuzzy slot stealing the only match for an exact slot.
                 for(int i=0;i<length;i++)if(!at(wanted,i).isJsonNull() && !assign(i,wanted,present,owners,new boolean[length],variation))result.add(key+":"+i);
             }
-            else for(int i=0;i<length;i++)if(!matches(at(wanted,i),at(present,i),ignoreAmmo&&(key.equals("qv") || key.equals("eq")&&i==13),variation))result.add(key+":"+i);
+            else for(int i=0;i<length;i++)if(!matches(key.equals("rp")?SetupCodec.effectivePouch(at(wanted,i)):at(wanted,i),at(present,i),ignoreAmmo&&(key.equals("qv") || key.equals("eq")&&i==13),variation))result.add(key+":"+i);
         }
         if(saved.has("sb") && saved.get("sb").getAsInt()!=4 && current.has("sb") && !saved.get("sb").equals(current.get("sb")))result.add("spellbook");
         if(saved.has("ao") && !saved.get("ao").isJsonNull() && !saved.get("ao").getAsString().isEmpty() && (!current.has("ao") || !saved.get("ao").equals(current.get("ao"))))result.add("attackOption");

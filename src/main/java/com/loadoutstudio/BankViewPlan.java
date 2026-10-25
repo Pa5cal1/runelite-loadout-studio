@@ -4,6 +4,11 @@ import java.util.*;
 import java.util.function.IntUnaryOperator;
 /** Positions refer to the original child index; no item data is rewritten. */
 final class BankViewPlan {
+    static int[] duplicateSources(int[] ids,int[] amounts,int[] cells,int[] occupied,IntUnaryOperator canonical){
+        int[] result=new int[cells.length];Arrays.fill(result,-1);Set<Integer> used=new HashSet<>();for(int position:occupied)if(position>=0)used.add(position);
+        for(int pos=0;pos<cells.length;pos++)if(cells[pos]>0&&!used.contains(pos))for(int source=0;source<ids.length;source++)if(ids[source]>0&&amounts[source]>0&&canonical.applyAsInt(ids[source])==canonical.applyAsInt(cells[pos])){result[pos]=source;break;}
+        return result;
+    }
     /** Duplicate visual cells show real observed stock, never a fabricated stack. */
     static Map<Integer,Integer> stock(int[] ids,int[] quantities,IntUnaryOperator canonical){
         Map<Integer,Integer> result=new HashMap<>();for(int i=0;i<ids.length;i++)if(ids[i]>0)result.merge(canonical.applyAsInt(ids[i]),Math.max(0,quantities[i]),Math::max);return result;

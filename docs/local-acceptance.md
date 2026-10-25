@@ -1,6 +1,6 @@
-# Testclient acceptance — 0.9.1-rc.13
+# Testclient acceptance — 0.9.1-rc.14
 
-The candidate passed 249 offline tests. Before stable publication, also complete the account and real Bank scenarios in [the release-readiness report](release-readiness.md#manual-acceptance-before-submission). A previous pass on another version does not cover newly changed native integrations.
+The candidate passed 267 offline tests. Before stable publication, also complete the account and real Bank scenarios in [the release-readiness report](release-readiness.md#manual-acceptance-before-submission). A previous pass on another version does not cover newly changed native integrations.
 
 Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 
@@ -167,3 +167,16 @@ Owned alternatives recognise usable combined max capes, locked variants, Masori 
 Repeated visual Bank cells now show the real observed stock count. These dim copies remain visual-only and do not create additional items or withdraw actions. The original Bank widget keeps its native quantity and actions.
 
 Validation: 259 offline Java 11 tests passed. Native Bank/menu acceptance remains a release gate. No new networking is introduced.
+
+
+### Bank workflow and autosave (0.9.1-rc.14)
+
+The player confirmed that rc.13 no longer freezes on the Bank menu. The two groups now sit beside one another at root level: Loadout Studio for Bank/layout actions and Loadout Studio setups for saved setup shortcuts. Neither creates a second nested submenu.
+
+Repeated owned-item cells now use native Bank item widgets with copied native actions. A user-triggered native operation is remapped to that exact item's real Bank slot, following RuneLite's Bank layout approach. No action invocation or input injection is used. Copies are removed before a native Bank rebuild, and missing/zero-stock items remain visual placeholders without withdraw actions. Bank Tags toggles preserve an already-active Studio view; selecting another tag still pauses it. The readable title is restored while this view is active.
+
+Builder changes autosave after a 400 ms edit pause. Switching setups flushes pending valid changes without a discard confirmation. Save remains available for immediate flush. Storage failures preserve recovery and block navigation that would lose edits. Account/profile guards prevent pending saves entering another library. Alternatives validate the selected slots and fresh stock rather than rejecting unrelated Notes or layout edits. Empty results collapse automatically.
+
+Rune Pouch planning preserves the entered amount, including 16001. Actual-pouch comparison and Inventory Setups export use min(planned amount, 16000); Loadout Studio backups retain the requested amount. Inventory has no 16k cap. Four pouch runes use a centred two-by-two block below Equipment in regenerated Preset layouts.
+
+Validation: 267 offline tests passed. Clicks on every duplicate, Bank Tags enable/disable, menu hover and native layout rendering still require player acceptance on this exact version. No new Wiki traffic is introduced.

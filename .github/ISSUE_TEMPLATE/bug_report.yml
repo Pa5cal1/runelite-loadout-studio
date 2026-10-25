@@ -9,7 +9,7 @@ body:
     id: plugin_version
     attributes:
       label: Loadout Studio version
-      placeholder: 0.9.1-rc.13
+      placeholder: 0.9.1-rc.14
     validations:
       required: true
   - type: input

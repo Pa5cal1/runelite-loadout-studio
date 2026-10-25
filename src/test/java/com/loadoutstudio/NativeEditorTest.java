@@ -30,7 +30,7 @@ public class NativeEditorTest
             JsonElement rune=SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("rp").get(0);assertTrue(SetupCodec.unlimited(rune));assertEquals("None",rune.getAsJsonObject().get("sc").getAsString());
             JsonObject exported=RuneLiteAPI.GSON.fromJson(new SetupCodec(RuneLiteAPI.GSON).inventory(host.selectedBankSetup),JsonObject.class);assertEquals(0,SetupCodec.quantity(SetupCodec.setup(exported).getAsJsonArray("rp").get(0)));
             assertFalse(menu(slot(p,"rp",0),"Stack comparison").isEnabled());menu(slot(p,"rp",0),"Toggle Fuzzy").doClick();assertTrue(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("rp").get(0).getAsJsonObject().get("f").getAsBoolean());
-            menu(slot(p,"rp",0),"Set quantity").doClick();host.amount.accept("16001");assertTrue(SetupCodec.unlimited(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("rp").get(0)));
+            menu(slot(p,"rp",0),"Set quantity").doClick();host.amount.accept("16001");assertEquals(16001,SetupCodec.quantity(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("rp").get(0)));
             menu(slot(p,"rp",0),"Set quantity").doClick();host.amount.accept("16k");assertEquals(16000,SetupCodec.quantity(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("rp").get(0)));
             menu(slot(p,"rp",0),"Remove Item from Slot").doClick();assertTrue(SetupCodec.setup(host.selectedBankSetup).getAsJsonArray("rp").get(0).isJsonNull());p.dispose();
         });

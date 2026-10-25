@@ -26,7 +26,7 @@ public class ReleaseReadinessTest {
  @Test public void favoriteSyncPreservesDirtyNotesAndRecovery() throws Exception {SwingUtilities.invokeAndWait(()->{
   Host host=new Host();SetupLibrary.Entry e=seed(host);StudioPanel p=new StudioPanel(host,RuneLiteAPI.GSON);p.openSaved(e.id);
   JTextArea notes=(JTextArea)OwnedGearPanelTest.find(p,"loadoutNotes");notes.setText("Keep my unsaved instructions");click(p,"libraryFavorite:"+e.id);assertEquals("Keep my unsaved instructions",notes.getText());assertTrue(DraftRecovery.decode(host.recovery,RuneLiteAPI.GSON).get("favorite").getAsBoolean());p.dispose();
-  StudioPanel restored=new StudioPanel(host,RuneLiteAPI.GSON);click(restored,"restoreDraft");assertEquals("Keep my unsaved instructions",((JTextArea)OwnedGearPanelTest.find(restored,"loadoutNotes")).getText());click(restored,"Save");assertTrue(SetupLibrary.read(host.saved,RuneLiteAPI.GSON).find(e.id).favorite);restored.dispose();
+  StudioPanel restored=new StudioPanel(host,RuneLiteAPI.GSON);restored.openSaved(e.id);assertEquals("Keep my unsaved instructions",((JTextArea)OwnedGearPanelTest.find(restored,"loadoutNotes")).getText());click(restored,"Save");assertTrue(SetupLibrary.read(host.saved,RuneLiteAPI.GSON).find(e.id).favorite);restored.dispose();
  });}
  @Test public void changingFavoriteBeforeRestoringRecoveryKeepsLatestValue() throws Exception {SwingUtilities.invokeAndWait(()->{
   Host host=new Host();SetupLibrary.Entry e=seed(host);host.recovery=DraftRecovery.encode(e.portable,e.id,null,false,BankLayouts.Mode.PRESET,false,false,RuneLiteAPI.GSON);StudioPanel p=new StudioPanel(host,RuneLiteAPI.GSON);

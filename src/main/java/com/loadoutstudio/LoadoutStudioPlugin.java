@@ -123,7 +123,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
                 BankTagsPlugin tags=coreBankTags();if(tags!=null&&tags.getActiveTag()!=null)tags.closeBankTag();
                 independentBank.select(layout,activeBankMatches);
 			}
-			public void title(String title) { net.runelite.api.widgets.Widget widget=client.getWidget(InterfaceID.Bankmain.TITLE); if(widget!=null) widget.setText(title); }
+            public void title(String title) { net.runelite.api.widgets.Widget widget=client.getWidget(InterfaceID.Bankmain.TITLE); if(widget!=null&&!title.equals(widget.getText())) widget.setText(title); }
 			public void close() { independentBank.clear(); }
 			public void unregister(String tag) { activeBankMatches=id->false; }
 			public void discardLayout(String tag) { }
@@ -151,14 +151,14 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     @Override public void observeBank(Runnable observer){bankObserver=observer;}
     private void localBankLayoutChanged(){if(bankFilter==null)return;JsonArray layout=bankFilter.readChangedLayout();Consumer<JsonArray> observer=layoutObserver;long revision=bankRevision.get();if(layout!=null&&observer!=null)SwingUtilities.invokeLater(()->{if(active&&revision==bankRevision.get())observer.accept(layout);});}
     @Subscribe(priority = -2) public void onScriptCallbackEvent(net.runelite.api.events.ScriptCallbackEvent event){if(active&&independentBank!=null)independentBank.callback(event);}
-    @Subscribe public void onPluginChanged(net.runelite.client.events.PluginChanged event){if(event.getPlugin() instanceof BankTagsPlugin)clientThread.invokeLater(()->{if(active&&bankFilter!=null)bankFilter.apply();});}
+    @Subscribe public void onPluginChanged(net.runelite.client.events.PluginChanged event){if(event.getPlugin() instanceof BankTagsPlugin)clientThread.invokeAtTickEnd(()->{if(active&&bankFilter!=null){reportBankStatus(bankFilter.apply(independentBank.active()));bankBuildRefresh.request(false);}});}
 	private static BufferedImage icon() { return StudioBrandIcon.navigation(); }
     @Override public void quickLinks(List<StudioPanel.QuickLink> links){quickLinks=java.util.Collections.unmodifiableList(new java.util.ArrayList<>(links));}
     @Subscribe public void onMenuOpened(net.runelite.api.events.MenuOpened event)
     {
         if(!active||panel==null||(!config.bankMenu()&&!config.bankLayoutMenu()))return;
         net.runelite.api.MenuEntry[] entries=client.getMenu().getMenuEntries();
-        if(java.util.Arrays.stream(entries).anyMatch(e->e.getOption().equals("Loadout Studio")))return;
+        if(java.util.Arrays.stream(entries).anyMatch(e->e.getOption().startsWith("Loadout Studio")))return;
         if(java.util.Arrays.stream(entries).noneMatch(e->e.getParam1()==InterfaceID.Bankmain.WORNITEMS_BUTTON&&e.getType()==net.runelite.api.MenuAction.CC_OP&&e.getIdentifier()==1))return;
         String owner=recoveryOwner(),token=panel.bankMenuToken();
         if(token==null&&(!config.bankMenu()||quickLinks.isEmpty()))return;
@@ -168,9 +168,10 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     private void runBankMenu(String owner,String token,Consumer<StudioPanel> action){SwingUtilities.invokeLater(()->{StudioPanel current=panel;if(active&&current!=null&&owner.equals(recoveryOwner())&&token.equals(current.bankMenuToken())){if(navigation!=null)toolbar.openPanel(navigation);action.accept(current);}});}
     @Override public void pauseBankFilter(){clientThread.invoke(()->{if(active&&bankFilter!=null)bankFilter.pause();});}
     @Subscribe public void onMenuOptionClicked(net.runelite.api.events.MenuOptionClicked event){
+        if(active&&independentBank!=null)independentBank.rewrite(event);
         if(!active||bankFilter==null||net.runelite.api.widgets.WidgetUtil.componentToInterface(event.getParam1())!=InterfaceID.BANKMAIN)return;
         String option=event.getMenuEntry().getOption();
-        if(option.startsWith("View tab")||option.equals("View all items")||event.getParam1()==InterfaceID.Bankmain.POTIONSTORE_BUTTON)bankFilter.pause();
+        if(option.startsWith("View tab")||option.equals("View tag tab")||option.equals("View all items")||event.getParam1()==InterfaceID.Bankmain.POTIONSTORE_BUTTON)bankFilter.pause();
     }
     @Subscribe public void onWidgetLoaded(net.runelite.api.events.WidgetLoaded event){if(active&&bankFilter!=null&&event.getGroupId()==InterfaceID.BANKMAIN){bankFilter.bankOpened();bankBuildRefresh.request(true);}}
 
@@ -190,6 +191,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     }
     @Subscribe public void onClientTick(ClientTick event)
     {
+        if(active&&independentBank!=null&&independentBank.active()&&bankFilter!=null)bankFilter.refreshTitle();
         if(!active || !gearDirty || client.getGameState()!=GameState.LOGGED_IN)return;
         gearDirty=false;String owner=recoveryOwner();long epoch=gearEpoch;
         capture(snapshot->{if(!active||!owner.equals(recoveryOwner())||epoch!=gearEpoch)return;if(!snapshot.equals(lastGear)){lastGear=snapshot.deepCopy();if(gearObserver!=null)gearObserver.accept(snapshot);}},error->{});
@@ -221,6 +223,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
 	@Subscribe public void onGameStateChanged(GameStateChanged event) { if (event.getGameState() == GameState.LOGGED_IN) {indexItems();indexGearVarps();gearDirty=true;} else if (event.getGameState() == GameState.LOGIN_SCREEN) {clearBankFilter();gearEpoch++;lastGear=null;clearBankObservation();String owner=recoveryOwner();SwingUtilities.invokeLater(()->{if(active&&owner.equals(recoveryOwner())&&gearObserver!=null)gearObserver.accept(null);});} }
 	@Subscribe(priority = -1) public void onScriptPreFired(ScriptPreFired event)
 	{
+        if(independentBank!=null&&(event.getScriptId()==ScriptID.BANKMAIN_BUILD||event.getScriptId()==ScriptID.BANKMAIN_INIT))independentBank.removeCopies();
 		if (event.getScriptId() == ScriptID.BANKMAIN_INIT)
 		{
 			observeBank();
@@ -233,7 +236,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
         try{
             observeBank();
             BankTagsPlugin tags=coreBankTags();
-            if(opening||bankFilter.waiting()||independentBank.active()&&tags!=null&&tags.getActiveTag()!=null)reportBankStatus(bankFilter.apply());
+            if(opening||bankFilter.waiting()||independentBank.active()&&tags!=null&&tags.getActiveTag()!=null)reportBankStatus(bankFilter.apply(independentBank.active()));
             bankFilter.refreshTitle();if(independentBank.active())independentBank.arrange();
         }catch(RuntimeException ex){diagnostics.failure(StudioDiagnostics.Operation.BANK_FILTER,ex,0);bankFilter.clear();reportBankStatus(ex.getMessage());}
     }

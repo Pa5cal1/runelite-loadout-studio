@@ -62,14 +62,14 @@ public final class BankLayouts
 			int[] equipment = {1, 8, 9, 16, 17, 18, -1, 25, -1, 32, 33, -1, 34, 10};
 			for (int i = 0; i < 14; i++) if (equipment[i] >= 0) put(layout, equipment[i], SetupCodec.id(s.getAsJsonArray("eq").get(i)));
 			for (int i = 0; i < 28; i++) put(layout, (i / 4) * 8 + 4 + i % 4, SetupCodec.id(s.getAsJsonArray("inv").get(i)));
-			row(layout, s.getAsJsonArray("qv"), 2); row(layout, s.getAsJsonArray("rp"), 40); row(layout, s.getAsJsonArray("bp"), 48);
+			row(layout, s.getAsJsonArray("qv"), 2); JsonArray runes=s.getAsJsonArray("rp");boolean fourRunes=runes!=null&&runes.size()>3&&SetupCodec.id(runes.get(3))>0;if(fourRunes){int[] positions={40,42,48,50};for(int i=0;i<4;i++)put(layout,positions[i],SetupCodec.id(runes.get(i)));}else row(layout,runes,40); row(layout, s.getAsJsonArray("bp"), fourRunes?56:48);
 		}
 		else
 		{
 			int quiver = zigzag(layout, s.getAsJsonArray("eq"), 0, bottom); row(layout, s.getAsJsonArray("qv"), quiver);
 			zigzag(layout, s.getAsJsonArray("inv"), 16, bottom); row(layout, s.getAsJsonArray("rp"), 48); row(layout, s.getAsJsonArray("bp"), 52);
 		}
-		int extra = 56;
+		int extra = mode==Mode.PRESET&&s.has("bp")&&s.getAsJsonArray("bp").size()>0&&s.has("rp")&&s.getAsJsonArray("rp").size()>3&&SetupCodec.id(s.getAsJsonArray("rp").get(3))>0?64:56;
 		if (s.has("afi") && s.get("afi").isJsonObject()) for (java.util.Map.Entry<String, JsonElement> e : s.getAsJsonObject("afi").entrySet()) if (SetupCodec.id(e.getValue()) > 0) put(layout, extra++, SetupCodec.id(e.getValue()));
 		// Larger imported bolt pouches must never overwrite Inventory or additional items.
 		for (JsonElement e : items(portable)) if (SetupCodec.id(e) > 0 && !layout.contains(new com.google.gson.JsonPrimitive(SetupCodec.id(e)))) layout.add(SetupCodec.id(e));

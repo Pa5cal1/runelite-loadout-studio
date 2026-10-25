@@ -67,6 +67,8 @@ public final class SetupCodec
 		return item;
 	}
 
+    static JsonElement effectivePouch(JsonElement item){JsonElement copy=item.deepCopy();if(quantity(copy)>16000)copy.getAsJsonObject().addProperty("q",16000);return copy;}
+
 	public static int parseQuantity(String text)
 	{
 		String value = text.trim().toLowerCase(java.util.Locale.ROOT).replace(",", "");
@@ -177,7 +179,7 @@ public final class SetupCodec
 		if (item.has("q"))
 		{
 			if (item.get("q").isJsonNull()) { if (complete) throw new IllegalArgumentException("Enter missing item quantities."); }
-			else { int q = integer(item.get("q")); if (q < 0 || (rune && q > 16000)) throw new IllegalArgumentException(rune ? "Rune pouch stacks must contain 0–16000 runes (0 ignores quantity)." : "Invalid item quantity."); }
+			else { int q = integer(item.get("q")); if (q < 0) throw new IllegalArgumentException(rune ? "Rune pouch stacks must contain 0–16000 runes (0 ignores quantity)." : "Invalid item quantity."); }
 		}
         if(item.has("label") && (item.get("label").isJsonNull() || !item.get("label").isJsonPrimitive() || !item.get("label").getAsJsonPrimitive().isString() || item.get("label").getAsString().length()>500))throw new IllegalArgumentException("Invalid item label.");
         if(item.has("choices"))
@@ -196,7 +198,7 @@ public final class SetupCodec
         copy.remove("loadoutStudio");
 		for (String key : Arrays.asList("inv", "eq", "rp", "qv", "bp")) if (s.has(key) && s.get(key).isJsonArray())
 		{
-			for (JsonElement item : s.getAsJsonArray(key)) { if (unlimited(item)) item.getAsJsonObject().addProperty("sc", "None"); cleanItem(item); }
+			for (JsonElement item : s.getAsJsonArray(key)) { if(key.equals("rp")&&quantity(item)>16000)item.getAsJsonObject().addProperty("q",16000); if (unlimited(item)) item.getAsJsonObject().addProperty("sc", "None"); cleanItem(item); }
 		}
 		if (s.has("afi")) for (Map.Entry<String, JsonElement> entry : s.getAsJsonObject("afi").entrySet()) cleanItem(entry.getValue());
 		for (String key : Arrays.asList("rp", "qv", "bp")) if (s.has(key) && s.get(key).isJsonArray())

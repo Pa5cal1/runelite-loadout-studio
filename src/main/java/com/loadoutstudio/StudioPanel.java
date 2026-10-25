@@ -162,6 +162,7 @@ public final class StudioPanel extends PluginPanel
     private JsonObject liveActual,alternativeUndo;
     private final JPanel alternativeRows=vertical();
     private JPanel alternativesContent;private String autoShownAlternativeSession;
+    private final javax.swing.Timer autoSaveTimer=new javax.swing.Timer(400,e->autoSaveNow());
     private long alternativeRequestVersion;private Boolean appliedAutoExpand;
     private LoadoutStudioConfig.LibraryOrder libraryOrder=LoadoutStudioConfig.LibraryOrder.ALPHABETICAL;
     private String upgradeBefore,upgradeAfter;
@@ -243,13 +244,13 @@ public final class StudioPanel extends PluginPanel
 		bankStatus.setEditable(false); bankStatus.setLineWrap(true); bankStatus.setWrapStyleWord(true);
 		host.observeBank(this::scheduleAlternatives);host.observeGear(this::acceptLiveGear);preferencesChanged();
 	}
-	public void dispose() { disposed = true;bankMenuToken=null;host.observeBank(null);host.observeGear(null);host.cancelItemInput(); catalogueTimer.stop();alternativeTimer.stop(); if (wikiSuggestTimer != null) wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); wikiSearchRevision++; wikiPageRevision++; }
+	public void dispose() { if(editingId!=null)autoSaveNow();autoSaveTimer.stop();disposed = true;bankMenuToken=null;host.observeBank(null);host.observeGear(null);host.cancelItemInput(); catalogueTimer.stop();alternativeTimer.stop(); if (wikiSuggestTimer != null) wikiSuggestTimer.stop(); if (wikiPageTimer != null) wikiPageTimer.stop(); wikiSearchRevision++; wikiPageRevision++; }
 	public void bankMessage(String value) { if (!disposed) {bankStatus.setText(value == null ? "Bank filtering failed." : value);boolean paused=value!=null&&value.startsWith("Another Bank filter");if(paused||builderFeedback.getText().startsWith("Another Bank filter")){builderFeedback.setText(paused?value:"");builderFeedback.setVisible(paused);builderTools.revalidate();builderTools.repaint();}} }
 	private void syncBankFilter(){syncBankFilter(false);}
     private void syncBankFilter(boolean explicit)
 	{
 		if (disposed || draft == null) return; String token = session; fieldsToDraft();
-		host.updateBankFilter(draft, scope, value -> { if (token.equals(session)) bankMessage(value); },layout->{if(!disposed&&token.equals(session)&&draft!=null){draft.add("layout",layout.deepCopy());editorLayout=BankLayouts.Mode.CUSTOM;markDirty();renderBuilder();message("Custom Bank layout updated. Save to keep it.");}},explicit);
+		host.updateBankFilter(draft, scope, value -> { if (token.equals(session)) bankMessage(value); },layout->{if(!disposed&&token.equals(session)&&draft!=null&&!layout.equals(draft.get("layout"))){draft.add("layout",layout.deepCopy());editorLayout=BankLayouts.Mode.CUSTOM;markDirty();renderBuilder();message("Custom Bank layout updated and autosave scheduled.");}},explicit);
 	}
     public String bankMenuToken(){return bankMenuToken;}
     public void showBankFromMenu(){host.pauseBankFilter();bankMessage("Showing your Bank. Return to loadout from Show worn items, or reopen the Bank.");}
@@ -257,7 +258,7 @@ public final class StudioPanel extends PluginPanel
     public void clearFromBankMenu(){attempt(StudioDiagnostics.Operation.BANK_FILTER,()->setBankFiltering(false));}
     public void layoutFromBankMenu(BankLayouts.Mode mode,boolean bottom){attempt(StudioDiagnostics.Operation.BANK_LAYOUT,()->{
         if(draft==null)throw new IllegalStateException("Open a setup in Builder first.");if(mode==BankLayouts.Mode.CUSTOM)throw new IllegalArgumentException("Choose Preset or Zigzag.");
-        fieldsToDraft();editorLayout=mode;editorBottom=bottom;filterBank.setSelected(true);draft.add("layout",BankLayouts.generate(draft,mode,bottom));markDirty();renderBuilder();syncBankFilter(true);message("Loadout Studio layout changed to "+mode+". Choose Save to keep it.");
+        fieldsToDraft();editorLayout=mode;editorBottom=bottom;filterBank.setSelected(true);draft.add("layout",BankLayouts.generate(draft,mode,bottom));markDirty();renderBuilder();syncBankFilter(true);message("Loadout Studio layout changed to "+mode+". Changes are saved automatically.");
     });}
 	private void setBankFiltering(boolean enabled)
 	{
@@ -383,6 +384,7 @@ public final class StudioPanel extends PluginPanel
     private void attempt(StudioDiagnostics.Operation operation,Runnable action){long started=System.nanoTime();try{action.run();diagnostics.completed(operation,StudioDiagnostics.Outcome.SUCCESS,started);}catch(RuntimeException error){diagnostics.failure(operation,error,started);failure(failureMessage(error));}}
 	public void reloadScope()
 	{
+        autoSaveTimer.stop();
         alternativeTimer.stop();alternativeRequestVersion++;diagnostics.enabled(host.settings().localDiagnostics());appliedAutoExpand=host.settings().autoShowAlternatives();autoShownAlternativeSession=null;if(!appliedAutoExpand)expandedPanels.remove("My gear alternatives");
 		libraryOrder=host.settings().libraryOrder();ignoreAmmo.setSelected(host.settings().ignoreAmmoQuantities());liveActual=null;alternativeUndo=null;upgradeBefore=null;upgradeAfter=null;alternativeRows.removeAll();
 		host.cancelItemInput(); host.clearBankFilter(); bankMessage("Bank filter off.");
@@ -555,15 +557,16 @@ public final class StudioPanel extends PluginPanel
         else if(draft==null && recovery!=null && id.equals(DraftRecovery.optional(recovery,"editingId")))clearRecovery();
         message("Archived setup permanently deleted.");return true;
     }
-	private boolean discard()
-	{
-		if(!dirty)return true;
-        if(JOptionPane.showConfirmDialog(this,"Discard the unsaved changes in the Builder?","Unsaved setup",JOptionPane.OK_CANCEL_OPTION)!=JOptionPane.OK_OPTION)return false;
-        clearRecovery();return true;
-	}
+    boolean autoSaveNow(){
+        autoSaveTimer.stop();if(disposed||draft==null||!dirty)return true;
+        if(!Objects.equals(scope,host.scope())||!Objects.equals(recoveryOwner,host.recoveryOwner()))return false;
+        saveDraft(false);return !dirty;
+    }
+    private boolean discard(){return autoSaveNow();}
+
 	void open(SetupLibrary.Entry entry)
 	{
-		if (!discard()) return; host.cancelItemInput();ignoreAmmo.setSelected(host.settings().ignoreAmmoQuantities()); draft = entry.portable.deepCopy(); editorLayout = entry.bankLayout == null ? BankLayouts.infer(draft) : entry.bankLayout; editorBottom = entry.bankLayout == null ? BankLayouts.inferBottom(draft) : entry.zigzagBottomToTop; editingId = entry.id; editorSection = entry.section; editorFavorite = entry.favorite; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); message("Opened saved setup. Changes are saved only when you choose Save."); alternativeRows.removeAll();alternativeUndo=null;if(library.find(entry.id)!=null)attempt(()->commit(l->l.find(entry.id).lastOpened=System.currentTimeMillis()));host.requestGear();scheduleAlternatives();resolveDraftDefaults();
+		if (!discard()) return; final SetupLibrary.Entry source=library.find(entry.id)==null?entry:library.find(entry.id); host.cancelItemInput();ignoreAmmo.setSelected(host.settings().ignoreAmmoQuantities()); draft = source.portable.deepCopy(); editorLayout = source.bankLayout == null ? BankLayouts.infer(draft) : source.bankLayout; editorBottom = source.bankLayout == null ? BankLayouts.inferBottom(draft) : source.zigzagBottomToTop; editingId = source.id; editorSection = source.section; editorFavorite = source.favorite; dirty = false; differences.clear(); session = UUID.randomUUID().toString(); renderBuilder(); syncBankFilter(); tabs.setSelectedIndex(1); message("Opened saved setup. Changes are saved automatically."); alternativeRows.removeAll();alternativeUndo=null;if(library.find(source.id)!=null)attempt(()->commit(l->l.find(source.id).lastOpened=System.currentTimeMillis()));host.requestGear();scheduleAlternatives();resolveDraftDefaults();
 	}
     private void setLibraryFavorite(String id, boolean selected)
     {
@@ -619,7 +622,7 @@ public final class StudioPanel extends PluginPanel
                 if(first!=null){if(oldId>0)for(int i=0;i<draft.getAsJsonArray("layout").size();i++)if(draft.getAsJsonArray("layout").get(i).getAsInt()==oldId)draft.getAsJsonArray("layout").set(i,new com.google.gson.JsonPrimitive(first.id));item.addProperty("id",first.id);item.addProperty("label",first.name);itemCache.put(first.id,first);resolved++;}
                 else if(oldId>0){for(int i=0;i<draft.getAsJsonArray("layout").size();i++)if(draft.getAsJsonArray("layout").get(i).getAsInt()==oldId)draft.getAsJsonArray("layout").set(i,new com.google.gson.JsonPrimitive(-1));item.addProperty("id",0);unresolved++;}
             }
-            if(resolved>0||unresolved>0){rebuildDraftLayout();markDirty();renderBuilder();syncBankFilter();scheduleAlternatives();message("Applied first choices to "+resolved+" slot(s). "+unresolved+" temporary item(s) need manual selection. Review and Save to keep changes.");}
+            if(resolved>0||unresolved>0){rebuildDraftLayout();markDirty();renderBuilder();syncBankFilter();scheduleAlternatives();message("Applied first choices to "+resolved+" slot(s). "+unresolved+" temporary item(s) need manual selection. Autosave is scheduled. Review the selected items.");}
         });
     }
 	private void capture()
@@ -646,7 +649,7 @@ public final class StudioPanel extends PluginPanel
 	}
 	private void markDirty()
 	{
-		if (rendering || draft == null) return; draftRevision++; dirty = true; draftLabel.setText("Unsaved changes"); setupName.setToolTipText(setupName.getText() + " - Unsaved changes (Ctrl+S to save)"); code.setText(""); fieldsToDraft();persistRecovery();refreshGearComparison();
+		if (rendering || draft == null) return; draftRevision++; dirty = true; draftLabel.setText("Saving changes..."); setupName.setToolTipText(setupName.getText() + " - Autosave pending (Ctrl+S to save now)"); code.setText(""); fieldsToDraft();persistRecovery();autoSaveTimer.setRepeats(false);autoSaveTimer.restart();refreshGearComparison();
 	}
 	private void fieldsToDraft()
 	{
@@ -670,7 +673,7 @@ public final class StudioPanel extends PluginPanel
             addResolutionGuide();
             JPanel itemSearch = vertical(); itemSearch.add(catalogueQuery); JScrollPane results = scroll(catalogueList); results.setPreferredSize(new Dimension(176, 96)); results.setMaximumSize(new Dimension(500, 100)); itemSearch.add(results); itemSearch.add(catalogueCount); itemSearch.add(button("Add to Inventory", this::addSelectedItem)); builderTools.add(disclosure("Find items", itemSearch));
 
-            draftLabel.setText(dirty ? "Unsaved changes" : "Saved setup"); setupName.setToolTipText(SetupCodec.name(draft) + " - " + draftLabel.getText());
+            draftLabel.setText(dirty ? "Saving changes..." : "Saved setup"); setupName.setToolTipText(SetupCodec.name(draft) + " - " + draftLabel.getText());
             filterBank.setSelected(s.has("fb") && s.get("fb").getAsBoolean()); bankLayout.setSelectedItem(editorLayout); bottomToTop.setSelected(editorBottom); bottomToTop.setEnabled(editorLayout == BankLayouts.Mode.ZIGZAG);
 			            JPanel setupActions=new JPanel(new GridLayout(1,5,3,0));setupActions.setName("setupActions");
             setupActions.add(setupToggle("filter",0,"Enable bank filtering",filterBank.isSelected(),()->setBankFiltering(!filterBank.isSelected())));
@@ -712,7 +715,7 @@ public final class StudioPanel extends PluginPanel
         String name=input==null?"":input.trim();if(name.isEmpty()||name.length()>60)throw new IllegalArgumentException("Section name must be 1–60 characters.");
         fieldsToDraft();SetupLibrary.Section chosen=library.sections.stream().filter(s->s.name.equalsIgnoreCase(name)).findFirst().orElse(null);
         if(chosen==null){chosen=new SetupLibrary.Section(name);SetupLibrary.Section created=chosen;commit(l->l.sections.add(created));}
-        editorSection=chosen.id;markDirty();renderBuilder();message("Section selected. Save to keep this setup in it.");
+        editorSection=chosen.id;markDirty();renderBuilder();message("Section selected. Autosave is scheduled.");
     }
     private void addResolutionGuide()
     {
@@ -766,7 +769,7 @@ public final class StudioPanel extends PluginPanel
         button.getAccessibleContext().setAccessibleName((container + " slot " + (index + 1)) + (id < 0 ? " - empty" : " - edit item"));
         if (id < 0) button.setToolTipText("Empty " + container + " slot - click to add an item");
 		if (id == 0) button.setToolTipText((entry.getAsJsonObject().has("label")?entry.getAsJsonObject().get("label").getAsString():"Unresolved item") + " · choose an exact Item ID");
-		if (id > 0) host.describe(id, info -> { if (disposed) return; itemCache.put(id, info); button.itemIcon(info.icon); button.setText(info.icon == null ? "!" : ""); button.amount(SetupCodec.unlimited(entry) ? "∞" : key.equals("rp") && SetupCodec.quantity(entry)==0 ? "?" : SetupCodec.quantity(entry) > 1 || key.equals("rp") ? compact(SetupCodec.quantity(entry)) : ""); button.setToolTipText(info.name + " · " + id + " · quantity " + (SetupCodec.unlimited(entry) ? "unlimited (quantity ignored)" : SetupCodec.quantity(entry) == 0 ? "unknown" : SetupCodec.quantity(entry))); button.putClientProperty("baseTooltip",button.getToolTipText());updateDifferenceBorders(builder); });
+		if (id > 0) host.describe(id, info -> { if (disposed) return; itemCache.put(id, info); button.itemIcon(info.icon); button.setText(info.icon == null ? "!" : ""); button.amount(SetupCodec.unlimited(entry) ? "∞" : key.equals("rp") && SetupCodec.quantity(entry)==0 ? "?" : SetupCodec.quantity(entry) > 1 || key.equals("rp") ? compact(SetupCodec.quantity(entry)) : ""); button.setToolTipText(info.name + " · " + id + " · quantity " + (SetupCodec.unlimited(entry) ? "unlimited (quantity ignored)" : SetupCodec.quantity(entry) == 0 ? "unknown" : SetupCodec.quantity(entry))); if(key.equals("rp")&&SetupCodec.quantity(entry)>16000)button.setToolTipText(button.getToolTipText()+" - effective pouch target 16000 (capacity)"); button.putClientProperty("baseTooltip",button.getToolTipText());updateDifferenceBorders(builder); });
         button.setTransferHandler(new TransferHandler()
         {
             @Override public int getSourceActions(javax.swing.JComponent c) { return MOVE; }
@@ -823,7 +826,7 @@ public final class StudioPanel extends PluginPanel
     }
     String catalogueDragPayload() { ItemInfo item = catalogueList.getSelectedValue(); return item == null ? null : "loadout-item:" + session + ":" + item.id; }
     String dragPayload(String key, int index) { return validSlot(key, index) && !get(key, index).isJsonNull() ? "loadout-slot:" + session + ":" + key + ":" + index : null; }
-    private JsonElement dropItem(String key,JsonElement item){JsonElement copy=item.deepCopy();if(key.equals("rp")&&SetupCodec.quantity(copy)>16000)copy.getAsJsonObject().addProperty("q",16000);return copy;}
+    private JsonElement dropItem(String key,JsonElement item){return item.deepCopy();}
     private boolean canDrop(String value, String key, int index)
     {
         if (disposed || !validSlot(key, index) || value == null) return false;
@@ -845,8 +848,8 @@ public final class StudioPanel extends PluginPanel
             if (parts[0].equals("loadout-item")) { addCatalogueItem(Integer.parseInt(parts[2]), key, index); return true; }
             String from = parts[2]; int old = Integer.parseInt(parts[3]); if (from.equals(key) && old == index) return false;
             JsonElement a = dropItem(key,get(from,old)), b = get(key,index).deepCopy();
-            // Setup planning: cap the incoming stack and drop its excess rather than
-            // creating a remainder slot. A different displaced rune still swaps back.
+            // Setup planning: preserve the planned amount without creating
+            // a remainder slot. A different displaced rune still swaps back.
             if(from.equals("inv")&&key.equals("rp")&&SetupCodec.quantity(get(from,old))>16000&&SetupCodec.id(b)==SetupCodec.id(a))b=JsonNull.INSTANCE;
             if (from.equals("afi") && key.equals("afi"))
             {
@@ -854,7 +857,7 @@ public final class StudioPanel extends PluginPanel
                 JsonObject extras = new JsonObject(); for (JsonElement item : items) if (!item.isJsonNull()) extras.add(String.valueOf(SetupCodec.id(item)), item); SetupCodec.setup(draft).add("afi", extras);
             }
             else { checkExtraDuplicate(key, index, a); checkExtraDuplicate(from, old, b); fieldsToDraft(); put(from,old,b);put(key,index,a); }
-            rebuildDraftLayout();markDirty();renderBuilder();scheduleAlternatives();diagnostics.completed(StudioDiagnostics.Operation.ITEM_EDIT,StudioDiagnostics.Outcome.SUCCESS,0);message("Moved item. Choose Save to keep your changes."); return true;
+            rebuildDraftLayout();markDirty();renderBuilder();scheduleAlternatives();diagnostics.completed(StudioDiagnostics.Operation.ITEM_EDIT,StudioDiagnostics.Outcome.SUCCESS,0);message("Moved item. Changes are saved automatically."); return true;
         }
         catch (RuntimeException ex) { diagnostics.failure(StudioDiagnostics.Operation.ITEM_EDIT,ex,0);failure(failureMessage(ex)); return false; }
     }
@@ -864,7 +867,7 @@ public final class StudioPanel extends PluginPanel
 	{
 		if (e == null || e.isJsonNull()) return; ItemInfo info = itemCache.get(SetupCodec.id(e));
         if (!key.equals("inv") && info == null) throw new IllegalArgumentException("Item details are still loading. Choose an exact Item ID or try again.");
-		if (key.equals("rp")) { if (info != null && !info.name.toLowerCase(java.util.Locale.ROOT).endsWith(" rune")) throw new IllegalArgumentException("Rune pouch accepts runes only."); if (SetupCodec.quantity(e) > 16000) throw new IllegalArgumentException("Rune pouch maximum is 16k."); }
+		if (key.equals("rp")) { if (info != null && !info.name.toLowerCase(java.util.Locale.ROOT).endsWith(" rune")) throw new IllegalArgumentException("Rune pouch accepts runes only."); }
 		if (key.equals("bp") && info != null && !info.name.toLowerCase(java.util.Locale.ROOT).contains("bolt") && !info.name.equalsIgnoreCase("Bolt rack")) throw new IllegalArgumentException("Bolt pouch accepts bolts only.");
 		if (key.equals("qv") && info != null && !info.name.toLowerCase(java.util.Locale.ROOT).matches(".*(arrow|bolt)s?(?: \\(.*\\))?$")) throw new IllegalArgumentException("Quiver accepts arrows or bolts.");
 		if (key.equals("eq") && info != null && info.slot != index) throw new IllegalArgumentException("This item belongs in a different Equipment slot.");
@@ -926,7 +929,9 @@ public final class StudioPanel extends PluginPanel
 
 	private void saveDraft(boolean copy)
 	{
+        autoSaveTimer.stop();
 		if (draft == null) return;
+        if(copy&&dirty&&editingId!=null&&!autoSaveNow())return;
 		attempt(StudioDiagnostics.Operation.SAVE,() -> { fieldsToDraft(); SetupCodec.validate(draft, false); String chosenSection = sectionIds.get(Math.max(0, section.getSelectedIndex())); boolean chosenFavorite = favorite.isSelected(); String id = copy || editingId == null ? UUID.randomUUID().toString() : editingId;
 			commit(l -> { SetupLibrary.Entry record = l.find(id); if (record == null) { record = new SetupLibrary.Entry(draft); record.id = id; } record.portable=draft.deepCopy();if(copy||editingId==null)SetupCodec.setup(record.portable).addProperty("name",l.uniqueName(SetupCodec.name(draft)));record.section = chosenSection; record.favorite = chosenFavorite; record.bankLayout = editorLayout; record.zigzagBottomToTop = editorBottom;record.lastOpened=System.currentTimeMillis();if(l.find(id)==null)l.setups.add(record); });String storedName=SetupCodec.name(library.find(id).portable);SetupCodec.setup(draft).addProperty("name",storedName);boolean beforeRendering=rendering;rendering=true;setupName.setText(storedName);rendering=beforeRendering; editingId = id; dirty = false; clearRecovery(); draftLabel.setText("Saved setup"); setupName.setToolTipText(setupName.getText() + " - Saved setup"); message("Saved to this character/profile library."); });
 	}
@@ -980,7 +985,7 @@ public final class StudioPanel extends PluginPanel
     private void scheduleAlternatives(){if(alternativeUndo!=null&&draftRevision!=alternativeUndoRevision)alternativeUndo=null;if(!disposed&&draft!=null&&host.settings().autoAlternatives()&&alternativeUndo==null)alternativeTimer.restart();}
     private void refreshAutomaticAlternatives(){if(!disposed&&host.settings().autoAlternatives())refreshAlternatives();}
     private void refreshAlternativeRows(){themeForm(alternativeRows);for(Container parent=alternativeRows;parent!=null;parent=parent.getParent()){parent.invalidate();if(parent==this)break;}builder.revalidate();builder.repaint();}
-    private void showAlternativesOnce(boolean available){if(!available||session.equals(autoShownAlternativeSession)||!host.settings().autoShowAlternatives())return;autoShownAlternativeSession=session;expandedPanels.add("My gear alternatives");if(alternativesContent!=null){alternativesContent.setVisible(true);Container parent=alternativesContent.getParent();if(parent!=null)for(Component child:parent.getComponents())if(child instanceof JButton&&"disclosure:My gear alternatives".equals(child.getName()))((JButton)child).setText("- My gear alternatives");}}
+    private void showAlternativesOnce(boolean available){if(!available){autoShownAlternativeSession=null;expandedPanels.remove("My gear alternatives");if(alternativesContent!=null){alternativesContent.setVisible(false);Container parent=alternativesContent.getParent();if(parent!=null)for(Component child:parent.getComponents())if(child instanceof JButton&&"disclosure:My gear alternatives".equals(child.getName()))((JButton)child).setText("+ My gear alternatives");}return;}if(session.equals(autoShownAlternativeSession)||!host.settings().autoShowAlternatives())return;autoShownAlternativeSession=session;expandedPanels.add("My gear alternatives");if(alternativesContent!=null){alternativesContent.setVisible(true);Container parent=alternativesContent.getParent();if(parent!=null)for(Component child:parent.getComponents())if(child instanceof JButton&&"disclosure:My gear alternatives".equals(child.getName()))((JButton)child).setText("- My gear alternatives");}}
     void refreshAlternatives()
     {
         if(draft==null)return;long alternativesStarted=System.nanoTime();fieldsToDraft();String token=session;long revision=draftRevision,request=++alternativeRequestVersion;alternativeRows.removeAll();if(BankLayouts.items(draft).isEmpty())return;alternativeRows.add(info("Checking local gear...",1));
@@ -999,7 +1004,7 @@ public final class StudioPanel extends PluginPanel
                 select.putClientProperty("preserveRenderer",true);select.setToolTipText(proposal.reason);alternativeRows.add(select);for(OwnedGear.Proposal member:group)choices.put(member,select);
             }
             if(proposals.isEmpty())alternativeRows.add(info("No supported owned alternatives found. Missing gear is not automatically replaced.",3));
-            else alternativeRows.add(button("Use selected alternatives",()->attempt(()->{if(!token.equals(session)||revision!=draftRevision)throw new IllegalStateException("Setup changed. Check your Bank again.");Map<OwnedGear.Proposal,ItemInfo> selected=new java.util.LinkedHashMap<>();choices.forEach((proposal,select)->{ItemInfo item=(ItemInfo)select.getSelectedItem();if(item!=null&&item.id>0)selected.put(proposal,item);});host.availableGear(draft.deepCopy(),fresh->{if(disposed||!token.equals(session)||revision!=draftRevision)return;attempt(()->{for(ItemInfo item:selected.values())if(fresh.count(item.id)<1)throw new IllegalStateException("An alternative is no longer observed. Check your Bank again.");if(host.settings().checkAlternativeStock())fresh.requireReplacementStock(draft,selected);applyAlternatives(selected);});},this::failure);})));showAlternativesOnce(!proposals.isEmpty());refreshAlternativeRows();
+            else alternativeRows.add(button("Use selected alternatives",()->attempt(()->{if(!token.equals(session))throw new IllegalStateException("Another setup is open. Check its Bank alternatives.");Map<OwnedGear.Proposal,ItemInfo> selected=new java.util.LinkedHashMap<>();choices.forEach((proposal,select)->{ItemInfo item=(ItemInfo)select.getSelectedItem();if(item!=null&&item.id>0)selected.put(proposal,item);});host.availableGear(draft.deepCopy(),fresh->{if(disposed||!token.equals(session))return;attempt(()->{for(ItemInfo item:selected.values())if(fresh.count(item.id)<1)throw new IllegalStateException("An alternative is no longer observed. Check your Bank again.");if(host.settings().checkAlternativeStock())fresh.requireReplacementStock(draft,selected);applyAlternatives(selected);});},this::failure);})));showAlternativesOnce(!proposals.isEmpty());refreshAlternativeRows();
         },error->{if(!disposed&&token.equals(session)&&request==alternativeRequestVersion){alternativeRows.removeAll();alternativeRows.add(info(error,2));refreshAlternativeRows();}});
     }
     void applyAlternatives(Map<OwnedGear.Proposal,ItemInfo> selected)
@@ -1017,7 +1022,7 @@ public final class StudioPanel extends PluginPanel
                 for(int i=0;i<next.getAsJsonArray("layout").size();i++)if(next.getAsJsonArray("layout").get(i).getAsInt()==oldId)next.getAsJsonArray("layout").set(i,new com.google.gson.JsonPrimitive(newId));
         }
         next.add("layout",BankLayouts.generate(next,editorLayout,editorBottom));SetupCodec.validate(next,false);alternativeUndo=draft.deepCopy();draft=next;markDirty();alternativeUndoRevision=draftRevision;
-        alternativeRows.removeAll();alternativeRows.add(info("Alternatives applied to this draft. Review and Save to keep them.",3));alternativeRows.add(button("Undo alternatives",()->attempt(this::undoAlternatives)));syncBankFilter();renderBuilder();
+        alternativeRows.removeAll();alternativeRows.add(info("Alternatives applied to this draft. Changes are saved automatically. Undo is available.",3));alternativeRows.add(button("Undo alternatives",()->attempt(this::undoAlternatives)));syncBankFilter();renderBuilder();
     }
     void undoAlternatives()
     {
