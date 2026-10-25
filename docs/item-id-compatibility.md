@@ -74,3 +74,8 @@ After RuneLite/cache or upstream changes, rerun the full suite, compare the pinn
 - [RuneLite TagManager](https://github.com/runelite/runelite/blob/fc8d18969e3028af21a78fae38c9ab6c8c7573b1/runelite-client/src/main/java/net/runelite/client/plugins/banktags/TagManager.java).
 
 The exclusion data is attributed to Inventory Setups; its BSD-2 redistribution notice is bundled. There is no runtime dependency on Inventory Setups or Bank Tag Layouts, and no remote table download is introduced.
+
+
+### Trouver variant checks
+
+The rc.6 offline suite includes all 145 declared Trouver-related IDs from the pinned API fixture, including locked, broken/mangled definitions and the parchment itself. Explicit selection and both export round trips preserve their IDs. Dedicated cape cases cover Infernal max cape (l), Fire max cape (l), Fire cape (l) and Infernal cape (l): exact-name lookup resolves them, exact Bank filtering retains the selected locked item and its layout reference, and does not silently substitute another cape. This tests identity policy and offline boundaries; it does not prove every definition is wearable or owned. Confirm locked cape selection, sprite, save/reopen and filtering in the actual client.

@@ -78,3 +78,8 @@ Confirm Show coffee button no longer exists in plugin settings. Buy a coffee rem
 ## Distinct sidebar style
 
 Check the warm charcoal/gold theme at normal and increased display scaling, 220/260 px sidebar widths, every route and the report dialog. Navigation labels and the permanent support button must fit with their icons. Verify keyboard focus, long-title ellipsis, popup/dropdown selection, checkboxes and selected highlights. Item sprites/counts and slot positions must retain their previous behavior. RuneLite native settings and other plugins should keep their original style. Test Save, Wiki selection, drag/drop and Copy once in the real client after the visual update.
+
+
+### Trouver variant checks
+
+The rc.6 offline suite includes all 145 declared Trouver-related IDs from the pinned API fixture, including locked, broken/mangled definitions and the parchment itself. Explicit selection and both export round trips preserve their IDs. Dedicated cape cases cover Infernal max cape (l), Fire max cape (l), Fire cape (l) and Infernal cape (l): exact-name lookup resolves them, exact Bank filtering retains the selected locked item and its layout reference, and does not silently substitute another cape. This tests identity policy and offline boundaries; it does not prove every definition is wearable or owned. Confirm locked cape selection, sprite, save/reopen and filtering in the actual client.
