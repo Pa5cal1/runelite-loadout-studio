@@ -1,5 +1,7 @@
 # Asset credits
 
+`docs/screenshots/gear-differences-tooltip.png` is an offline render of the actual Swing tooltip for an example with 42 differences. It contains grouped counts only and no player-specific data.
+
 `AutomaticItemExclusions.java` contains exclusion data adapted from Inventory Setups' search filter at revision `16f2c0a319672c2e19738276a17de63aea7216fa`. The existing bundled Inventory Setups BSD-2 notice applies; this is local source data, not a runtime dependency or download. The ID compatibility fixture records the declared constants from RuneLite API 1.13.3 and the inspected custom variation table for offline tests.
 
 The root `icon.png` is a 32 by 32 pixel nearest-neighbour render of the bundled OSRS Combat Tutor icon, prepared for the Plugin Hub listing. The same Jagex attribution below applies.

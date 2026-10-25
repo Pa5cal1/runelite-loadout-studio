@@ -1,4 +1,11 @@
-# Current validation — 0.9.1-rc.4
+# Current validation — 0.9.1-rc.5
+
+- Full Java 11 test/jar/shadowJar result: **212 tests, zero failures/errors/skipped**.
+- Reproduced a 42-slot difference case. Its tooltip is grouped by container, bounded in width and height, and contains no item labels or raw slot keys. The individual slot details remain available.
+- Manual Compare now updates both the displayed count and tooltip, preventing stale details after a successful comparison. Regression tests cover both cases and render the actual Swing tooltip offline.
+- Live client hover behavior remains for user acceptance after restart. The current running session is left intact.
+
+# Previous validation — 0.9.1-rc.4
 
 - Full Java 11 test/jar/shadowJar build: **210 tests, zero failures/errors/skipped**. Native EventBus registration and all existing item, profile and Wiki checks remain included.
 - Combat Tutor is restored in navigation, header and listing assets. A new check verifies native 16 px dimensions and visible artwork reaching all image bounds; 16/24/32 px offline previews were inspected.

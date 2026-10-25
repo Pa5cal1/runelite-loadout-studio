@@ -155,7 +155,9 @@ public final class StudioPanel extends PluginPanel
 	private final JTextArea notes = new GrowingNotesArea(), code = new JTextArea(9, 18), status = new JTextArea(3, 18);
 	private JButton exportCopy, exportPreview;
 	private final JLabel scopeLabel = text(""), draftLabel = text("No setup open");
-    private final JLabel gearReadiness=text("Gear not checked");
+    private final JLabel gearReadiness=new JLabel("Gear not checked"){
+        @Override public javax.swing.JToolTip createToolTip(){return StudioTheme.tooltip(super.createToolTip());}
+    };
     private JsonObject liveActual,alternativeUndo;
     private final JPanel alternativeRows=vertical();
     private JPanel alternativesContent;private String autoShownAlternativeSession;
@@ -204,7 +206,7 @@ public final class StudioPanel extends PluginPanel
 			@Override protected Insets getContentBorderInsets(int placement) { return new Insets(0, 0, 0, 0); }
 		});
 		tabs.addTab("Library", libraryTab()); tabs.addTab("Builder", builderTab()); tabs.addTab("Wiki", scroll(wikiTab())); tabs.addTab("Export", exportTab()); add(tabs, BorderLayout.CENTER);
-		JPanel heading = vertical(); JLabel title = text("LOADOUT"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.9.1-rc.4 - character-specific setup library");
+		JPanel heading = vertical(); JLabel title = text("LOADOUT"); title.setName("studioTitle"); title.setToolTipText("Loadout Studio 0.9.1-rc.5 - character-specific setup library");
         JButton coffee = button("Buy a coffee", () -> attempt(host::openSupportPage)); coffee.setIcon(new SidebarIcon(SidebarIcon.Kind.COFFEE)); coffee.setName("supportCoffee"); coffee.setToolTipText("Buy a coffee"); coffee.getAccessibleContext().setAccessibleName("Buy a coffee"); coffee.getAccessibleContext().setAccessibleDescription(COFFEE_URL); coffee.setPreferredSize(new Dimension(94, 28));
         JPanel wordmark=new JPanel(new GridLayout(2,1,0,0));wordmark.setName("studioWordmark");wordmark.add(title);JLabel subtitle=text("STUDIO");subtitle.setName("studioSubtitle");wordmark.add(subtitle);
         JPanel identity=new JPanel(new BorderLayout(6,0));JLabel mark=new JLabel(new ImageIcon(StudioBrandIcon.create().getScaledInstance(24,24,Image.SCALE_REPLICATE)));mark.setName("studioMark");mark.setForeground(GOLD);mark.setPreferredSize(new Dimension(24,32));identity.add(mark,BorderLayout.WEST);identity.add(wordmark,BorderLayout.CENTER);
@@ -908,7 +910,7 @@ public final class StudioPanel extends PluginPanel
 	private void compareGear()
 	{
 		if (draft == null) return; fieldsToDraft();host.requestGear(); String token = session;long revision=draftRevision;
-        host.compareSetup(draft.deepCopy(),ignoreAmmo.isSelected(),result->{if(disposed || !token.equals(session)||revision!=draftRevision)return;differences.clear();differences.addAll(result);updateDifferenceBorders(builder);gearReadiness.setText(result.isEmpty()?"Gear matches setup":result.size()+" gear difference(s)");message(result.size()+" difference(s). Fuzzy variants, Stack comparison, unordered Inventory and Ammo preferences are applied.");},this::failure);
+        host.compareSetup(draft.deepCopy(),ignoreAmmo.isSelected(),result->{if(disposed || !token.equals(session)||revision!=draftRevision)return;differences.clear();differences.addAll(result);updateDifferenceBorders(builder);updateGearReadiness(result);message(result.size()+" difference(s). Fuzzy variants, Stack comparison, unordered Inventory and Ammo preferences are applied.");},this::failure);
 	}
     void acceptLiveGear(JsonObject actual)
     {
@@ -918,8 +920,19 @@ public final class StudioPanel extends PluginPanel
     {
         if(draft==null || liveActual==null){gearReadiness.setText("Live check: log in");gearReadiness.setToolTipText("Current gear is unknown until logged in.");if(liveActual==null){differences.clear();updateDifferenceBorders(builder);}return;}
         Set<String> next=SetupComparison.differences(draft,liveActual,ignoreAmmo.isSelected(),SetupVariationMapping::map);
-        differences.clear();differences.addAll(next);gearReadiness.setText(next.isEmpty()?"Gear matches setup":next.size()+" gear difference(s)");List<String> reasons=new ArrayList<>();for(String key:next)reasons.add(differenceReason(key));gearReadiness.setToolTipText(next.isEmpty()?"Compared with your current local gear.":String.join("; ",reasons));
+        differences.clear();differences.addAll(next);updateGearReadiness(next);
         updateDifferenceBorders(builder);spellbook.setBorder(highlighting()&&next.contains("spellbook")?BorderFactory.createLineBorder(highlightColor(),2):javax.swing.UIManager.getBorder("ComboBox.border"));
+    }
+    private void updateGearReadiness(Set<String> result)
+    {
+        gearReadiness.setText(result.isEmpty()?"Gear matches setup":result.size()+" gear difference(s)");
+        if(result.isEmpty()){gearReadiness.setToolTipText("Compared with your current local gear.");return;}
+        Map<String,Integer> counts=new java.util.LinkedHashMap<>();
+        for(String key:result){String group=key.startsWith("eq:")?"Equipment":key.startsWith("inv:")?"Inventory":key.startsWith("rp:")?"Rune Pouch":key.startsWith("qv:")?"Quiver":key.startsWith("bp:")?"Bolt Pouch":key.equals("spellbook")?"Spellbook":key.equals("attackOption")?"Attack option":"Other";counts.merge(group,1,Integer::sum);}
+        StringBuilder tip=new StringBuilder("<html><body style='width:180px'><b>Gear differences</b><br>");
+        counts.forEach((name,count)->tip.append(name).append(": ").append(count).append("<br>"));
+        tip.append("<br>Hover a highlighted slot for its details.</body></html>");
+        gearReadiness.setToolTipText(tip.toString());
     }
     private void updateDifferenceBorders(Container root)
     {

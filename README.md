@@ -2,7 +2,7 @@
 
 Create and organise gear setups for Old School RuneScape. Find loadouts on the OSRS Wiki, edit your Inventory and Equipment, and use your setups with Bank Tags or Inventory Setups.
 
-**Current version: 0.9.1-rc.4.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
+**Current version: 0.9.1-rc.5.** Loadout Studio is a release candidate and is not yet available through the RuneLite Plugin Hub. Docker is not required to run the plugin or the Java/Gradle test client.
 
 Loadout Studio works without the Inventory Setups and standalone Bank Tag Layouts hub plugins. It owns its library, editor, comparison and codecs. Bank filtering also works with built-in **Bank Tags** disabled. When it is active, Loadout Studio can use its native layout service; otherwise it uses an independent view of the ordinary Bank's real widgets. Actual Bank stock counts and item child indices are preserved. Optional imports create independent copies.
 
@@ -13,6 +13,8 @@ Offline renders of the actual sidebar using Loadout Studio's own charcoal/gold t
 ![Library, Builder, Wiki and Export previews](docs/screenshots/overview.png)
 
 [Library](docs/screenshots/library.png) · [Builder](docs/screenshots/builder.png) · [Equipment and Notes](docs/screenshots/builder-details.png) · [Owned alternatives](docs/screenshots/alternatives.png) · [Wiki choices](docs/screenshots/wiki.png) · [Export](docs/screenshots/export.png) · [Compressed export](docs/screenshots/export-compressed.png) · [Diagnostics](docs/screenshots/diagnostics.png)
+
+The gear-difference tooltip uses a compact count per container; individual slots keep their detailed explanations. [Tooltip preview](docs/screenshots/gear-differences-tooltip.png).
 
 Settings previews below are generated from the current configuration definitions and default values using RuneLite styling. They are documentation previews, not captures of a running native configuration window.
 
@@ -313,6 +315,11 @@ Automated tests cover data formats, item matching, layouts, caching and sidebar 
 </details>
 
 ## Changelog
+
+### 0.9.1-rc.5
+
+- Replace the one-line list of every gear difference with a bounded, grouped tooltip. Individual slot tooltips retain their details.
+- Refresh the summary tooltip after manual Compare as well as live comparison.
 
 ### 0.9.1-rc.4
 

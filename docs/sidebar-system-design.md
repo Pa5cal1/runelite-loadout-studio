@@ -1,5 +1,9 @@
 # Loadout Studio sidebar system design
 
+## Gear difference summary in 0.9.1-rc.5
+
+The readiness tooltip groups counts by container instead of concatenating every slot explanation. Only fixed category names and counts enter its HTML; source item labels are not embedded. Its width is bounded and the real Swing renderer is checked for a 42-slot case. Individual slot tooltips retain detail. The manual and live comparison paths share the summary renderer so the count and tooltip cannot diverge after Compare.
+
 This design applies the supplied System Design template topics to the requested RuneLite sidebar implementation. The retained Word reference is unchanged. The user requested a working plugin rather than a Word document; this implementation note records the decisions and acceptance checks.
 
 ## 1 Abstract

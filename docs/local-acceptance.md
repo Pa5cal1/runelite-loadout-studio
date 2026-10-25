@@ -1,6 +1,6 @@
-# Testclient acceptance — 0.9.1-rc.4
+# Testclient acceptance — 0.9.1-rc.5
 
-The candidate passed 210 offline tests. Before stable publication, also complete the account and real Bank scenarios in [the release-readiness report](release-readiness.md#manual-acceptance-before-submission). A previous pass on another version does not cover newly changed native integrations.
+The candidate passed 212 offline tests. Before stable publication, also complete the account and real Bank scenarios in [the release-readiness report](release-readiness.md#manual-acceptance-before-submission). A previous pass on another version does not cover newly changed native integrations.
 
 Status: **pending user acceptance**. Automated tests and offline previews are separate from live RuneLite behavior. Only the user performs game interactions. Record RuneLite version, plugin version, Windows display scaling, test date and any active Bank-related plugins. Start with a library backup and disposable test setups.
 

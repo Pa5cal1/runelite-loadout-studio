@@ -61,3 +61,5 @@ build/
 !/icon.png
 !/docs/release-readiness.md
 !/docs/plugin-hub/submission-description.md
+
+!/docs/screenshots/gear-differences-tooltip.png

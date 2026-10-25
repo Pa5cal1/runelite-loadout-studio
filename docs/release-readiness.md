@@ -1,14 +1,16 @@
 # Loadout Studio release readiness
 
-Version: **0.9.1-rc.4**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
+Version: **0.9.1-rc.5**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
 
-Reviewed candidate source commit: `63e97ee703d03cfd0f36931118cd30abbb19996b`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
+Previous reviewed candidate source commit: `63e97ee703d03cfd0f36931118cd30abbb19996b`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
 
 ## Startup follow-up
 
 A real local startup exposed two EventBus subscriber-name errors missed by the prior offline tests. The third candidate corrects them and adds native EventBus registration coverage. The corrected local client remained running with a responding visible window on 25 October 2026. All 209 automated tests passed. This does not replace the remaining gameplay acceptance.
 
 The fourth candidate restores Combat Tutor artwork and validates a native-size 16 px sidebar image. All 210 offline tests pass. The already-running rc.3 client is left intact; the icon correction still needs the next user-controlled restart.
+
+The fifth candidate fixes a user-reported full-width gear-difference tooltip. Offline tests reproduce 42 differences, verify compact grouped rendering and check refresh after manual Compare. The hover change still requires a user-controlled client restart.
 
 ## Executive summary
 
@@ -21,7 +23,7 @@ One concrete defect was corrected during the review: useful `Slayer task/…` ar
 | Gate | Evidence | State |
 | --- | --- | --- |
 | Java compatibility | Java 11 compilation and class version 55 | Locally checked |
-| Regression suite | 210 tests, zero failures, errors or skips | Locally passed |
+| Regression suite | 212 tests, zero failures, errors or skips | Locally passed |
 | Account separation | Three-account save/reopen/favorite test, draft recovery and delayed callback guards | Offline passed; live switching pending |
 | Wiki request restraint | Interceptor tests, persisted cache, explicit actions, rolling request budget | Offline passed |
 | Sidebar appearance | Gold theme, 220/260 px layout checks and example-data previews | Offline checked; live scaling pending |
