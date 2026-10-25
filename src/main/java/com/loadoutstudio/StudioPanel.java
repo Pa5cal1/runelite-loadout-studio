@@ -1009,9 +1009,10 @@ public final class StudioPanel extends PluginPanel
         },error->{if(!disposed&&token.equals(session)&&request==alternativeRequestVersion){alternativeRows.removeAll();alternativeRows.add(info(error,2));refreshAlternativeRows();}});
     }
     private boolean preferDivinePouch(OwnedGear owned){
-        int normal=net.runelite.api.gameval.ItemID.BH_RUNE_POUCH,divine=net.runelite.api.gameval.ItemID.DIVINE_RUNE_POUCH;if(owned.count(divine)<1)return false;
-        JsonArray inventory=SetupCodec.setup(draft).getAsJsonArray("inv");for(JsonElement item:inventory)if(SetupCodec.id(item)==divine)return false;for(int i=0;i<inventory.size();i++)if(SetupCodec.id(inventory.get(i))==normal){
-            JsonObject replacement=inventory.get(i).getAsJsonObject().deepCopy();replacement.addProperty("id",divine);replacement.addProperty("label","Divine rune pouch");inventory.set(i,replacement);if(owned.items.containsKey(divine))itemCache.put(divine,owned.items.get(divine));
+        int divine=owned.amounts.keySet().stream().filter(id->EquipmentVariants.divinePouch(id)&&owned.count(id)>0).sorted().findFirst().orElse(-1);if(divine<1)return false;
+        JsonArray inventory=SetupCodec.setup(draft).getAsJsonArray("inv");for(JsonElement item:inventory)if(EquipmentVariants.divinePouch(SetupCodec.id(item)))return false;for(int i=0;i<inventory.size();i++)if(EquipmentVariants.runePouch(SetupCodec.id(inventory.get(i)))){
+            int normal=SetupCodec.id(inventory.get(i));
+            JsonObject replacement=inventory.get(i).getAsJsonObject().deepCopy();replacement.addProperty("id",divine);replacement.addProperty("label",owned.items.containsKey(divine)?owned.items.get(divine).name:"Divine rune pouch");inventory.set(i,replacement);if(owned.items.containsKey(divine))itemCache.put(divine,owned.items.get(divine));
             if(editorLayout==BankLayouts.Mode.CUSTOM&&BankLayouts.items(draft).stream().noneMatch(item->SetupCodec.id(item)==normal))for(int pos=0;pos<draft.getAsJsonArray("layout").size();pos++)if(draft.getAsJsonArray("layout").get(pos).getAsInt()==normal)draft.getAsJsonArray("layout").set(pos,new com.google.gson.JsonPrimitive(divine));
             rebuildDraftLayout();markDirty();renderBuilder();syncBankFilter();message("Using your owned Divine rune pouch. Rune contents are retained; the fourth slot is available.");return true;
         }return false;

@@ -3,7 +3,60 @@ package com.loadoutstudio;
 import static net.runelite.api.gameval.ItemID.*;
 /** Usable cosmetic/combat equivalence; exact stored/exported IDs are never rewritten. */
 final class EquipmentVariants {
-    static int combatBase(int id){switch(id){
+    static boolean runePouch(int id){return net.runelite.client.game.ItemVariationMapping.map(id)==BH_RUNE_POUCH;}
+    static boolean divinePouch(int id){return net.runelite.client.game.ItemVariationMapping.map(id)==DIVINE_RUNE_POUCH;}
+    /** Separate imbued combat functionality from cosmetic colours and imbue sources. */
+    static int slayerBase(int id){switch(id){
+        case SLAYER_HELM_I:
+        case SLAYER_HELM_I_BLACK:
+        case SLAYER_HELM_I_GREEN:
+        case SLAYER_HELM_I_RED:
+        case SLAYER_HELM_I_PURPLE:
+        case SLAYER_HELM_I_TURQUOISE:
+        case SLAYER_HELM_I_HYDRA:
+        case SLAYER_HELM_I_TWISTED:
+        case SW_SLAYER_HELM_I:
+        case SW_SLAYER_HELM_I_BLACK:
+        case SW_SLAYER_HELM_I_GREEN:
+        case SW_SLAYER_HELM_I_RED:
+        case SW_SLAYER_HELM_I_PURPLE:
+        case SW_SLAYER_HELM_I_TURQUOISE:
+        case SW_SLAYER_HELM_I_HYDRA:
+        case SW_SLAYER_HELM_I_TWISTED:
+        case SLAYER_HELM_I_JAD:
+        case SW_SLAYER_HELM_I_JAD:
+        case SLAYER_HELM_I_VERZIK:
+        case SW_SLAYER_HELM_I_VERZIK:
+        case SLAYER_HELM_I_ZUK:
+        case SW_SLAYER_HELM_I_ZUK:
+        case PVPA_SLAYER_HELM_I:
+        case PVPA_SLAYER_HELM_I_BLACK:
+        case PVPA_SLAYER_HELM_I_GREEN:
+        case PVPA_SLAYER_HELM_I_RED:
+        case PVPA_SLAYER_HELM_I_PURPLE:
+        case PVPA_SLAYER_HELM_I_TURQUOISE:
+        case PVPA_SLAYER_HELM_I_HYDRA:
+        case PVPA_SLAYER_HELM_I_TWISTED:
+        case PVPA_SLAYER_HELM_I_JAD:
+        case PVPA_SLAYER_HELM_I_VERZIK:
+        case PVPA_SLAYER_HELM_I_ZUK:
+        case SLAYER_HELM_I_ARAXYTE:
+        case SW_SLAYER_HELM_I_ARAXYTE:
+        case PVPA_SLAYER_HELM_I_ARAXYTE:
+        case SLAYER_HELM_I_HOODED:
+        case SW_SLAYER_HELM_I_HOODED:
+        case PVPA_SLAYER_HELM_I_HOODED:
+        case LEAGUE_6_SLAYER_HELM1_I:
+        case SW_LEAGUE_6_SLAYER_HELM1_I:
+        case PVPA_LEAGUE_6_SLAYER_HELM1_I:
+        case LEAGUE_6_SLAYER_HELM2_I:
+        case SW_LEAGUE_6_SLAYER_HELM2_I:
+        case PVPA_LEAGUE_6_SLAYER_HELM2_I:
+            return SLAYER_HELM_I;
+        default:return net.runelite.client.game.ItemVariationMapping.map(id)==SLAYER_HELM?SLAYER_HELM:id;
+    }}
+
+    static int combatBase(int id){int slayer=slayerBase(id);if(slayer!=id)return slayer;switch(id){
         case SKILLCAPE_MAX_INFERNALCAPE:case SKILLCAPE_MAX_INFERNALCAPE_TROUVER:case INFERNAL_CAPE_TROUVER:return INFERNAL_CAPE;
         case SKILLCAPE_MAX_FIRECAPE:case SKILLCAPE_MAX_FIRECAPE_TROUVER:case TZHAAR_CAPE_FIRE_TROUVER:return TZHAAR_CAPE_FIRE;
         case SKILLCAPE_MAX_ANMA:return ANMA_50_REWARD;
@@ -48,9 +101,19 @@ final class EquipmentVariants {
         default:return id;
     }}
     /** Charged/blessed may replace an uncharged quiver, never the reverse. */
-    static boolean alternative(int owned,int expected){return owned>0&&expected>0&&(owned==DIVINE_RUNE_POUCH&&expected==BH_RUNE_POUCH||combatBase(owned)==combatBase(expected)||combatBase(expected)==DIZANAS_QUIVER_UNCHARGED&&combatBase(owned)==DIZANAS_QUIVER_INFINITE);}
+    static boolean alternative(int owned,int expected){
+        if(owned<1||expected<1)return false;
+        if(divinePouch(owned)&&runePouch(expected))return true;
+        int actual=combatBase(owned),wanted=combatBase(expected);
+        if(actual==wanted)return true;
+        if(actual==SLAYER_HELM||actual==SLAYER_HELM_I||wanted==SLAYER_HELM||wanted==SLAYER_HELM_I)return false;
+        if(actual==ELIDINIS_WARD||wanted==ELIDINIS_WARD)return false;
+        if(wanted==DIZANAS_QUIVER_UNCHARGED&&actual==DIZANAS_QUIVER_INFINITE)return true;
+        if(wanted==DIZANAS_QUIVER_INFINITE&&actual==DIZANAS_QUIVER_UNCHARGED)return false;
+        return net.runelite.client.game.ItemVariationMapping.map(actual)==net.runelite.client.game.ItemVariationMapping.map(wanted);
+    }
     /** Locked cape requirements remain exact unless the player chooses a replacement. */
-    static int base(int id){switch(id){
+    static int base(int id){int slayer=slayerBase(id);if(slayer!=id)return slayer;if(runePouch(id))return BH_RUNE_POUCH;if(divinePouch(id))return DIVINE_RUNE_POUCH;switch(id){
         case TORVA_HELM_SANGUINE:return TORVA_HELM;
         case TORVA_CHEST_SANGUINE:return TORVA_CHEST;
         case TORVA_LEGS_SANGUINE:return TORVA_LEGS;

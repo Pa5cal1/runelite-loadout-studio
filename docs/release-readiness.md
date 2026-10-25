@@ -1,6 +1,6 @@
 # Loadout Studio release readiness
 
-Version: **0.9.1-rc.15**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
+Version: **0.9.1-rc.16**. Review date: **25 October 2026**. Status: **local release candidate, awaiting player acceptance and external review**.
 
 Reviewed candidate source commit: `4931a4325f40fec3ac586c190b5d8a05e9d4c662`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
 
@@ -222,3 +222,16 @@ Owned Divine rune pouches replace an ordinary planned Rune pouch when local gear
 New Wiki Notes contain only Source and Preset. Recognisable legacy generated rank dumps are compacted when opening a saved setup, preserving personal additions and the ordered item-choice metadata. Source conditions remain accessible on the linked Wiki page.
 
 Validation: 278 offline Java 11 tests passed. Native duplicate clicks and potion-storage actions remain release gates; source compilation is not in-game acceptance.
+
+
+### Owned variants and shorter native labels (0.9.1-rc.16)
+
+The player confirmed native potion-dose selection and compact Wiki Notes work in rc.15. The supplied screenshots show Withdraw menus on repeated food cells; actual withdrawal from every repeated cell still needs confirmation.
+
+- Native sibling menus: **Loadout setups:** and **Loadout:**.
+- Potion storage uses the real selected-dose item name without a storage suffix. Routing and dose selection are unchanged.
+- Divine-pouch preference now covers normal and Trouver-protected pouch variants and preserves the exact owned ID, label, rune types and planned quantities. Existing Divine pouches are retained. The preference is evaluated during local gear/alternatives checks.
+- Slayer helmet colours, combat-achievement designs, league designs and all three imbue sources in the bundled RuneLite variation data are recognised. Imbued and unimbued capabilities remain separate for automatic Bank matching and alternative recommendations. Exact saved/exported IDs are retained.
+- Other owned alternatives can use RuneLite's bundled item-variation groups in addition to the existing explicit cosmetic/max-cape mappings. Charged quiver direction and fortified ward distinctions remain guarded. Broad variation groups are recommendations requiring player review, not a claim that every variant has identical requirements or benefits. No Wiki image or per-item HTTP requests were added.
+
+Validation: 284 offline tests passed, including every bundled Slayer-helmet variant, exact Bank-slot matching, protected Divine-pouch autosave and preserved rune quantity. Actual game behavior remains a user acceptance gate.

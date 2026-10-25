@@ -41,7 +41,7 @@ final class OwnedGear
         for(String key:new String[]{"eq","inv"}){
             JsonArray array=setup.getAsJsonArray(key);
             for(int i=0;i<array.size();i++){
-                JsonElement raw=array.get(i);int id=SetupCodec.id(raw);boolean pouchUpgrade=id==net.runelite.api.gameval.ItemID.BH_RUNE_POUCH&&count(net.runelite.api.gameval.ItemID.DIVINE_RUNE_POUCH)>0;if(id<1 || count(id)>0&&!pouchUpgrade)continue;
+                JsonElement raw=array.get(i);int id=SetupCodec.id(raw);boolean pouchUpgrade=EquipmentVariants.runePouch(id)&&amounts.keySet().stream().anyMatch(other->EquipmentVariants.divinePouch(other)&&count(other)>0);if(id<1 || count(id)>0&&!pouchUpgrade)continue;
                 JsonObject expected=raw.getAsJsonObject();if(!pouchUpgrade && expected.has("f") && expected.get("f").getAsBoolean() && amounts.keySet().stream().anyMatch(other->SetupVariationMapping.map(other)==SetupVariationMapping.map(id)))continue;
                 LinkedHashMap<Integer,StudioPanel.ItemInfo> candidates=new LinkedHashMap<>();
                 for(StudioPanel.ItemInfo owned:items.values())if(owned.id!=id&&count(owned.id)>0&&EquipmentVariants.alternative(owned.id,id)&&(!key.equals("eq")||owned.slot==i))candidates.put(owned.id,owned);

@@ -24,7 +24,7 @@ final class StudioPotionStorage {
  private final Client client;private final ItemManager items;
  private final Map<Integer,Potion> byItem=new LinkedHashMap<>();private final Set<Integer> watched=new HashSet<>();private boolean dirty=true;private int potionCount;
  StudioPotionStorage(Client client,ItemManager items){this.client=client;this.items=items;}
- String name(int id){return "<col=ff9040>"+items.getItemComposition(id).getMembersName()+"</col> (Potion storage)";}
+ String name(int id){return "<col=ff9040>"+items.getItemComposition(id).getMembersName()+"</col>";}
  void clear(){byItem.clear();watched.clear();potionCount=0;dirty=true;}
  void invalidate(){dirty=true;}
  boolean changed(int varp){

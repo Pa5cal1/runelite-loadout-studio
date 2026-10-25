@@ -8,7 +8,7 @@ import net.runelite.api.MenuAction;
 final class StudioBankMenu {
  static void add(Menu root,boolean selected,boolean layouts,List<StudioPanel.QuickLink> links,Consumer<Consumer<StudioPanel>> dispatch,Consumer<String> open){
   if(!selected&&links.isEmpty())return;
-  Menu menu=selected?root.createMenuEntry(-1).setOption("Loadout layout:").setType(MenuAction.RUNELITE).createSubMenu():null;
+  Menu menu=selected?root.createMenuEntry(-1).setOption("Loadout:").setType(MenuAction.RUNELITE).createSubMenu():null;
   if(selected){
    action(menu,"Show bank",()->dispatch.accept(StudioPanel::showBankFromMenu));
    action(menu,"Return to loadout",()->dispatch.accept(StudioPanel::activateFromBankMenu));

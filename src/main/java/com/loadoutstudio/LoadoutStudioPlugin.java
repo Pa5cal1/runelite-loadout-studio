@@ -159,7 +159,7 @@ public class LoadoutStudioPlugin extends Plugin implements StudioPanel.Host
     {
         if(!active||panel==null||(!config.bankMenu()&&!config.bankLayoutMenu()))return;
         net.runelite.api.MenuEntry[] entries=client.getMenu().getMenuEntries();
-        if(java.util.Arrays.stream(entries).anyMatch(e->(e.getOption().equals("Loadout setups:")||e.getOption().equals("Loadout layout:"))))return;
+        if(java.util.Arrays.stream(entries).anyMatch(e->(e.getOption().equals("Loadout setups:")||e.getOption().equals("Loadout:"))))return;
         if(java.util.Arrays.stream(entries).noneMatch(e->e.getParam1()==InterfaceID.Bankmain.WORNITEMS_BUTTON&&e.getType()==net.runelite.api.MenuAction.CC_OP&&e.getIdentifier()==1))return;
         String owner=recoveryOwner(),token=panel.bankMenuToken();
         if(token==null&&(!config.bankMenu()||quickLinks.isEmpty()))return;
