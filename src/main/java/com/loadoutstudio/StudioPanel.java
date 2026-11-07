@@ -297,10 +297,16 @@ public final class StudioPanel extends PluginPanel
 			return name + "  [" + id + "]";
 		}
 	}
-	private static final Color GOLD = StudioTheme.ACCENT, BG = StudioTheme.BACKGROUND, CONTROL = StudioTheme.CONTROL,
-			OUTLINE = StudioTheme.BORDER, TEXT = StudioTheme.TEXT, MUTED = StudioTheme.MUTED,
-			SLOT = StudioTheme.CONTROL, RED = StudioTheme.ERROR;
-	private static final Font BODY_FONT = StudioTheme.BODY, ACTION_FONT = StudioTheme.ACTION;
+	private static final Color GOLD = StudioTheme.ACCENT;
+	private static final Color BG = StudioTheme.BACKGROUND;
+	private static final Color CONTROL = StudioTheme.CONTROL;
+	private static final Color OUTLINE = StudioTheme.BORDER;
+	private static final Color TEXT = StudioTheme.TEXT;
+	private static final Color MUTED = StudioTheme.MUTED;
+	private static final Color SLOT = StudioTheme.CONTROL;
+	private static final Color RED = StudioTheme.ERROR;
+	private static final Font BODY_FONT = StudioTheme.BODY;
+	private static final Font ACTION_FONT = StudioTheme.ACTION;
 	private JTextField wikiQuery;
 	private final List<JButton> navigation = new ArrayList<>();
 	private final Host host;
@@ -309,7 +315,9 @@ public final class StudioPanel extends PluginPanel
 	private final Gson gson;
 	private final SetupCodec codec;
 	private final JTabbedPane tabs = new JTabbedPane();
-	private final JPanel libraryRows = vertical(), builder = vertical(), builderTools = vertical();
+	private final JPanel libraryRows = vertical();
+	private final JPanel builder = vertical();
+	private final JPanel builderTools = vertical();
 	private final Set<String> expandedPanels = new HashSet<>();
 	private final JTextField search = new JTextField(), setupName = new JTextField()
 	{
@@ -321,21 +329,27 @@ public final class StudioPanel extends PluginPanel
 			return StudioTheme.tooltip(tip);
 		}
 	};
-	private final JCheckBox favorites = new JCheckBox("Favorites"), archived = new JCheckBox("Archived"),
-			favorite = new JCheckBox("Favorite"), ignoreAmmo = new JCheckBox("Ignore Ammo quantities");
+	private final JCheckBox favorites = new JCheckBox("Favorites");
+	private final JCheckBox archived = new JCheckBox("Archived");
+	private final JCheckBox favorite = new JCheckBox("Favorite");
+	private final JCheckBox ignoreAmmo = new JCheckBox("Ignore Ammo quantities");
 	private final JComboBox<String> spellbook = new JComboBox<>(
 			new String[]{"Standard", "Ancient", "Lunar", "Arceuus", "None"});
-	private final JCheckBox filterBank = new JCheckBox("Filter Bank"),
-			bottomToTop = new JCheckBox("Zigzag: bottom row first");
+	private final JCheckBox filterBank = new JCheckBox("Filter Bank");
+	private final JCheckBox bottomToTop = new JCheckBox("Zigzag: bottom row first");
 	private final JComboBox<BankLayouts.Mode> bankLayout = new JComboBox<>(BankLayouts.Mode.values());
 	private final JTextArea bankStatus = new JTextArea(3, 18);
 	private BankLayouts.Mode editorLayout = BankLayouts.Mode.PRESET;
 	private boolean editorBottom;
 	private final JComboBox<String> section = new JComboBox<>(), format = new JComboBox<>(
 			new String[]{"Inventory Setup JSON", "Bank Tag (RuneLite)", "Bank Tag Layouts", "Loadout Studio JSON"});
-	private final JTextArea notes = new GrowingNotesArea(), code = new JTextArea(9, 18), status = new JTextArea(3, 18);
-	private JButton exportCopy, exportPreview;
-	private final JLabel scopeLabel = text(""), draftLabel = text("No setup open");
+	private final JTextArea notes = new GrowingNotesArea();
+	private final JTextArea code = new JTextArea(9, 18);
+	private final JTextArea status = new JTextArea(3, 18);
+	private JButton exportCopy;
+	private JButton exportPreview;
+	private final JLabel scopeLabel = text("");
+	private final JLabel draftLabel = text("No setup open");
 	private final JLabel gearReadiness = new JLabel("Gear not checked")
 	{
 		@Override
@@ -344,7 +358,8 @@ public final class StudioPanel extends PluginPanel
 			return StudioTheme.tooltip(super.createToolTip());
 		}
 	};
-	private JsonObject liveActual, alternativeUndo;
+	private JsonObject liveActual;
+	private JsonObject alternativeUndo;
 	private final JPanel alternativeRows = vertical();
 	private JPanel alternativesContent;
 	private String autoShownAlternativeSession;
@@ -352,7 +367,8 @@ public final class StudioPanel extends PluginPanel
 	private long alternativeRequestVersion;
 	private Boolean appliedAutoExpand;
 	private LoadoutStudioConfig.LibraryOrder libraryOrder = LoadoutStudioConfig.LibraryOrder.ALPHABETICAL;
-	private String upgradeBefore, upgradeAfter;
+	private String upgradeBefore;
+	private String upgradeAfter;
 	private long alternativeUndoRevision;
 	private final Map<Integer, ItemInfo> itemCache = new HashMap<>();
 	private final JTextField catalogueQuery = new JTextField();
@@ -363,27 +379,39 @@ public final class StudioPanel extends PluginPanel
 	private final JLabel catalogueCount = text("Search English item names or IDs");
 	private String renderedSession;
 
-	private final Set<String> collapsed = new HashSet<>(), differences = new HashSet<>();
+	private final Set<String> collapsed = new HashSet<>();
+	private final Set<String> differences = new HashSet<>();
 	private final List<String> sectionIds = new ArrayList<>();
 	private SetupLibrary library = new SetupLibrary();
 	private JsonObject draft;
 	private String recoveryOwner;
 	private JsonObject recovery;
-	private final JPanel recoveryControls = vertical(), existingControls = vertical();
+	private final JPanel recoveryControls = vertical();
+	private final JPanel existingControls = vertical();
 	private final JTextArea conversionNotice = info("", 3);
-	private final JCheckBox exportCompress = new JCheckBox("Compress"), exportPretty = new JCheckBox("Pretty Print");
+	private final JCheckBox exportCompress = new JCheckBox("Compress");
+	private final JCheckBox exportPretty = new JCheckBox("Pretty Print");
 	private final JTextArea exportOptionHint = new CompactStatusArea("");
-	private String editingId, scope, session = UUID.randomUUID().toString();
+	private String editingId;
+	private String scope;
+	private String session = UUID.randomUUID().toString();
 	private String editorSection;
 	private boolean editorFavorite;
-	private boolean dirty, rendering, disposed, storageError;
+	private boolean dirty;
+	private boolean rendering;
+	private boolean disposed;
+	private boolean storageError;
 	private long draftRevision;
-	private Timer wikiSuggestTimer, wikiPageTimer;
-	private long wikiSearchRevision, wikiPageRevision, wikiChoiceRevision;
+	private Timer wikiSuggestTimer;
+	private Timer wikiPageTimer;
+	private long wikiSearchRevision;
+	private long wikiPageRevision;
+	private long wikiChoiceRevision;
 	private final JPanel wikiPresetRows = vertical();
 	private final JTextArea wikiPageStatus = new CompactStatusArea("Choose a Wiki page to see its setups.");
-	private final JTextArea libraryFeedback = new CompactStatusArea(""), builderFeedback = new CompactStatusArea(""),
-			exportFeedback = new CompactStatusArea("");
+	private final JTextArea libraryFeedback = new CompactStatusArea("");
+	private final JTextArea builderFeedback = new CompactStatusArea("");
+	private final JTextArea exportFeedback = new CompactStatusArea("");
 
 	public StudioPanel(Host host, Gson gson)
 	{
