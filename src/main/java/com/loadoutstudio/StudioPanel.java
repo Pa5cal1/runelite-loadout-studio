@@ -1101,7 +1101,7 @@ public final class StudioPanel extends PluginPanel
 			return "";
 		String date = java.time.Instant.ofEpochMilli(page.fetchedAt).atZone(java.time.ZoneId.systemDefault())
 				.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-		return (page.stale ? "Stale cached source Â· " : page.cached ? "Cached source Â· " : "Fetched from Wiki Â· ")
+		return (page.stale ? "Stale cached source · " : page.cached ? "Cached source · " : "Fetched from Wiki · ")
 				+ date;
 	}
 
@@ -1189,7 +1189,7 @@ public final class StudioPanel extends PluginPanel
 	{
 		String owner = recoveryOwner;
 		existingControls.removeAll();
-		existingControls.add(info("Reading setups from this RuneLite profileâ€¦", 2));
+		existingControls.add(info("Reading setups from this RuneLite profile…", 2));
 		existingControls.revalidate();
 		host.existingSetups(result ->
 		{
@@ -1820,7 +1820,7 @@ public final class StudioPanel extends PluginPanel
 			return;
 		if (choice.equals(options[0]))
 		{
-			String name = JOptionPane.showInputDialog(this, "Section name (1â€“60 characters)");
+			String name = JOptionPane.showInputDialog(this, "Section name (1–60 characters)");
 			if (name != null)
 				attempt(() ->
 				{
@@ -2165,7 +2165,7 @@ public final class StudioPanel extends PluginPanel
 		details.add(section);
 		JTextField newSection = new JTextField();
 		newSection.setName("builderNewSection");
-		newSection.setToolTipText("New section name (1â€“60 characters)");
+		newSection.setToolTipText("New section name (1–60 characters)");
 		details.add(newSection);
 		Runnable addSection = () -> attempt(() -> createBuilderSection(newSection.getText()));
 		newSection.addActionListener(e -> addSection.run());
@@ -2178,7 +2178,7 @@ public final class StudioPanel extends PluginPanel
 	{
 		String name = input == null ? "" : input.trim();
 		if (name.isEmpty() || name.length() > 60)
-			throw new IllegalArgumentException("Section name must be 1â€“60 characters.");
+			throw new IllegalArgumentException("Section name must be 1–60 characters.");
 		fieldsToDraft();
 		SetupLibrary.Section chosen = library.sections.stream().filter(s -> s.name.equalsIgnoreCase(name)).findFirst()
 				.orElse(null);
@@ -2377,7 +2377,7 @@ public final class StudioPanel extends PluginPanel
 		if (id == 0)
 			button.setToolTipText((entry.getAsJsonObject().has("label")
 					? entry.getAsJsonObject().get("label").getAsString()
-					: "Unresolved item") + " Â· choose an exact Item ID");
+					: "Unresolved item") + " · choose an exact Item ID");
 		if (id > 0)
 			host.describe(id, info ->
 			{
@@ -2387,13 +2387,13 @@ public final class StudioPanel extends PluginPanel
 				button.itemIcon(info.icon);
 				button.setText(info.icon == null ? "!" : "");
 				button.amount(SetupCodec.unlimited(entry)
-						? "âˆž"
+						? "∞"
 						: key.equals("rp") && SetupCodec.quantity(entry) == 0
 								? "?"
 								: SetupCodec.quantity(entry) > 1 || key.equals("rp")
 										? compact(SetupCodec.quantity(entry))
 										: "");
-				button.setToolTipText(info.name + " Â· " + id + " Â· quantity "
+				button.setToolTipText(info.name + " · " + id + " · quantity "
 						+ (SetupCodec.unlimited(entry)
 								? "unlimited (quantity ignored)"
 								: SetupCodec.quantity(entry) == 0 ? "unknown" : SetupCodec.quantity(entry)));
@@ -3118,7 +3118,7 @@ public final class StudioPanel extends PluginPanel
 						.setAccessibleDescription(slotDifferent(key) ? differenceReason(key) : "Matches current gear");
 				String base = (String) slot.getClientProperty("baseTooltip");
 				if (base != null)
-					slot.setToolTipText(base + (slotDifferent(key) ? " Â· " + differenceReason(key) : ""));
+					slot.setToolTipText(base + (slotDifferent(key) ? " · " + differenceReason(key) : ""));
 			}
 			if (child instanceof Container)
 				updateDifferenceBorders((Container) child);
@@ -3286,13 +3286,13 @@ public final class StudioPanel extends PluginPanel
 						? EQUIPMENT[proposal.index]
 						: "Inventory " + (proposal.index + 1)) + ": " + missingName);
 				missing.setMinimumSize(new Dimension(0, 18));
-				missing.setToolTipText(missing.getText() + " Â· " + proposal.reason);
+				missing.setToolTipText(missing.getText() + " · " + proposal.reason);
 				alternativeRows.add(missing);
 				if (group.size() > 1)
 				{
-					missing.setText("Inventory Ã—" + group.size() + ": " + missingName);
+					missing.setText("Inventory ×" + group.size() + ": " + missingName);
 					missing.setToolTipText(
-							"Replaces all " + group.size() + " matching Inventory slots Â· " + proposal.reason);
+							"Replaces all " + group.size() + " matching Inventory slots · " + proposal.reason);
 				}
 				JComboBox<ItemInfo> select = new JComboBox<>();
 				select.setName("ownedChoice:" + proposal.container + ":" + proposal.index);
@@ -4133,7 +4133,7 @@ public final class StudioPanel extends PluginPanel
 				return;
 			if (requested.length() < 2 || requested.length() > 120)
 			{
-				searchHint.setText("Enter 2â€“120 characters to search.");
+				searchHint.setText("Enter 2–120 characters to search.");
 				return;
 			}
 			searchHint.setText("Searching OSRS Wiki...");
@@ -4172,7 +4172,7 @@ public final class StudioPanel extends PluginPanel
 					matches.addElement(name);
 				searchHint.setText(titles.isEmpty()
 						? "Press Enter or Search Wiki to load suggestions."
-						: "Cached suggestions Â· Search Wiki finds more.");
+						: "Cached suggestions · Search Wiki finds more.");
 			});
 		});
 		wikiSuggestTimer.setRepeats(false);
@@ -4190,10 +4190,10 @@ public final class StudioPanel extends PluginPanel
 			wikiPageStatus.setText("Choose a Wiki page to see its setups.");
 			int length = query.getText().trim().length();
 			if (length < 2 || length > 120)
-				searchHint.setText("Enter 2â€“120 characters to search.");
+				searchHint.setText("Enter 2–120 characters to search.");
 			else
 			{
-				searchHint.setText("Checking cached suggestionsâ€¦");
+				searchHint.setText("Checking cached suggestions…");
 				wikiSuggestTimer.restart();
 			}
 		});
