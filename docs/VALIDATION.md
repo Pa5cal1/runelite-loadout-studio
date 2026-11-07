@@ -1,6 +1,12 @@
 # Current validation — 0.9.1-rc.18
 
-Full suite: **289 tests, zero failures/errors/skipped**.
+Current submitted source: [`6549e29bcee70b6003d6e8a5bdbd98cb46a45ea6`](https://github.com/Pa5cal1/runelite-loadout-studio/tree/6549e29bcee70b6003d6e8a5bdbd98cb46a45ea6). Status checked **7 November 2026**: [Plugin Hub PR #19421](https://github.com/runelite/plugin-hub/pull/19421) is open; review and publication remain pending.
+
+Full suite: **289 tests, zero failures/errors/skipped**. RuneLite Checkstyle, repository CI and the Plugin Hub build pass for this source. The latest source-only formatting change preserves compiled instructions, signatures and constants for 24 affected classes, excluding debug line numbers. The targeted production API check is recorded in [release readiness](release-readiness.md#api-review).
+
+The update recorded here changes documentation only. It adds no live-test claims and leaves the submitted Java code unchanged.
+
+## Earlier validation records
 
 26 October 2026: Plugin Hub scan feedback addressed by removing enabledByDefault=false from the PluginDescriptor. Fresh Java 11 test/jar build passed all 289 tests. This changes the default installation state only.
 

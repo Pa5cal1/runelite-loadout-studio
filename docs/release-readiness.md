@@ -1,18 +1,39 @@
 # Loadout Studio release readiness
 
-Version: **0.9.1-rc.18**. Review date: **25 October 2026**. Status: **submission candidate; user acceptance recorded for the corrected flows; external review pending**.
+Version: **0.9.1-rc.18**. Status checked: **7 November 2026**. Status: **submitted in [Plugin Hub PR #19421](https://github.com/runelite/plugin-hub/pull/19421); review pending; not merged or published**.
 
-Reviewed candidate source commit: `982faa9eb22517d28c551d82ace947ceee8bbd52`. The prepared manifest pins this source; later documentation-only changes do not alter its code.
+Submitted source commit: [`6549e29bcee70b6003d6e8a5bdbd98cb46a45ea6`](https://github.com/Pa5cal1/runelite-loadout-studio/tree/6549e29bcee70b6003d6e8a5bdbd98cb46a45ea6). The live Plugin Hub manifest and the example manifest pin this source. Later documentation-only commits do not change the submitted Java code.
 
 ## Plugin Hub scan follow-up — 26 October 2026
 
-Removed the explicit disabled-by-default descriptor flag requested by the Plugin Hub scanner. Fresh local test/jar build passes all 289 tests. The source revision above includes this one-line installation-default correction; saved user preferences are not rewritten. PR #19421 is updated to scan this revision.
+Removed the explicit disabled-by-default descriptor flag requested by the Plugin Hub scanner. Fresh local test/jar build passes all 289 tests. That correction remains in the currently submitted source; saved user preferences are not rewritten. This paragraph records the earlier scan fix, not a new source change.
 
 ## Current submission assessment
 
-Final rc.18 review found no new concrete release-blocking regression. The user confirmed the final setup-name drop gesture as well as food/potion withdrawals and autosave. Refreshed documentation previews use the current sidebar and configuration declarations with example data. Public repository access and a Plugin Hub pull request remain submission steps, not completed review outcomes. The exact candidate is submitted as rc.18; a stable version follows acceptance and any reviewer fixes.
+Final rc.18 review found no new concrete release-blocking regression. The user confirmed the final setup-name drop gesture as well as food/potion withdrawals and autosave. Refreshed documentation previews use the current sidebar and configuration declarations with example data. The source repository is public and PR #19421 is open. Submission and passing automated checks do not constitute approval. The exact candidate is submitted as rc.18; a stable version follows acceptance and any reviewer fixes.
 
 Cross-account live switching, all native combinations and all scaling settings are not exhaustively proven. No claim of RuneLite/Jagex approval is made. The remainder of this report preserves development-stage findings and test gates; later candidate records supersede earlier counts and corrected native bugs.
+
+## API review
+
+Checked on **7 November 2026**, against the exact submitted source above. All 39 production Java files were matched to the submitted Git blobs. A targeted source inspection and disassembly scan covered 96 compiled production classes. This was a local check, not RuneLite's private review scanner or an approval.
+
+| Area | Result |
+| --- | --- |
+| File access | Wiki cache reads, temporary writes, replacement and deletion go through `Filepath` in the plugin's own directory. Remaining streams are in-memory buffers or streams returned by `Filepath`. No direct `File`, `Files` or file-stream construction was found. |
+| File-related types | `AtomicMoveNotSupportedException` and `StandardCopyOption` support the `Filepath.moveTo` fallback. They are not direct file operations. No scanner rejection of these uses has been observed; do not remove the atomic-write fallback speculatively. |
+| Forbidden calls | No reflection, JNI/JNA, external-process execution, `Thread.sleep/interrupt`, `Runtime`, `KeyboardFocusManager`, direct `Client.menuAction`, `hopToWorld`, `Filepath.Unchecked` or `setCanSendPackets` use was found in the checked production code. |
+| HTTP and JSON | RuneLite injects `OkHttpClient` and `Gson`. No separate HTTP client or direct construction of those clients was found. Wiki traffic remains a sensitive review area. |
+| Native bank and Potion Storage | Two `Client.runScript` call sites read Potion Storage doses and the selected dose. RuneLite lists `runScript` as sensitive, not categorically forbidden. Native widget/menu operation routing still requires reviewer assessment. |
+| Scope | No token-size measurement or refactor was performed for this follow-up. No runtime, configuration, data-format or network behavior was changed. |
+
+The source's existing 289 Java 11 tests, RuneLite Checkstyle and Plugin Hub build pass. The most recent field-formatting change also preserves compiled instructions, signatures and constants for all 24 affected classes, excluding debug line-number information. No new live gameplay acceptance is claimed or required for these documentation edits.
+
+Review basis: [RuneLite forbidden, sensitive and restricted APIs](https://github.com/runelite/runelite/wiki/Rejected-or-Rolled-Back-Features#forbidden-language-features). Passing this targeted check does not guarantee acceptance or exhaustively establish rule compliance.
+
+## Historical development findings
+
+The dated records below preserve earlier test counts and issues. The current source and status at the top of this report supersede earlier submission instructions.
 
 ## Startup follow-up
 
@@ -24,7 +45,7 @@ The fifth candidate fixes a user-reported full-width gear-difference tooltip. Of
 
 ## Executive summary
 
-The candidate supports character-scoped libraries, manual loadout editing, local owned-item alternatives, interoperable exports and on-demand cached Wiki sources. Static inspection and offline tests support moving to the last manual acceptance pass. They do not establish that every RuneLite interaction works in a real client, and they do not constitute RuneLite or Jagex approval.
+The candidate supports character-scoped libraries, manual loadout editing, local owned-item alternatives, interoperable exports and on-demand cached Wiki sources. Static inspection, recorded user acceptance and offline tests support the submitted review candidate. They do not establish that every RuneLite interaction works in a real client, and they do not constitute RuneLite or Jagex approval.
 
 One concrete defect was corrected during the review: useful `Slayer task/…` articles were hidden alongside technical subpages in search. Those activity pages now remain discoverable; technical descendants remain excluded. The README icon now matches the requested Combat Tutor asset.
 
@@ -37,8 +58,8 @@ One concrete defect was corrected during the review: useful `Slayer task/…` ar
 | Account separation | Three-account save/reopen/favorite test, draft recovery and delayed callback guards | Offline passed; live switching pending |
 | Wiki request restraint | Interceptor tests, persisted cache, explicit actions, rolling request budget | Offline passed |
 | Sidebar appearance | RuneLite gray with gold accents, 220/260 px layout checks and example-data previews | Offline checked; live scaling pending |
-| Public listing | Name, author, description, candidate version and bundled icon | Prepared |
-| Plugin Hub submission | Public source access, final acceptance and manifest pin | Pending |
+| Public listing | Name, author, description, candidate version and bundled icon | Submitted; not yet published |
+| Plugin Hub submission | Public repository and PR #19421 pin the source above | Open; review pending; not merged |
 
 ## Introduction
 

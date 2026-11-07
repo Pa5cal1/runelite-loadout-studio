@@ -1,24 +1,28 @@
-# Plugin Hub submission manifest
+# Plugin Hub submission
 
-Current preparation: **0.9.1-rc.18**, checked on **25 October 2026**. The candidate is not submitted or approved. See [the proposed listing and description](submission-description.md) and [release gates](../release-readiness.md).
+**Version:** 0.9.1-rc.18  
+**Status checked:** 7 November 2026  
+**Pull request:** [runelite/plugin-hub#19421](https://github.com/runelite/plugin-hub/pull/19421)  
+**Status:** Open; review pending; not merged or published.
 
-## Submission sequence
+## Submitted source
 
-1. Complete and record the manual acceptance pass on the exact candidate. Keep source code and version metadata in sync.
-2. Make the source repository public before submission. Public submission is authorised; the connected GitHub tool cannot change repository visibility.
-3. Retain the exact reviewed **0.9.1-rc.18** candidate for initial review; a stable **1.0.0** follows acceptance. The root `icon.png` is a bundled 32 by 32 pixel PNG, within the Hub's 48 by 72 maximum.
-4. Fork `runelite/plugin-hub`, create a branch and add `plugins/loadout-studio` containing the source repository, full reviewed commit hash and proposed network warning. Use the commit from the source that will actually be reviewed.
-5. Open one pull request with the prepared description and acceptance evidence. Respond to Hub checks and reviewers; update the same PR's pinned commit when fixes are required.
-6. Wait for review and merge. Do not advertise the plugin as approved or available until it actually appears in the Hub.
+The live manifest pins [`6549e29bcee70b6003d6e8a5bdbd98cb46a45ea6`](https://github.com/Pa5cal1/runelite-loadout-studio/tree/6549e29bcee70b6003d6e8a5bdbd98cb46a45ea6). [loadout-studio.example](loadout-studio.example) contains the same source pin and network warning. Documentation-only commits on the source repository may follow that pin without changing the submitted Java code.
 
-For later updates, change the manifest's commit to the tested source revision; changing only the plugin version is insufficient. Official instructions: [Plugin Hub README](https://github.com/runelite/plugin-hub/blob/master/README.md). The [review scope](https://github.com/runelite/runelite/wiki/Plugin-Hub-Review) is security and rule compliance, not functional acceptance.
+The initial scanner feedback and formatting request have been addressed. The pinned source passes all 289 Java 11 tests, RuneLite Checkstyle and the Plugin Hub build. The later sidebar refactor remains separate development work.
 
-## Prepared manifest
+See [the submission description](submission-description.md), [validation and limitations](../release-readiness.md) and [the targeted API check](../release-readiness.md#api-review).
 
-`loadout-studio.example` is a preparation template, not a submitted release manifest. Its pin identifies the reviewed candidate source; replace it after any further source change or stable-version update before using the manifest as `plugins/loadout-studio` in a Plugin Hub submission. The current repository must be made public before review.
+## Review and updates
 
-The `warning` line describes Loadout Studio's actual network behavior: queries and requested page titles go to OSRS Wiki, which receives the connection's IP address. Gear and saved setups are not uploaded. The user explicitly rejected a generic warning suggesting account-data submission.
+Keep fixes for this submission in the existing PR. For a source change, validate the new revision and update the live manifest's `commit=` value and the example manifest together. Documentation-only updates do not require a new source pin or plugin version.
 
-RuneLite's [PluginHubPanel](https://github.com/runelite/runelite/blob/master/runelite-client/src/main/java/net/runelite/client/plugins/config/PluginHubPanel.java) adds the installation title, confirmation question, warning icon and Yes/No buttons. Do not duplicate that question in the warning line. Wiki requests are always available in the sidebar; there is no opt-in checkbox. No requests are sent merely by opening the plugin.
+Passing automated checks is not approval. Keep the candidate version until acceptance and any reviewer fixes are complete. Do not advertise Hub availability before publication.
 
-The development launcher bypasses Plugin Hub installation, so it does not display the Hub installation dialog. No duplicate install dialog is injected by the plugin.
+Official process: [Plugin Hub instructions](https://github.com/runelite/plugin-hub#submitting-a-plugin).
+
+## Network warning
+
+The warning describes the plugin's actual Wiki traffic: the Wiki receives the connection's IP address, search queries and requested page titles. Gear and saved setups are not uploaded.
+
+RuneLite supplies the installation dialog. The development launcher bypasses that Hub dialog; the plugin does not inject a duplicate. Wiki requests are available in the sidebar and occur after explicit user search/page actions, not merely on startup or when the sidebar opens.
