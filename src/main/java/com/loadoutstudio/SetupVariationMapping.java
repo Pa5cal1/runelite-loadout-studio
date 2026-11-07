@@ -4,24 +4,32 @@
  * Redistribution conditions and disclaimer: bundled inventory-setups-LICENSE.txt.
  */
 package com.loadoutstudio;
-import java.util.Map;
-import java.util.HashMap;
-import net.runelite.client.game.ItemVariationMapping;
 import static net.runelite.api.gameval.ItemID.*;
+
+import java.util.HashMap;
+import java.util.Map;
+import net.runelite.client.game.ItemVariationMapping;
 
 final class SetupVariationMapping
 {
-    private static final Map<Integer,Integer> mappings=new HashMap<>();
-    static int map(int id){int base=ItemVariationMapping.map(id);return base==id?mappings.getOrDefault(id,id):base;}
-    /** Fuzzy matching also includes supported combat-equivalent combined capes. */
-    static int fuzzy(int id){
-        int combat=EquipmentVariants.combatBase(id);
-        if(combat==SLAYER_HELM_I)return SLAYER_HELM_I;
-        int base=ItemVariationMapping.map(combat);
-        return mappings.getOrDefault(combat,mappings.getOrDefault(base,base));
-    }
-    static
-    {
+	private static final Map<Integer, Integer> mappings = new HashMap<>();
+	static int map(int id)
+	{
+		int base = ItemVariationMapping.map(id);
+		return base == id ? mappings.getOrDefault(id, id) : base;
+	}
+
+	/** Fuzzy matching also includes supported combat-equivalent combined capes. */
+	static int fuzzy(int id)
+	{
+		int combat = EquipmentVariants.combatBase(id);
+		if (combat == SLAYER_HELM_I)
+			return SLAYER_HELM_I;
+		int base = ItemVariationMapping.map(combat);
+		return mappings.getOrDefault(combat, mappings.getOrDefault(base, base));
+	}
+	static
+	{
 		// Granite Cannonball -> Cannonball
 		mappings.put(GRANITE_CANNONBALL, MCANNONBALL);
 
@@ -66,7 +74,7 @@ final class SetupVariationMapping
 
 		final int itemIDGodDhideBody = 1000000006;
 		mappings.put(TRAIL_ANCIENT_CHEST, itemIDGodDhideBody);
-		mappings.put(TRAIL_ARMADYL_CHEST , itemIDGodDhideBody);
+		mappings.put(TRAIL_ARMADYL_CHEST, itemIDGodDhideBody);
 		mappings.put(TRAIL_BANDOS_CHEST, itemIDGodDhideBody);
 		mappings.put(TRAIL_GUTHIX_CHEST, itemIDGodDhideBody);
 		mappings.put(TRAIL_SARADOMIN_CHEST, itemIDGodDhideBody);
@@ -120,7 +128,7 @@ final class SetupVariationMapping
 		mappings.put(SPIRIT_ANGLER_HAT, TRAWLER_REWARD_HAT);
 		mappings.put(SPIRIT_ANGLER_TOP, TRAWLER_REWARD_TOP);
 		mappings.put(SPIRIT_ANGLER_LEGS, TRAWLER_REWARD_LEGS);
-		
+
 		// ToB ornament kits -> base version
 		mappings.put(SCYTHE_OF_VITUR_BL, SCYTHE_OF_VITUR);
 		mappings.put(SCYTHE_OF_VITUR_OR, SCYTHE_OF_VITUR);
@@ -129,7 +137,7 @@ final class SetupVariationMapping
 
 		mappings.put(INFERNAL_DEFENDER_GHOMMAL_5, INFERNAL_DEFENDER);
 		mappings.put(INFERNAL_DEFENDER_GHOMMAL_5_TROUVER, INFERNAL_DEFENDER);
-		mappings.put(INFERNAL_DEFENDER_GHOMMAL_6 , INFERNAL_DEFENDER);
+		mappings.put(INFERNAL_DEFENDER_GHOMMAL_6, INFERNAL_DEFENDER);
 		mappings.put(INFERNAL_DEFENDER_GHOMMAL_6_TROUVER, INFERNAL_DEFENDER);
 
 		// Blazing blowpipe -> toxic blowpipe
@@ -145,5 +153,5 @@ final class SetupVariationMapping
 		mappings.put(TORVA_CHEST_SANGUINE, TORVA_CHEST);
 		mappings.put(TORVA_LEGS_SANGUINE, TORVA_LEGS);
 
-    }
+	}
 }

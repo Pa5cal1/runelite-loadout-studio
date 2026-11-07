@@ -18,7 +18,10 @@ public final class SetupLibrary
 	{
 		public String id = UUID.randomUUID().toString();
 		public String name;
-		public Section(String name) { this.name = name; }
+		public Section(String name)
+		{
+			this.name = name;
+		}
 	}
 	public static final class Entry
 	{
@@ -30,37 +33,97 @@ public final class SetupLibrary
 		public BankLayouts.Mode bankLayout;
 		public boolean zigzagBottomToTop;
 		public JsonObject portable;
-		public Entry(JsonObject p) { portable = p.deepCopy(); }
+		public Entry(JsonObject p)
+		{
+			portable = p.deepCopy();
+		}
 	}
 	public void validate()
 	{
-		if (version != 1 || sections == null || setups == null || sections.size() > 100 || setups.size() > 200) throw new IllegalArgumentException("Unsupported or excessive library.");
+		if (version != 1 || sections == null || setups == null || sections.size() > 100 || setups.size() > 200)
+			throw new IllegalArgumentException("Unsupported or excessive library.");
 		Set<String> ids = new HashSet<>(), sectionIds = new HashSet<>();
-		for (Section section : sections) { if (section == null || section.id == null || !ids.add(section.id) || section.name == null || section.name.trim().isEmpty() || section.name.length() > 60) throw new IllegalArgumentException("Invalid section."); sectionIds.add(section.id); }
-		for (Entry entry : setups) { if (entry == null || entry.id == null || !ids.add(entry.id) || (entry.section != null && !sectionIds.contains(entry.section))) throw new IllegalArgumentException("Invalid saved setup."); SetupCodec.validate(entry.portable, false); }
+		for (Section section : sections)
+		{
+			if (section == null || section.id == null || !ids.add(section.id) || section.name == null
+					|| section.name.trim().isEmpty() || section.name.length() > 60)
+				throw new IllegalArgumentException("Invalid section.");
+			sectionIds.add(section.id);
+		}
+		for (Entry entry : setups)
+		{
+			if (entry == null || entry.id == null || !ids.add(entry.id)
+					|| (entry.section != null && !sectionIds.contains(entry.section)))
+				throw new IllegalArgumentException("Invalid saved setup.");
+			SetupCodec.validate(entry.portable, false);
+		}
 	}
-	public String serialize(Gson gson) { validate(); String text = gson.toJson(this); if (text.length() > 1_000_000) throw new IllegalArgumentException("Library is full. Export a backup."); return text; }
+
+	public String serialize(Gson gson)
+	{
+		validate();
+		String text = gson.toJson(this);
+		if (text.length() > 1_000_000)
+			throw new IllegalArgumentException("Library is full. Export a backup.");
+		return text;
+	}
+
 	public static SetupLibrary read(String text, Gson gson)
 	{
-		if (text == null || text.isEmpty()) return new SetupLibrary();
+		if (text == null || text.isEmpty())
+			return new SetupLibrary();
 		com.google.gson.JsonElement raw = new SetupCodec(gson).parse(text);
-        if (raw == null || !raw.isJsonObject()) throw new IllegalArgumentException("Invalid library.");
-        com.google.gson.JsonElement records = raw.getAsJsonObject().get("setups");
-        if (records == null || !records.isJsonArray()) throw new IllegalArgumentException("Invalid saved setups.");
-        for (com.google.gson.JsonElement record : records.getAsJsonArray())
-        {
-            if (!record.isJsonObject()) throw new IllegalArgumentException("Invalid saved setup.");
-            for (String flag : new String[]{"favorite", "archived", "zigzagBottomToTop"}) SetupCodec.validateBoolean(record.getAsJsonObject(), flag, false);
-        }
-		SetupLibrary result = gson.fromJson(text, SetupLibrary.class); if (result == null) throw new IllegalArgumentException("Invalid library."); result.validate(); return result;
+		if (raw == null || !raw.isJsonObject())
+			throw new IllegalArgumentException("Invalid library.");
+		com.google.gson.JsonElement records = raw.getAsJsonObject().get("setups");
+		if (records == null || !records.isJsonArray())
+			throw new IllegalArgumentException("Invalid saved setups.");
+		for (com.google.gson.JsonElement record : records.getAsJsonArray())
+		{
+			if (!record.isJsonObject())
+				throw new IllegalArgumentException("Invalid saved setup.");
+			for (String flag : new String[]{"favorite", "archived", "zigzagBottomToTop"})
+				SetupCodec.validateBoolean(record.getAsJsonObject(), flag, false);
+		}
+		SetupLibrary result = gson.fromJson(text, SetupLibrary.class);
+		if (result == null)
+			throw new IllegalArgumentException("Invalid library.");
+		result.validate();
+		return result;
 	}
-    public String uniqueName(String desired) {
-        String clean=desired.trim();if(setups.stream().noneMatch(e->SetupCodec.name(e.portable).equalsIgnoreCase(clean)))return clean;
-        String base=clean.replaceFirst("\\s*\\(\\d+\\)$","").trim();
-        for(int n=1;n<=setups.size()+1;n++) {String suffix=" ("+n+")",name=base.substring(0,Math.min(base.length(),50-suffix.length()))+suffix;if(setups.stream().noneMatch(e->SetupCodec.name(e.portable).equalsIgnoreCase(name)))return name;}
-        throw new IllegalStateException("No free setup name.");
-    }
-	public void removeSection(String id) { sections.removeIf(s -> s.id.equals(id)); for (Entry entry : setups) if (id.equals(entry.section)) entry.section = null; }
-	public boolean removeArchived(String id) { Entry entry = find(id); return entry != null && entry.archived && setups.remove(entry); }
-	public Entry find(String id) { return setups.stream().filter(e -> e.id.equals(id)).findFirst().orElse(null); }
+
+	public String uniqueName(String desired)
+	{
+		String clean = desired.trim();
+		if (setups.stream().noneMatch(e -> SetupCodec.name(e.portable).equalsIgnoreCase(clean)))
+			return clean;
+		String base = clean.replaceFirst("\\s*\\(\\d+\\)$", "").trim();
+		for (int n = 1; n <= setups.size() + 1; n++)
+		{
+			String suffix = " (" + n + ")",
+					name = base.substring(0, Math.min(base.length(), 50 - suffix.length())) + suffix;
+			if (setups.stream().noneMatch(e -> SetupCodec.name(e.portable).equalsIgnoreCase(name)))
+				return name;
+		}
+		throw new IllegalStateException("No free setup name.");
+	}
+
+	public void removeSection(String id)
+	{
+		sections.removeIf(s -> s.id.equals(id));
+		for (Entry entry : setups)
+			if (id.equals(entry.section))
+				entry.section = null;
+	}
+
+	public boolean removeArchived(String id)
+	{
+		Entry entry = find(id);
+		return entry != null && entry.archived && setups.remove(entry);
+	}
+
+	public Entry find(String id)
+	{
+		return setups.stream().filter(e -> e.id.equals(id)).findFirst().orElse(null);
+	}
 }
