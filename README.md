@@ -2,7 +2,7 @@
 
 Create, capture and organise gear loadouts for Old School RuneScape. Find Wiki presets, adapt them to your owned gear and keep your setups in a character-specific library.
 
-**Version: 0.9.1-rc.18.** Prepared for RuneLite Plugin Hub review; not yet approved or available through the Hub. The reviewed candidate version is retained for submission. Installation through the Hub will become available only after RuneLite accepts and publishes it.
+**Version: 0.9.1-rc.18.** Available in the RuneLite Plugin Hub.
 
 Loadout Studio works independently of Inventory Setups and the standalone Bank Tag Layouts plugin. Built-in Bank Tags is optional. No Docker installation is required.
 
@@ -25,7 +25,7 @@ Settings previews below are generated from the current configuration definitions
 
 ## Getting started
 
-Until Hub publication, build the development client using the instructions below. Enable **Loadout Studio** in RuneLite and click the Combat Tutor sword icon in the sidebar.
+In RuneLite, open **Plugin Hub**, search for **Loadout Studio**, and click **Install**. Click the Combat Tutor sword icon in the sidebar to open the plugin.
 
 ![Sidebar icon](src/main/resources/com/loadoutstudio/combat-tutor.png)
 
