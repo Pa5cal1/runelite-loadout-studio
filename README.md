@@ -1,5 +1,7 @@
 # Loadout Studio
 
+[![Total installs](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.runelite.net%2Fpluginhub%2Fshields%2Finstalls%2Fplugin%2Floadout-studio)](https://runelite.net/plugin-hub/show/loadout-studio) [![Plugin rank](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.runelite.net%2Fpluginhub%2Fshields%2Frank%2Fplugin%2Floadout-studio)](https://runelite.net/plugin-hub)
+
 Create, capture and organise gear loadouts for Old School RuneScape. Find Wiki presets, adapt them to your owned gear and keep your setups in a character-specific library.
 
 **Version: 0.9.1-rc.18.** Available in the RuneLite Plugin Hub.
